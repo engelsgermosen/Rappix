@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Rappix.Contracts</RootNamespace>
+    <AssemblyName>Rappix.Contracts</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\BuildingBlocks\Rappix.BuildingBlocks.Messaging\Rappix.BuildingBlocks.Messaging.csproj" />
+  </ItemGroup>
+
+</Project>

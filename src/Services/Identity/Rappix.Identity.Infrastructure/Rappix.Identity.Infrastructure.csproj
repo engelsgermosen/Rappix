@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Rappix.Identity.Infrastructure</RootNamespace>
+    <AssemblyName>Rappix.Identity.Infrastructure</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rappix.Identity.Application\Rappix.Identity.Application.csproj" />
+    <ProjectReference Include="..\Rappix.Identity.Domain\Rappix.Identity.Domain.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Core\Rappix.BuildingBlocks.Core.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Messaging\Rappix.BuildingBlocks.Messaging.csproj" />
+  </ItemGroup>
+
+</Project>

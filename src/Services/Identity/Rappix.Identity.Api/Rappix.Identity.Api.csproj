@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <RootNamespace>Rappix.Identity.Api</RootNamespace>
+    <AssemblyName>Rappix.Identity.Api</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rappix.Identity.Application\Rappix.Identity.Application.csproj" />
+    <ProjectReference Include="..\Rappix.Identity.Infrastructure\Rappix.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.WebApi\Rappix.BuildingBlocks.WebApi.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Observability\Rappix.BuildingBlocks.Observability.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Messaging\Rappix.BuildingBlocks.Messaging.csproj" />
+  </ItemGroup>
+
+</Project>
