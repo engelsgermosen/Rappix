@@ -1,0 +1,4 @@
+# Las migraciones de EF Core son codigo generado: se tratan como tal para que
+# los analizadores (y TreatWarningsAsErrors) no las marquen.
+[*.cs]
+generated_code = true
