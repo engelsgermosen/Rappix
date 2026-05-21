@@ -156,6 +156,53 @@ services:
     networks:
       - rappix-net
 
+  # ──────────────────────────────────────────────────────────────
+  # Merchants Service (Fase 2). REST en 8080, gRPC h2c en 8081.
+  # ──────────────────────────────────────────────────────────────
+  merchants-api:
+    build:
+      context: .
+      dockerfile: src/Services/Merchants/Rappix.Merchants.Api/Dockerfile
+    container_name: rappix-merchants
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # No se define ASPNETCORE_URLS: los dos puertos (8080 REST, 8081 gRPC) van en codigo (ConfigureKestrel).
+      ConnectionStrings__MerchantsDb: "Host=postgres;Port=5432;Database=rappix_merchants;Username=rappix;Password=rappix_dev_2026"
+      ConnectionStrings__Redis: "redis:6379,password=rappix_redis_2026"
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Port: "5672"
+      RabbitMq__Username: rappix
+      RabbitMq__Password: rappix_mq_2026
+      Seq__ServerUrl: "http://seq:80"
+      Jwt__Issuer: "https://localhost:5001"
+      Jwt__Audience: rappix
+      # Misma clave que Identity: Merchants solo valida los tokens que Identity emite.
+      Jwt__SigningKey: "${IDENTITY_JWT_SIGNINGKEY:?Define IDENTITY_JWT_SIGNINGKEY en .env}"
+      # MinIO: las subidas usan el host interno; las URLs firmadas, el host publico (alcanzable desde el navegador).
+      Minio__Endpoint: "minio:9000"
+      Minio__PublicEndpoint: "localhost:9000"
+      Minio__AccessKey: rappix
+      Minio__SecretKey: rappix_minio_2026
+      Minio__Bucket: merchants-logos
+      Minio__UseSsl: "false"
+    ports:
+      - "5002:8080" # REST
+      - "5012:8081" # gRPC (h2c)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      seq:
+        condition: service_started
+      minio:
+        condition: service_healthy
+    networks:
+      - rappix-net
+
 volumes:
   postgres_data:
   redis_data:
