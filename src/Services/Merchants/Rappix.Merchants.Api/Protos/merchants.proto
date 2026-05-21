@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+option csharp_namespace = "Rappix.Merchants.Api.Grpc";
+
+package merchants.v1;
+
+// Servicio interno para que otros microservicios (Orders, Catalog) validen comercios sin HTTP.
+service MerchantValidationService {
+  // Indica si un merchant esta activo (visible y operativo).
+  rpc IsMerchantActive (MerchantIdRequest) returns (IsMerchantActiveResponse);
+
+  // Devuelve datos basicos de un merchant.
+  rpc GetMerchantBasicInfo (MerchantIdRequest) returns (MerchantBasicInfoResponse);
+}
+
+message MerchantIdRequest {
+  string merchant_id = 1;
+}
+
+message IsMerchantActiveResponse {
+  bool is_active = 1;
+  string status = 2;
+}
+
+message MerchantBasicInfoResponse {
+  bool found = 1;
+  bool is_active = 2;
+  string name = 3;
+  string slug = 4;
+  string vertical_type = 5;
+}
