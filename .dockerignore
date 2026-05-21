@@ -1,0 +1,25 @@
+# Artefactos de build
+**/bin/
+**/obj/
+**/out/
+
+# Secretos y configuracion local (nunca deben entrar a la imagen)
+**/appsettings.Development.json
+**/appsettings.Local.json
+.env
+.env.*
+
+# Control de versiones / IDE
+.git/
+.github/
+.vs/
+.vscode/
+.idea/
+**/*.user
+
+# Frontend y datos locales
+frontends/
+node_modules/
+volumes/
+data/
+docs/

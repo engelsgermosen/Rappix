@@ -109,29 +109,52 @@ services:
       - rappix-net
 
   # ──────────────────────────────────────────────────────────────
-  # Servicios .NET (se irán habilitando por fase)
-  # Comentados hasta que tengamos imagen lista en cada fase
+  # Identity Service (Fase 1). Los secretos se inyectan desde .env.
   # ──────────────────────────────────────────────────────────────
-  # identity-api:
-  #   build:
-  #     context: .
-  #     dockerfile: src/Services/Identity/Rappix.Identity.Api/Dockerfile
-  #   container_name: rappix-identity
-  #   restart: unless-stopped
-  #   environment:
-  #     ASPNETCORE_ENVIRONMENT: Development
-  #     ASPNETCORE_URLS: http://+:8080
-  #   ports:
-  #     - "5001:8080"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     rabbitmq:
-  #       condition: service_healthy
-  #     seq:
-  #       condition: service_started
-  #   networks:
-  #     - rappix-net
+  identity-api:
+    build:
+      context: .
+      dockerfile: src/Services/Identity/Rappix.Identity.Api/Dockerfile
+    container_name: rappix-identity
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:8080"
+      # Conexiones por nombre de servicio dentro de la red de Docker.
+      ConnectionStrings__IdentityDb: "Host=postgres;Port=5432;Database=rappix_identity;Username=rappix;Password=rappix_dev_2026"
+      ConnectionStrings__Redis: "redis:6379,password=rappix_redis_2026"
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Port: "5672"
+      RabbitMq__Username: rappix
+      RabbitMq__Password: rappix_mq_2026
+      Seq__ServerUrl: "http://seq:80"
+      Jwt__Issuer: "https://localhost:5001"
+      Jwt__Audience: rappix
+      Jwt__AccessTokenLifetimeMinutes: "15"
+      Jwt__RefreshTokenLifetimeDays: "90"
+      # Secretos: definir en .env (ver .env.example).
+      Jwt__SigningKey: "${IDENTITY_JWT_SIGNINGKEY:?Define IDENTITY_JWT_SIGNINGKEY en .env}"
+      SendGrid__ApiKey: "${SENDGRID_API_KEY:-}"
+      SendGrid__FromEmail: "${SENDGRID_FROM_EMAIL:-noreply@rappix.local}"
+      SendGrid__FromName: "${SENDGRID_FROM_NAME:-Rappix}"
+      Google__ClientId: "${GOOGLE_CLIENT_ID:-}"
+      Google__ClientSecret: "${GOOGLE_CLIENT_SECRET:-}"
+      Google__CallbackPath: /signin-google
+      App__PublicBaseUrl: "https://localhost:5001"
+      App__FrontendUrl: "http://localhost:3000"
+    ports:
+      - "5001:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      seq:
+        condition: service_started
+    networks:
+      - rappix-net
 
 volumes:
   postgres_data:
