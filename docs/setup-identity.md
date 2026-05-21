@@ -118,12 +118,12 @@ dotnet ef database update --project src/Services/Identity/Rappix.Identity.Infras
 
 # 3a. Correr local
 dotnet run --project src/Services/Identity/Rappix.Identity.Api
-#     -> https://localhost:5001/swagger
+#     -> https://localhost:5001/scalar/v1   (UI)   ·   /openapi/v1.json (documento)
 
 # 3b. O correr en contenedor (requiere .env con IDENTITY_JWT_SIGNINGKEY)
 docker compose up -d --build identity-api
-#     -> http://localhost:5001/swagger
+#     -> http://localhost:5001/scalar/v1
 ```
 
-Dashboards útiles: Swagger UI (`/swagger`), Seq (<http://localhost:5341>),
+Dashboards útiles: Scalar UI (`/scalar/v1`), Seq (<http://localhost:5341>),
 RabbitMQ (<http://localhost:15672>, usuario `rappix`).

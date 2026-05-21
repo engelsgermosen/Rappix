@@ -16,6 +16,7 @@ using Rappix.Identity.Application;
 using Rappix.Identity.Application.Authentication;
 using Rappix.Identity.Application.Configuration;
 using Rappix.Identity.Infrastructure;
+using Scalar.AspNetCore;
 using Rappix.Identity.Infrastructure.Mail;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -108,12 +109,23 @@ builder.Services
         options.SubstituteApiVersionInUrl = true;
     });
 
-// OpenAPI nativo de .NET 10 (Microsoft.OpenApi 2.0) para generar el documento;
-// la UI la sirve Swashbuckle.SwaggerUI apuntando al JSON nativo. Se usa el generador
-// nativo porque Swashbuckle 7.2 no es compatible con Microsoft.OpenApi 2.0 que .NET 10
-// arrastra via Microsoft.AspNetCore.OpenApi (referencia transitiva de BuildingBlocks.WebApi).
+// OpenAPI nativo de .NET 10 (Microsoft.OpenApi 2.0) + Scalar para la UI. No se usa Swashbuckle
+// porque esta compilado contra Microsoft.OpenApi 1.6 y rompe con la 2.0 que arrastra .NET 10 (ADR-0002).
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApi("v1", options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
+builder.Services.AddOpenApi("v1", options =>
+{
+    options.AddDocumentTransformer((document, context, cancellationToken) =>
+    {
+        document.Info = new()
+        {
+            Title = "Rappix Identity API",
+            Version = "v1",
+            Description = "Autenticacion, registro y gestion de usuarios.",
+        };
+        return Task.CompletedTask;
+    });
+    options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+});
 
 WebApplication app = builder.Build();
 
@@ -123,8 +135,8 @@ app.UseRappixRequestLogging();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-    app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "Rappix Identity v1"));
+    app.MapOpenApi();                 // documento en /openapi/v1.json
+    app.MapScalarApiReference();      // UI en /scalar/v1
 }
 
 app.UseAuthentication();

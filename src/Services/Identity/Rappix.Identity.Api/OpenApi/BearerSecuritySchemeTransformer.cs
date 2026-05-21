@@ -5,8 +5,8 @@ using Microsoft.OpenApi;
 namespace Rappix.Identity.Api.OpenApi;
 
 /// <summary>
-/// Transformador de documento OpenAPI (.NET 10) que registra el esquema de seguridad Bearer
-/// para que Swagger UI muestre el boton "Authorize".
+/// Transformador de documento OpenAPI (.NET 10) que registra el esquema de seguridad Bearer y lo
+/// aplica como requisito a las operaciones, para que Scalar muestre el boton "Authorize".
 /// </summary>
 internal sealed class BearerSecuritySchemeTransformer(IAuthenticationSchemeProvider authenticationSchemeProvider)
     : IOpenApiDocumentTransformer
@@ -34,5 +34,24 @@ internal sealed class BearerSecuritySchemeTransformer(IAuthenticationSchemeProvi
                 Description = "JWT de acceso. Pega el token (sin el prefijo 'Bearer').",
             },
         };
+
+        var requirement = new OpenApiSecurityRequirement
+        {
+            [new OpenApiSecuritySchemeReference("Bearer", document)] = [],
+        };
+
+        foreach (OpenApiPathItem pathItem in document.Paths.Values)
+        {
+            if (pathItem.Operations is null)
+            {
+                continue;
+            }
+
+            foreach (OpenApiOperation operation in pathItem.Operations.Values)
+            {
+                operation.Security ??= [];
+                operation.Security.Add(requirement);
+            }
+        }
     }
 }
