@@ -50,6 +50,11 @@
     <PackageVersion Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.17.0" />
   </ItemGroup>
 
+  <ItemGroup Label="Overrides de seguridad (dependencias transitivas)">
+    <!-- Fija una version parcheada; la 9.0.0 (arrastrada por Testcontainers) tiene CVE de gravedad alta. -->
+    <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.8" />
+  </ItemGroup>
+
   <ItemGroup Label="Logging / Observability">
      <PackageVersion Include="Serilog" Version="4.2.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
