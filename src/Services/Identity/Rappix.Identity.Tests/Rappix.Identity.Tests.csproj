@@ -5,6 +5,8 @@
     <AssemblyName>Rappix.Identity.Tests</AssemblyName>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <!-- Convenciones de prueba: nombres con guion bajo y helpers de instancia. -->
+    <NoWarn>$(NoWarn);CA1707;CA1822</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
