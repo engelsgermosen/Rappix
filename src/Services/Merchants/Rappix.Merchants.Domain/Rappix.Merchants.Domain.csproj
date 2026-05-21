@@ -6,6 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Tipos de geometria (Polygon, Point) son conceptos del dominio para las zonas de cobertura. -->
+    <PackageReference Include="NetTopologySuite" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Core\Rappix.BuildingBlocks.Core.csproj" />
   </ItemGroup>
 
