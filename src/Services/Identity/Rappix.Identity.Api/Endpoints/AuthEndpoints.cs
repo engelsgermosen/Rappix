@@ -28,7 +28,7 @@ internal static class AuthEndpoints
 
         auth.MapPost("/register", async (RegisterRequest request, ISender sender, CancellationToken cancellationToken) =>
         {
-            var command = new RegisterCommand(request.Email, request.PhoneNumber, request.Password, request.FirstName, request.LastName);
+            var command = new RegisterCommand(request.Email, request.PhoneNumber, request.Password, request.FirstName, request.LastName, request.AccountType);
             return (await sender.Send(command, cancellationToken)).ToHttpResult();
         });
 

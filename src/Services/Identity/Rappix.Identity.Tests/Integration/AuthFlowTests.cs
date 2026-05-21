@@ -109,6 +109,27 @@ public sealed class AuthFlowTests(IdentityApiFactory factory) : IClassFixture<Id
     }
 
     [Fact]
+    public async Task Register_AsMerchant_CreatesUserWithMerchantType()
+    {
+        HttpClient client = factory.CreateClient();
+        string email = UniqueEmail();
+
+        HttpResponseMessage register = await client.PostAsJsonAsync("/api/v1/auth/register", new
+        {
+            email,
+            phoneNumber = (string?)null,
+            password = "Merch4ntPass!",
+            firstName = "Meri",
+            lastName = "Comercio",
+            accountType = "Merchant",
+        });
+
+        register.StatusCode.Should().Be(HttpStatusCode.OK);
+        UserResult created = (await register.Content.ReadFromJsonAsync<UserResult>(JsonOptions))!;
+        created.UserType.Should().Be("Merchant");
+    }
+
+    [Fact]
     public async Task Me_WithoutToken_ReturnsUnauthorized()
     {
         HttpClient client = factory.CreateClient();

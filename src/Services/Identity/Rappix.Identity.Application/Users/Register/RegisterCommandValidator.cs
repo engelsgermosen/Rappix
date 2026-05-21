@@ -25,5 +25,14 @@ internal sealed class RegisterCommandValidator : AbstractValidator<RegisterComma
         RuleFor(command => command.LastName)
             .NotEmpty()
             .MaximumLength(100);
+
+        RuleFor(command => command.AccountType)
+            .Must(BeCustomerOrMerchant)
+            .When(command => command.AccountType is not null)
+            .WithMessage("accountType debe ser 'Customer' o 'Merchant'.");
     }
+
+    private static bool BeCustomerOrMerchant(string? accountType) =>
+        string.Equals(accountType, "Customer", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(accountType, "Merchant", StringComparison.OrdinalIgnoreCase);
 }

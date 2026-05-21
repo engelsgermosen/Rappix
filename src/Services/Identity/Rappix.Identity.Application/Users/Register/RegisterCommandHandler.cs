@@ -59,7 +59,10 @@ internal sealed partial class RegisterCommandHandler(
         }
 
         DateTime now = clock.UtcNow;
-        var user = User.Register(email, phone, passwordHasher.Hash(command.Password), command.FirstName, command.LastName, UserType.Customer, now);
+        UserType userType = string.Equals(command.AccountType, "Merchant", StringComparison.OrdinalIgnoreCase)
+            ? UserType.Merchant
+            : UserType.Customer;
+        var user = User.Register(email, phone, passwordHasher.Hash(command.Password), command.FirstName, command.LastName, userType, now);
 
         string rawToken = tokenService.GenerateOpaqueToken();
         user.AddEmailConfirmationToken(tokenService.ComputeHash(rawToken), now, ConfirmationLifetime);

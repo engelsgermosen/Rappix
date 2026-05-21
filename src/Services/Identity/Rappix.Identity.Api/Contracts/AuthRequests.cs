@@ -1,12 +1,13 @@
 namespace Rappix.Identity.Api.Contracts;
 
-/// <summary>Cuerpo del registro local.</summary>
+/// <summary>Cuerpo del registro local. accountType opcional: "Customer" (default) o "Merchant".</summary>
 public sealed record RegisterRequest(
     string Email,
     string? PhoneNumber,
     string Password,
     string FirstName,
-    string LastName);
+    string LastName,
+    string? AccountType = null);
 
 /// <summary>Cuerpo del login local (identificador = email o telefono).</summary>
 public sealed record LoginRequest(string Identifier, string Password);
