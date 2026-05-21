@@ -17,7 +17,7 @@ Rappix es un marketplace de tres lados (clientes, comercios, repartidores) que d
 | Mensajería | MassTransit 8 · RabbitMQ 3.13 |
 | ORM | EF Core 10 · Dapper (queries hot) |
 | BD | PostgreSQL 17 + PostGIS · Redis 7 |
-| Identity | OpenIddict 5 |
+| Identity | JWT propio (HS256) |
 | Tiempo real | SignalR (backplane Redis) |
 | RPC interno | gRPC |
 | Jobs | Hangfire |
@@ -43,6 +43,25 @@ Rappix es un marketplace de tres lados (clientes, comercios, repartidores) que d
 | Notifications | Push, email, SMS | 5009 |
 | Ratings | Calificaciones | 5010 |
 | Gateway | YARP | 5000 |
+
+## Servicios implementados
+
+### Identity (Fase 1) · puerto 5001
+Auth con JWT propio (HS256), refresh con rotación + detección de robo, confirmación de email
+(SendGrid), Google OAuth y outbox MassTransit. Guía: [docs/setup-identity.md](docs/setup-identity.md).
+
+### Merchants (Fase 2) · REST 5002 · gRPC 5012
+Comercios multi-vertical, zonas de cobertura PostGIS (`nearby`), workflow de aprobación admin, logos
+en MinIO (validados con ImageSharp) y un servicio gRPC interno. Alta por **choreography**: consume
+`UserRegisteredIntegrationEvent` de Identity y crea un Merchant `Draft`.
+Guía: [docs/setup-merchants.md](docs/setup-merchants.md) · diseño: [ADR-0003](docs/adr/0003-merchants-design.md).
+
+| Grupo | Endpoints |
+|---|---|
+| Owner (`userType=Merchant`) | `GET/PUT /merchants/me` · `PUT /merchants/me/operating-hours` · `POST`/`DELETE /merchants/me/service-areas` · `POST /merchants/me/logo` · `POST /merchants/me/submit-for-approval` |
+| Público | `GET /merchants/nearby` · `GET /merchants/{id}` · `GET /merchants/by-slug/{slug}` · `GET /merchants/{id}/logo-url` |
+| Admin (`userType=Admin`) | `GET /admin/merchants?status=` · `POST .../approve` · `.../reject` · `.../suspend` · `.../unsuspend` · `PUT .../commission` |
+| gRPC interno | `MerchantValidationService.IsMerchantActive` · `GetMerchantBasicInfo` |
 
 ## Estructura
 
@@ -90,7 +109,7 @@ UIs disponibles:
 ## Roadmap
 
 - [x] Fase 0 — Setup, BuildingBlocks, plantilla de servicio
-- [ ] Fase 1 — Identity + Merchants
+- [x] Fase 1 — Identity + Merchants
 - [ ] Fase 2 — Catalog + Pricing
 - [ ] Fase 3 — Orders + Payments (saga)
 - [ ] Fase 4 — Dispatch + Tracking (tiempo real)
