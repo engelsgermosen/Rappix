@@ -42,6 +42,14 @@
     <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.0" />
   </ItemGroup>
 
+  <ItemGroup Label="Identity service (Fase 1)">
+    <!-- Fase 1: JWT propio (sin OpenIddict). BCrypt solo passwords; SHA-256 para refresh/email tokens. -->
+    <PackageVersion Include="BCrypt.Net-Next" Version="4.2.0" />
+    <PackageVersion Include="SendGrid" Version="9.29.3" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.17.0" />
+  </ItemGroup>
+
   <ItemGroup Label="Logging / Observability">
      <PackageVersion Include="Serilog" Version="4.2.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
