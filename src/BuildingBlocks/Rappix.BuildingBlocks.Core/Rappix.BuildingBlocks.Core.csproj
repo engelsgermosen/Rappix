@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Rappix.BuildingBlocks.Core</RootNamespace>
+    <AssemblyName>Rappix.BuildingBlocks.Core</AssemblyName>
+  </PropertyGroup>
+</Project>

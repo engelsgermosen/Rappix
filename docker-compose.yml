@@ -1,0 +1,146 @@
+name: rappix
+
+services:
+  # ──────────────────────────────────────────────────────────────
+  # Base de datos relacional con extensión geoespacial
+  # ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgis/postgis:17-3.5
+    container_name: rappix-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rappix
+      POSTGRES_PASSWORD: rappix_dev_2026
+      POSTGRES_DB: rappix
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/local/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rappix"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rappix-net
+
+  # ──────────────────────────────────────────────────────────────
+  # Cache, geo-search, SignalR backplane
+  # ──────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: rappix-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass rappix_redis_2026
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "rappix_redis_2026", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rappix-net
+
+  # ──────────────────────────────────────────────────────────────
+  # Broker de mensajería para MassTransit
+  # ──────────────────────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rappix-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: rappix
+      RABBITMQ_DEFAULT_PASS: rappix_mq_2026
+    ports:
+      - "5672:5672" # AMQP
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+    networks:
+      - rappix-net
+
+  # ──────────────────────────────────────────────────────────────
+  # Logging centralizado estructurado
+  # ──────────────────────────────────────────────────────────────
+  seq:
+    image: datalust/seq:2024.3
+    container_name: rappix-seq
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+    ports:
+      - "5341:80"
+    volumes:
+      - seq_data:/data
+    networks:
+      - rappix-net
+
+  # ──────────────────────────────────────────────────────────────
+  # Object storage S3-compatible para imágenes, comprobantes, etc.
+  # ──────────────────────────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: rappix-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: rappix
+      MINIO_ROOT_PASSWORD: rappix_minio_2026
+    ports:
+      - "9000:9000" # API
+      - "9001:9001" # Console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - rappix-net
+
+  # ──────────────────────────────────────────────────────────────
+  # Servicios .NET (se irán habilitando por fase)
+  # Comentados hasta que tengamos imagen lista en cada fase
+  # ──────────────────────────────────────────────────────────────
+  # identity-api:
+  #   build:
+  #     context: .
+  #     dockerfile: src/Services/Identity/Rappix.Identity.Api/Dockerfile
+  #   container_name: rappix-identity
+  #   restart: unless-stopped
+  #   environment:
+  #     ASPNETCORE_ENVIRONMENT: Development
+  #     ASPNETCORE_URLS: http://+:8080
+  #   ports:
+  #     - "5001:8080"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_healthy
+  #     seq:
+  #       condition: service_started
+  #   networks:
+  #     - rappix-net
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+  seq_data:
+  minio_data:
+
+networks:
+  rappix-net:
+    driver: bridge
+    name: rappix-net

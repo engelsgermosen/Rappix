@@ -1,0 +1,17 @@
+# Normaliza finales de linea: LF en el repositorio, nativo en working copy.
+* text=auto
+
+# Archivos que deben conservar CRLF / LF explicito
+*.sln    text eol=crlf
+*.cs     text diff=csharp
+*.csproj text
+*.props  text
+*.json   text
+*.yml    text eol=lf
+*.sh     text eol=lf
+
+# Binarios (sin conversion ni diff)
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary

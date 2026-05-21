@@ -1,0 +1,53 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/
+*.swp
+
+# Rider / VS Code
+.idea/
+*.DotSettings.user
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.turbo/
+dist/
+build/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Env
+.env
+.env.local
+.env.*.local
+*.env
+
+# Secretos de aplicacion (valores reales viven aqui localmente, nunca se commitean)
+appsettings.Development.json
+appsettings.Local.json
+
+# Docker
+.docker/
+
+# Datos locales
+data/
+volumes/
+*.db
+*.sqlite
+
+# Cobertura y reportes
+coverage/
+TestResults/
+*.coverage
+*.coveragexml
+
+# Sistema
+.DS_Store
+Thumbs.db
