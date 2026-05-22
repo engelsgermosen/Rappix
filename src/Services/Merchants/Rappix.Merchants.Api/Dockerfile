@@ -13,6 +13,8 @@ COPY src/BuildingBlocks/Rappix.BuildingBlocks.Core/*.csproj src/BuildingBlocks/R
 COPY src/BuildingBlocks/Rappix.BuildingBlocks.Messaging/*.csproj src/BuildingBlocks/Rappix.BuildingBlocks.Messaging/
 COPY src/BuildingBlocks/Rappix.BuildingBlocks.Observability/*.csproj src/BuildingBlocks/Rappix.BuildingBlocks.Observability/
 COPY src/BuildingBlocks/Rappix.BuildingBlocks.WebApi/*.csproj src/BuildingBlocks/Rappix.BuildingBlocks.WebApi/
+COPY src/BuildingBlocks/Rappix.BuildingBlocks.Storage/*.csproj src/BuildingBlocks/Rappix.BuildingBlocks.Storage/
+COPY src/BuildingBlocks/Rappix.BuildingBlocks.Imaging/*.csproj src/BuildingBlocks/Rappix.BuildingBlocks.Imaging/
 COPY src/Contracts/Rappix.Contracts/*.csproj src/Contracts/Rappix.Contracts/
 COPY src/Services/Merchants/Rappix.Merchants.Domain/*.csproj src/Services/Merchants/Rappix.Merchants.Domain/
 COPY src/Services/Merchants/Rappix.Merchants.Application/*.csproj src/Services/Merchants/Rappix.Merchants.Application/
