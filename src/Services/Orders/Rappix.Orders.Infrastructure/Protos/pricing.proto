@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+option csharp_namespace = "Rappix.Orders.Infrastructure.Grpc.Pricing";
+
+package pricing.v1;
+
+// Copia client-only del contrato de Pricing (solo los metodos que Orders consume). Debe coincidir en
+// nombre de servicio, paquete y numeros de campo con el servidor (src/Services/Pricing/.../pricing.proto).
+service PricingService {
+  rpc ConsumeQuote (ConsumeQuoteRequest) returns (ConsumeQuoteReply);
+  rpc GetQuote (GetQuoteRequest) returns (GetQuoteReply);
+  rpc RevertQuoteConsumption (RevertQuoteRequest) returns (RevertQuoteReply);
+}
+
+message ConsumeQuoteRequest {
+  string quote_id = 1;
+  string order_id = 2;
+}
+
+message ConsumeQuoteReply {
+  bool success = 1;
+  string error_code = 2;
+  string status = 3;
+}
+
+message GetQuoteRequest {
+  string quote_id = 1;
+}
+
+message GetQuoteReply {
+  bool success = 1;
+  string error_code = 2;
+  string quote_id = 3;
+  string customer_user_id = 4;
+  string merchant_id = 5;
+  string vertical = 6;
+  string currency = 7;
+  string status = 8;
+  string coupon_code = 9;
+  string created_at_utc = 10;
+  string expires_at_utc = 11;
+  PriceBreakdownReply breakdown = 12;
+  repeated QuoteLineReply lines = 13;
+}
+
+message QuoteLineReply {
+  string item_id = 1;
+  string item_name = 2;
+  string unit_price = 3;
+  string modifier_total = 4;
+  int32 quantity = 5;
+  string line_subtotal = 6;
+}
+
+message PriceBreakdownReply {
+  string subtotal = 1;
+  string surge_multiplier = 2;
+  string surge_amount = 3;
+  string discount_amount = 4;
+  string delivery_fee = 5;
+  string service_fee = 6;
+  string tax = 7;
+  string tip = 8;
+  string total = 9;
+}
+
+message RevertQuoteRequest {
+  string quote_id = 1;
+  string order_id = 2;
+  string reason = 3;
+}
+
+message RevertQuoteReply {
+  bool success = 1;
+  string error_code = 2;
+  string status = 3;
+}

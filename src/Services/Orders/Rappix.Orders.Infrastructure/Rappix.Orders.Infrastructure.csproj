@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Rappix.Orders.Infrastructure</RootNamespace>
+    <AssemblyName>Rappix.Orders.Infrastructure</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Permite a las pruebas instanciar tipos internos (repositorios, consumers, clientes gRPC, DbContext). -->
+    <InternalsVisibleTo Include="Rappix.Orders.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="MassTransit.EntityFrameworkCore" />
+    <!-- Saga state machine + scheduler de timeouts (Quartz con job store Postgres). -->
+    <PackageReference Include="MassTransit.Quartz" />
+    <PackageReference Include="Quartz.Extensions.Hosting" />
+    <PackageReference Include="Quartz.Serialization.Json" />
+    <!-- Cache distribuida para la idempotencia del middleware REST (Redis en prod, memoria en dev/tests). -->
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
+    <!-- Clientes gRPC a Pricing y Catalog (reserva) con resiliencia (retry + circuit breaker). -->
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Net.ClientFactory" />
+    <PackageReference Include="Grpc.Tools">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Copias client-only de los contratos de Pricing y Catalog (csharp_namespace propio de Orders). -->
+    <Protobuf Include="Protos\pricing.proto" GrpcServices="Client" />
+    <Protobuf Include="Protos\stock-reservation.proto" GrpcServices="Client" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rappix.Orders.Application\Rappix.Orders.Application.csproj" />
+    <ProjectReference Include="..\Rappix.Orders.Domain\Rappix.Orders.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Contracts\Rappix.Contracts\Rappix.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Core\Rappix.BuildingBlocks.Core.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Messaging\Rappix.BuildingBlocks.Messaging.csproj" />
+  </ItemGroup>
+
+</Project>

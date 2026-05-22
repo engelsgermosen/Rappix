@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+option csharp_namespace = "Rappix.Orders.Infrastructure.Grpc.Catalog";
+
+package catalog.reservation.v1;
+
+// Copia client-only del contrato de reserva de stock de Catalog. Debe coincidir en nombre de servicio,
+// paquete y numeros de campo con el servidor (src/Services/Catalog/.../stock-reservation.proto).
+service StockReservationService {
+  rpc ReserveStock (ReserveStockRequest) returns (ReserveStockReply);
+  rpc CommitStock (CommitStockRequest) returns (CommitStockReply);
+  rpc ReleaseStock (ReleaseStockRequest) returns (ReleaseStockReply);
+}
+
+message ReserveStockLine {
+  string item_id = 1;
+  int32 quantity = 2;
+}
+
+message ReserveStockRequest {
+  string order_id = 1;
+  repeated ReserveStockLine lines = 2;
+  int32 ttl_seconds = 3;
+}
+
+message ReserveStockReply {
+  bool success = 1;
+  string error_code = 2;
+}
+
+message CommitStockRequest {
+  string order_id = 1;
+}
+
+message CommitStockReply {
+  bool success = 1;
+  string error_code = 2;
+}
+
+message ReleaseStockRequest {
+  string order_id = 1;
+}
+
+message ReleaseStockReply {
+  bool success = 1;
+  string error_code = 2;
+}

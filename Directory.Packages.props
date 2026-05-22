@@ -36,6 +36,8 @@
     <PackageVersion Include="MassTransit" Version="8.3.5" />
     <PackageVersion Include="MassTransit.RabbitMQ" Version="8.3.5" />
     <PackageVersion Include="MassTransit.EntityFrameworkCore" Version="8.3.5" />
+    <!-- Scheduler de mensajes con persistencia Postgres (timeouts durables de la saga de Orders, Fase 5). -->
+    <PackageVersion Include="MassTransit.Quartz" Version="8.3.5" />
   </ItemGroup>
 
   <ItemGroup Label="Identity / OAuth2 / OIDC">
@@ -104,6 +106,9 @@
   <ItemGroup Label="Background Jobs">
     <PackageVersion Include="Hangfire.AspNetCore" Version="1.8.17" />
     <PackageVersion Include="Hangfire.PostgreSql" Version="1.20.10" />
+    <!-- Scheduler de la saga de Orders (Fase 5): Quartz con job store Postgres para timeouts durables. -->
+    <PackageVersion Include="Quartz.Extensions.Hosting" Version="3.13.0" />
+    <PackageVersion Include="Quartz.Serialization.Json" Version="3.13.0" />
   </ItemGroup>
 
   <ItemGroup Label="Gateway / Reverse Proxy">
