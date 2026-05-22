@@ -154,6 +154,20 @@ UIs disponibles:
 - Portal merchant: http://localhost:3001
 - Back-office: http://localhost:3002
 
+### Smoke E2E de la saga de Orders
+
+`tools/seed-smoke.ps1` (PowerShell) automatiza el setup para probar la saga de Orders end-to-end:
+registra cliente/merchant/admin, confirma sus emails, aprueba el merchant, crea catálogo + ítem con
+stock y emite una cotización; al final imprime los tokens, IDs y los comandos listos para crear el
+pedido → accept → mark-delivered observando Seq.
+
+Requisitos: PowerShell 5+, el contenedor postgres `rappix-postgres` y los 5 servicios + infra arriba
+(`docker compose up -d`). Pensado para un stack recién levantado (`docker compose down -v` + `up`).
+
+```powershell
+./tools/seed-smoke.ps1
+```
+
 ## Roadmap
 
 - [x] Fase 0 — Setup, BuildingBlocks, plantilla de servicio
