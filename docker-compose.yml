@@ -203,6 +203,58 @@ services:
     networks:
       - rappix-net
 
+  # ──────────────────────────────────────────────────────────────
+  # Catalog Service (Fase 3). REST en 8080, gRPC h2c en 8081.
+  # Consume eventos de Merchants y le habla por gRPC (Grpc__MerchantsUrl).
+  # ──────────────────────────────────────────────────────────────
+  catalog-api:
+    build:
+      context: .
+      dockerfile: src/Services/Catalog/Rappix.Catalog.Api/Dockerfile
+    container_name: rappix-catalog
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # No se define ASPNETCORE_URLS: los dos puertos (8080 REST, 8081 gRPC) van en codigo (ConfigureKestrel).
+      ConnectionStrings__CatalogDb: "Host=postgres;Port=5432;Database=rappix_catalog;Username=rappix;Password=rappix_dev_2026"
+      ConnectionStrings__Redis: "redis:6379,password=rappix_redis_2026"
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Port: "5672"
+      RabbitMq__Username: rappix
+      RabbitMq__Password: rappix_mq_2026
+      Seq__ServerUrl: "http://seq:80"
+      Jwt__Issuer: "https://localhost:5001"
+      Jwt__Audience: rappix
+      # Misma clave que Identity: Catalog solo valida los tokens que Identity emite.
+      Jwt__SigningKey: "${IDENTITY_JWT_SIGNINGKEY:?Define IDENTITY_JWT_SIGNINGKEY en .env}"
+      # Cliente gRPC al servicio Merchants (validacion de comercio) por nombre de servicio en la red.
+      Grpc__MerchantsUrl: "http://merchants-api:8081"
+      # MinIO: las subidas usan el host interno; las URLs firmadas, el host publico (alcanzable desde el navegador).
+      Minio__Endpoint: "minio:9000"
+      Minio__PublicEndpoint: "localhost:9000"
+      Minio__AccessKey: rappix
+      Minio__SecretKey: rappix_minio_2026
+      Minio__Bucket: catalog-items
+      Minio__UseSsl: "false"
+    ports:
+      - "5003:8080" # REST
+      - "5013:8081" # gRPC (h2c)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      seq:
+        condition: service_started
+      minio:
+        condition: service_healthy
+      merchants-api:
+        condition: service_started
+    networks:
+      - rappix-net
+
 volumes:
   postgres_data:
   redis_data:
