@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using MediatR;
+using Rappix.BuildingBlocks.WebApi.Authentication;
 using Rappix.BuildingBlocks.WebApi.Endpoints;
-using Rappix.Merchants.Api.Authentication;
 using Rappix.Merchants.Api.Contracts;
 using Rappix.Merchants.Application.Merchants.AddServiceArea;
 using Rappix.Merchants.Application.Merchants.GetMy;

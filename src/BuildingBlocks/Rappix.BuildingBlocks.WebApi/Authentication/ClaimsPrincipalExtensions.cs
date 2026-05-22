@@ -1,6 +1,6 @@
 using System.Security.Claims;
 
-namespace Rappix.Identity.Api.Authentication;
+namespace Rappix.BuildingBlocks.WebApi.Authentication;
 
 /// <summary>Utilidades para extraer datos del usuario autenticado desde sus claims.</summary>
 public static class ClaimsPrincipalExtensions

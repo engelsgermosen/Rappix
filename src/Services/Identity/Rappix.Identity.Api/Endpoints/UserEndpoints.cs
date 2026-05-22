@@ -1,6 +1,6 @@
 using MediatR;
+using Rappix.BuildingBlocks.WebApi.Authentication;
 using Rappix.BuildingBlocks.WebApi.Endpoints;
-using Rappix.Identity.Api.Authentication;
 using Rappix.Identity.Api.Contracts;
 using Rappix.Identity.Application.Users.ChangePassword;
 using Rappix.Identity.Application.Users.UpdateProfile;

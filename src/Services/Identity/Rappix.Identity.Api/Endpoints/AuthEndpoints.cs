@@ -2,6 +2,7 @@ using Asp.Versioning.Builder;
 using MediatR;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
+using Rappix.BuildingBlocks.WebApi.Authentication;
 using Rappix.BuildingBlocks.WebApi.Endpoints;
 using Rappix.Identity.Api.Authentication;
 using Rappix.Identity.Api.Contracts;
