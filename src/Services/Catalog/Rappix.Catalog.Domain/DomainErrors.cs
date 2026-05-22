@@ -104,6 +104,10 @@ public static class StockErrors
     /// <summary>No existe nivel de stock para el item.</summary>
     public static readonly Error NotFound =
         Error.NotFound("Catalog.Stock.NotFound", "No existe control de inventario para el item.");
+
+    /// <summary>El stock fue modificado por otra operacion concurrente (conflicto de xmin).</summary>
+    public static readonly Error ConcurrencyConflict =
+        Error.Conflict("Catalog.Stock.ConcurrencyConflict", "El stock fue modificado por otra operacion. Reintente.");
 }
 
 /// <summary>Errores de los grupos de modificadores y sus opciones.</summary>
