@@ -88,6 +88,11 @@ public sealed class OrderOutboxSagaFactory : WebApplicationFactory<Program>, IAs
         Environment.SetEnvironmentVariable("Jwt__SigningKey", "rappix-test-signing-key-please-change-32bytes-minimum");
         Environment.SetEnvironmentVariable("Jwt__Issuer", "https://localhost:5001");
         Environment.SetEnvironmentVariable("Jwt__Audience", "rappix");
+        // Timeouts cortos (TimeSpan) para que el test del disparo real de Quartz no espere minutos. Solo el
+        // test de timeout llega a AwaitingMerchant y los usa; el test de outbox falla antes de programar ninguno.
+        Environment.SetEnvironmentVariable("Orders__Timeouts__Merchant", "00:00:05");
+        Environment.SetEnvironmentVariable("Orders__Timeouts__Payment", "00:00:05");
+        Environment.SetEnvironmentVariable("Orders__Timeouts__Courier", "00:00:05");
 
         // Migra el esquema (Order + saga + inbox/outbox + QRTZ) ANTES de que arranquen los hosted services
         // (bus, entrega del outbox, Quartz), que asumen el esquema presente. Se usa un contexto independiente:
@@ -184,6 +189,11 @@ public sealed class OrderOutboxSagaTests(OrderOutboxSagaFactory factory) : IClas
     [Fact]
     public async Task ActivityConsumerResults_FlowThroughBusOutbox_SagaReachesTerminalState()
     {
+        // Esta prueba necesita que la reserva FALLE (camino de compensacion). Se fija explicitamente porque el
+        // test de timeout comparte el mismo substitute y lo pone en exito; xunit no garantiza el orden.
+        factory.Stock.ReserveAsync(Arg.Any<Guid>(), Arg.Any<IReadOnlyList<StockReservationLineInput>>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(new StockOperationResult(ServiceAvailable: true, Success: false, "Catalog.Stock.Insufficient"));
+
         // Espera a que el bus este sano (todas las colas/bindings listos) antes de publicar.
         await factory.WaitForBusHealthyAsync(TimeSpan.FromSeconds(30));
 
@@ -214,6 +224,53 @@ public sealed class OrderOutboxSagaTests(OrderOutboxSagaFactory factory) : IClas
         // Los tres saltos consumer -> saga ocurrieron de verdad (no quedo atascada en el primero).
         await Pricing.Received().ConsumeQuoteAsync(Arg.Any<Guid>(), orderId, Arg.Any<CancellationToken>());
         await Stock.Received().ReserveAsync(orderId, Arg.Any<IReadOnlyList<StockReservationLineInput>>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+        await Pricing.Received().RevertQuoteAsync(Arg.Any<Guid>(), orderId, Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// Verifica que un timeout de la saga programado en <b>Quartz + Postgres REALES</b> efectivamente DISPARA y
+    /// avanza la saga. El harness in-memory de <c>OrderSagaTests</c> usa un scheduler virtual que nunca toca
+    /// <c>qrtz_triggers</c> ni la conversion de tiempo del job store, por eso "pasa" alli aunque fallara en
+    /// runtime. Camino: el pedido llega a AwaitingMerchant, nadie acepta, y el timeout corto (5s) dispara la
+    /// compensacion (release stock -> revert quote) hasta Cancelled.
+    /// </summary>
+    [Fact]
+    public async Task MerchantTimeout_FiresViaRealQuartz_CancelsSaga()
+    {
+        // Camino feliz hasta AwaitingMerchant: reserva con exito; la liberacion (compensacion) tambien.
+        factory.Stock.ReserveAsync(Arg.Any<Guid>(), Arg.Any<IReadOnlyList<StockReservationLineInput>>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(new StockOperationResult(ServiceAvailable: true, Success: true, string.Empty));
+        factory.Stock.ReleaseAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(new StockOperationResult(ServiceAvailable: true, Success: true, string.Empty));
+
+        await factory.WaitForBusHealthyAsync(TimeSpan.FromSeconds(30));
+
+        IBus bus = factory.Services.GetRequiredService<IBus>();
+        Guid orderId = Guid.CreateVersion7();
+
+        await bus.Publish(new OrderSubmittedIntegrationEvent
+        {
+            OrderId = orderId,
+            CustomerUserId = Guid.CreateVersion7(),
+            MerchantId = Guid.CreateVersion7(),
+            QuoteId = Guid.CreateVersion7(),
+            TotalAmount = 250m,
+            Currency = "DOP",
+            DeliveryAddress = "Calle 1",
+            DeliveryLatitude = 18.48,
+            DeliveryLongitude = -69.93,
+        });
+
+        // Nadie acepta: el timeout de merchant (5s, en Quartz+Postgres real) debe disparar -> compensacion -> Cancelled.
+        string? finalState = await factory.WaitForStateAsync(orderId, expectedState: "Cancelled", timeout: TimeSpan.FromSeconds(60));
+
+        finalState.Should().Be("Cancelled",
+            "el timeout de merchant programado en Quartz debe disparar y cancelar el pedido no aceptado");
+
+        // Llego a AwaitingMerchant (consumio quote + reservo stock) y el timeout disparo la compensacion completa.
+        await Pricing.Received().ConsumeQuoteAsync(Arg.Any<Guid>(), orderId, Arg.Any<CancellationToken>());
+        await Stock.Received().ReserveAsync(orderId, Arg.Any<IReadOnlyList<StockReservationLineInput>>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+        await Stock.Received().ReleaseAsync(orderId, Arg.Any<CancellationToken>());
         await Pricing.Received().RevertQuoteAsync(Arg.Any<Guid>(), orderId, Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 

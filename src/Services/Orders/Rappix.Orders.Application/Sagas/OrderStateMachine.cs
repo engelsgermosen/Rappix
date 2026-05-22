@@ -35,17 +35,17 @@ public sealed class OrderStateMachine : MassTransitStateMachine<OrderState>
 
         Schedule(() => MerchantTimeout, state => state.MerchantTimeoutTokenId, schedule =>
         {
-            schedule.Delay = TimeSpan.FromSeconds(config.Timeouts.MerchantSeconds);
+            schedule.Delay = config.Timeouts.Merchant;
             schedule.Received = received => received.CorrelateById(context => context.Message.OrderId);
         });
         Schedule(() => PaymentTimeout, state => state.PaymentTimeoutTokenId, schedule =>
         {
-            schedule.Delay = TimeSpan.FromSeconds(config.Timeouts.PaymentSeconds);
+            schedule.Delay = config.Timeouts.Payment;
             schedule.Received = received => received.CorrelateById(context => context.Message.OrderId);
         });
         Schedule(() => CourierTimeout, state => state.CourierTimeoutTokenId, schedule =>
         {
-            schedule.Delay = TimeSpan.FromSeconds(config.Timeouts.CourierSeconds);
+            schedule.Delay = config.Timeouts.Courier;
             schedule.Received = received => received.CorrelateById(context => context.Message.OrderId);
         });
 

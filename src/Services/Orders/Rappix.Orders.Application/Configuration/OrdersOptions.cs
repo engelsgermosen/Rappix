@@ -21,17 +21,22 @@ public sealed class OrdersOptions
     /// <summary>Configuracion de los responders simulados.</summary>
     public SimulationOptions Simulation { get; set; } = new();
 
-    /// <summary>Timeouts de las esperas de la saga (en segundos).</summary>
+    /// <summary>
+    /// Timeouts de las esperas de la saga. Tipo <see cref="TimeSpan"/> para que el binder de configuracion
+    /// acepte el formato "hh:mm:ss" (p. ej. Orders__Timeouts__Merchant=00:00:15 baja el timeout a 15s en
+    /// demos/tests). Antes eran enteros *Seconds, lo que hacia que un override en formato TimeSpan se ignorara
+    /// en silencio y el timeout se quedara en el default.
+    /// </summary>
     public sealed class TimeoutOptions
     {
-        /// <summary>Espera de aceptacion del merchant. Default 300s (5 min).</summary>
-        public int MerchantSeconds { get; set; } = 300;
+        /// <summary>Espera de aceptacion del merchant. Default 5 min.</summary>
+        public TimeSpan Merchant { get; set; } = TimeSpan.FromMinutes(5);
 
-        /// <summary>Espera de confirmacion del pago. Default 120s (2 min).</summary>
-        public int PaymentSeconds { get; set; } = 120;
+        /// <summary>Espera de confirmacion del pago. Default 2 min.</summary>
+        public TimeSpan Payment { get; set; } = TimeSpan.FromMinutes(2);
 
-        /// <summary>Espera de asignacion de courier. Default 180s (3 min).</summary>
-        public int CourierSeconds { get; set; } = 180;
+        /// <summary>Espera de asignacion de courier. Default 3 min.</summary>
+        public TimeSpan Courier { get; set; } = TimeSpan.FromMinutes(3);
     }
 
     /// <summary>Resultados simulados configurables para demostrar caminos felices y de fallo sin Payments/Dispatch reales.</summary>

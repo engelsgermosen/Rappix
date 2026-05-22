@@ -59,7 +59,8 @@ exitoso; otro pedido → conflicto). Orders arma el snapshot del pedido con un n
 
 ### 4. Scheduler de timeouts: Quartz + Postgres, no RabbitMQ delayed exchange
 
-Los timeouts de la saga (merchant 5 min, payment 2 min, courier 3 min; configurables en `Orders:Timeouts:*`)
+Los timeouts de la saga (merchant 5 min, payment 2 min, courier 3 min; configurables como **TimeSpan** en
+`Orders:Timeouts:{Merchant,Payment,Courier}`, p. ej. `Orders__Timeouts__Merchant=00:00:15` para una demo)
 se programan con MassTransit `Schedule`. Se eligió **Quartz con job store Postgres** sobre el RabbitMQ delayed
 message exchange porque: (a) la imagen pinned `rabbitmq:3.13-management-alpine` **no** trae el plugin de
 delayed exchange; (b) sus mensajes diferidos **no son durables** ante un reinicio del broker, lo que dejaría
@@ -67,7 +68,11 @@ pedidos con timeouts que nunca disparan. Quartz reutiliza el Postgres que ya usa
 sobrevive reinicios. Wiring: `AddPublishMessageScheduler` + `AddQuartzConsumers` + `UsePublishMessageScheduler`,
 con `UsePersistentStore(UsePostgres)`. Las **tablas `qrtz_*`** se crean en la migración inicial de Orders
 (SQL crudo, esquema estándar de Quartz.NET 3.x) para que migrate-on-startup provisione todo. En **tests**, el
-Test Harness usa su scheduler in-memory y los timeouts se bajan a sub-segundo.
+Test Harness usa su scheduler in-memory y los timeouts se bajan a sub-segundo; además un test de integración con
+Quartz + Postgres reales (Testcontainers) verifica que un timeout corto **dispara de verdad** y cancela la saga
+(el harness in-memory no toca `qrtz_triggers`, así que no cubre la conversión de tiempo del job store). Nota:
+Quartz.NET persiste `qrtz_triggers.next_fire_time` en **.NET ticks** (no epoch-ms como el Quartz de Java); es el
+formato esperado por el port .NET y los triggers disparan correctamente.
 
 ### 5. Compensaciones en orden inverso, con un matiz importante en el commit
 

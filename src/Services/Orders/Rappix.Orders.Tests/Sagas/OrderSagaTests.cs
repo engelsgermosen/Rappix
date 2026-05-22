@@ -115,7 +115,7 @@ public sealed class OrderSagaTests
     [Fact]
     public async Task MerchantTimeout_AutoCancels()
     {
-        await using SagaContext context = await StartAsync(options => options.Timeouts.MerchantSeconds = 1);
+        await using SagaContext context = await StartAsync(options => options.Timeouts.Merchant = TimeSpan.FromSeconds(1));
         Guid orderId = await context.SubmitAsync();
 
         // No se acepta: el timeout de merchant (1s) dispara la cancelacion + compensacion.
@@ -156,7 +156,7 @@ public sealed class OrderSagaTests
     {
         await using SagaContext context = await StartAsync(options =>
         {
-            options.Timeouts.PaymentSeconds = 1;
+            options.Timeouts.Payment = TimeSpan.FromSeconds(1);
             options.Simulation.PaymentOutcome = "Timeout"; // el responder no contesta
         });
         Guid orderId = await context.SubmitAsync();
@@ -173,7 +173,7 @@ public sealed class OrderSagaTests
     {
         await using SagaContext context = await StartAsync(options =>
         {
-            options.Timeouts.CourierSeconds = 1;
+            options.Timeouts.Courier = TimeSpan.FromSeconds(1);
             options.Simulation.CourierOutcome = "Timeout"; // el responder no contesta
         });
         Guid orderId = await context.SubmitAsync();
@@ -225,7 +225,7 @@ public sealed class OrderSagaTests
         var options = new OrdersOptions
         {
             ReservationTtlSeconds = 1800,
-            Timeouts = { MerchantSeconds = 300, PaymentSeconds = 300, CourierSeconds = 300 },
+            Timeouts = { Merchant = TimeSpan.FromSeconds(300), Payment = TimeSpan.FromSeconds(300), Courier = TimeSpan.FromSeconds(300) },
             Simulation = { PaymentOutcome = "Success", CourierOutcome = "Success", AutoDeliver = true, DeliveryDelayMs = 0 },
         };
         configureOptions?.Invoke(options);
