@@ -6,6 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Permite a las pruebas unitarias instanciar las estrategias internas (surge, envio, descuentos). -->
+    <InternalsVisibleTo Include="Rappix.Pricing.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="MediatR" />
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
