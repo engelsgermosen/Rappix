@@ -1,14 +1,14 @@
 using Microsoft.Extensions.Options;
 using Minio;
 using Minio.DataModel.Args;
-using Rappix.Merchants.Application.Abstractions;
+using Rappix.BuildingBlocks.Core.Storage;
 
-namespace Rappix.Merchants.Infrastructure.Storage;
+namespace Rappix.BuildingBlocks.Storage;
 
 /// <summary>
-/// Almacenamiento de logos en MinIO. Sube y borra con el endpoint interno (inyectado), pero firma las
-/// URLs de lectura con un cliente aparte construido sobre el endpoint publico, para que la URL sea
-/// alcanzable desde el navegador del host aunque las subidas usen el host interno (minio:9000 en Docker).
+/// Almacenamiento en MinIO. Sube y borra con el endpoint interno (inyectado), pero firma las URLs de
+/// lectura con un cliente aparte construido sobre el endpoint publico, para que la URL sea alcanzable
+/// desde el navegador del host aunque las subidas usen el host interno (minio:9000 en Docker).
 /// </summary>
 internal sealed class MinioObjectStorage(IMinioClient uploadClient, IOptions<MinioOptions> options)
     : IObjectStorage, IDisposable

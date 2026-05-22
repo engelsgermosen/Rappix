@@ -1,10 +1,10 @@
 using Rappix.BuildingBlocks.Core.Results;
 
-namespace Rappix.Merchants.Application.Abstractions;
+namespace Rappix.BuildingBlocks.Core.Imaging;
 
 /// <summary>
-/// Valida una imagen de logo: formato (magic bytes), dimensiones y relacion de aspecto.
-/// El tamano maximo se verifica antes (en el endpoint). Devuelve el content-type detectado.
+/// Valida una imagen: formato (magic bytes), dimensiones y relacion de aspecto, leyendo solo el
+/// header. El tamano maximo se verifica antes (en el endpoint). Devuelve el content-type detectado.
 /// </summary>
 public interface IImageValidator
 {

@@ -13,7 +13,6 @@ using Rappix.Merchants.Api.Grpc;
 using Rappix.Merchants.Api.OpenApi;
 using Rappix.Merchants.Application;
 using Rappix.Merchants.Infrastructure;
-using Rappix.Merchants.Infrastructure.Storage;
 using Scalar.AspNetCore;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -28,9 +27,8 @@ builder.WebHost.ConfigureKestrel(kestrel =>
     kestrel.ListenAnyIP(8081, listen => listen.Protocols = HttpProtocols.Http2);
 });
 
-// Opciones tipadas.
+// Opciones tipadas. MinioOptions lo vincula AddRappixObjectStorage (BuildingBlocks.Storage).
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
-builder.Services.Configure<MinioOptions>(builder.Configuration.GetSection(MinioOptions.SectionName));
 
 // Capas de aplicacion e infraestructura.
 builder.Services.AddMerchantsApplication();

@@ -2,16 +2,14 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using Minio;
 using Rappix.BuildingBlocks.Core.Time;
+using Rappix.BuildingBlocks.Imaging;
 using Rappix.BuildingBlocks.Messaging.Extensions;
+using Rappix.BuildingBlocks.Storage;
 using Rappix.Merchants.Application.Abstractions;
-using Rappix.Merchants.Infrastructure.Imaging;
 using Rappix.Merchants.Infrastructure.Messaging;
 using Rappix.Merchants.Infrastructure.Persistence;
 using Rappix.Merchants.Infrastructure.Persistence.Repositories;
-using Rappix.Merchants.Infrastructure.Storage;
 
 namespace Rappix.Merchants.Infrastructure;
 
@@ -30,30 +28,15 @@ public static class DependencyInjection
         services.AddScoped<IMerchantRepository, MerchantRepository>();
 
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
-        services.AddSingleton<IImageValidator, ImageSharpImageValidator>();
 
-        AddObjectStorage(services);
+        // Storage e imagen ahora son building blocks compartidos (regla de tres).
+        services.AddRappixImageValidator();
+        services.AddRappixObjectStorage(configuration);
+
         AddDistributedCache(services, configuration);
         AddMessaging(services, configuration);
 
         return services;
-    }
-
-    // MinioOptions se vincula en Program.cs (capa Api), igual que JwtOptions/SendGridOptions en Identity.
-    private static void AddObjectStorage(IServiceCollection services)
-    {
-        services.AddSingleton<IMinioClient>(provider =>
-        {
-            MinioOptions options = provider.GetRequiredService<IOptions<MinioOptions>>().Value;
-            return new MinioClient()
-                .WithEndpoint(options.Endpoint)
-                .WithCredentials(options.AccessKey, options.SecretKey)
-                .WithSSL(options.UseSsl)
-                .Build();
-        });
-
-        services.AddSingleton<IObjectStorage, MinioObjectStorage>();
-        services.AddHostedService<MinioBucketInitializer>();
     }
 
     private static void AddDistributedCache(IServiceCollection services, IConfiguration configuration)

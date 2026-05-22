@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using NSubstitute;
-using Rappix.Merchants.Application.Abstractions;
+using Rappix.BuildingBlocks.Core.Storage;
 using Rappix.Merchants.Infrastructure.Persistence;
 using Testcontainers.PostgreSql;
 

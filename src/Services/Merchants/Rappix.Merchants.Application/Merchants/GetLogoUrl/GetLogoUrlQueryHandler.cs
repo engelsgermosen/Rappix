@@ -1,5 +1,6 @@
 using MediatR;
 using Rappix.BuildingBlocks.Core.Results;
+using Rappix.BuildingBlocks.Core.Storage;
 using Rappix.Merchants.Application.Abstractions;
 using Rappix.Merchants.Domain;
 using Rappix.Merchants.Domain.Merchants;

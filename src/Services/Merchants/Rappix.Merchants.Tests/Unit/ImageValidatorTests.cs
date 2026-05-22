@@ -1,5 +1,5 @@
 using FluentAssertions;
-using Rappix.Merchants.Infrastructure.Imaging;
+using Rappix.BuildingBlocks.Imaging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;

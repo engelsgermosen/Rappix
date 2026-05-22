@@ -1,5 +1,7 @@
 using MediatR;
+using Rappix.BuildingBlocks.Core.Imaging;
 using Rappix.BuildingBlocks.Core.Results;
+using Rappix.BuildingBlocks.Core.Storage;
 using Rappix.BuildingBlocks.Core.Time;
 using Rappix.Merchants.Application.Abstractions;
 using Rappix.Merchants.Application.Responses;

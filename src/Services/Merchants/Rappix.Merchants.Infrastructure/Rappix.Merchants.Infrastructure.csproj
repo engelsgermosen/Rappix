@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Permite a las pruebas instanciar tipos internos (validador de imagen, repositorio, consumer). -->
+    <!-- Permite a las pruebas instanciar tipos internos (repositorio, consumer). -->
     <InternalsVisibleTo Include="Rappix.Merchants.Tests" />
   </ItemGroup>
 
@@ -17,8 +17,6 @@
     <PackageReference Include="NetTopologySuite" />
     <PackageReference Include="MassTransit.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
-    <PackageReference Include="Minio" />
-    <PackageReference Include="SixLabors.ImageSharp" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,6 +25,8 @@
     <ProjectReference Include="..\..\..\Contracts\Rappix.Contracts\Rappix.Contracts.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Core\Rappix.BuildingBlocks.Core.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Messaging\Rappix.BuildingBlocks.Messaging.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Storage\Rappix.BuildingBlocks.Storage.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Imaging\Rappix.BuildingBlocks.Imaging.csproj" />
   </ItemGroup>
 
 </Project>

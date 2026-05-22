@@ -5,11 +5,11 @@ using Minio;
 using Minio.DataModel.Args;
 using Minio.Exceptions;
 
-namespace Rappix.Merchants.Infrastructure.Storage;
+namespace Rappix.BuildingBlocks.Storage;
 
 /// <summary>
-/// Crea el bucket de logos en MinIO al arrancar si aun no existe. No bloquea el arranque del servicio
-/// si MinIO no responde todavia (se reintentara de forma natural en la primera subida).
+/// Crea el bucket configurado en MinIO al arrancar si aun no existe. No bloquea el arranque del
+/// servicio si MinIO no responde todavia (se reintentara de forma natural en la primera subida).
 /// </summary>
 internal sealed partial class MinioBucketInitializer(
     IMinioClient client,
@@ -39,10 +39,10 @@ internal sealed partial class MinioBucketInitializer(
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Bucket de logos '{Bucket}' ya existe en MinIO.")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Bucket '{Bucket}' ya existe en MinIO.")]
     private static partial void LogBucketReady(ILogger logger, string bucket);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Bucket de logos '{Bucket}' creado en MinIO.")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Bucket '{Bucket}' creado en MinIO.")]
     private static partial void LogBucketCreated(ILogger logger, string bucket);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "No se pudo inicializar el bucket '{Bucket}' en MinIO; se intentara en la primera subida.")]

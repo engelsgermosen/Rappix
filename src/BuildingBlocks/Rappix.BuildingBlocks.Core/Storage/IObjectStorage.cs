@@ -1,6 +1,6 @@
-namespace Rappix.Merchants.Application.Abstractions;
+namespace Rappix.BuildingBlocks.Core.Storage;
 
-/// <summary>Almacenamiento de objetos (logos) en MinIO/S3.</summary>
+/// <summary>Almacenamiento de objetos (imagenes, comprobantes) en MinIO/S3.</summary>
 public interface IObjectStorage
 {
     /// <summary>Sube un objeto y devuelve su key.</summary>

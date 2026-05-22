@@ -1,20 +1,19 @@
+using Rappix.BuildingBlocks.Core.Imaging;
 using Rappix.BuildingBlocks.Core.Results;
-using Rappix.Merchants.Application.Abstractions;
-using Rappix.Merchants.Domain;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 
-namespace Rappix.Merchants.Infrastructure.Imaging;
+namespace Rappix.BuildingBlocks.Imaging;
 
 /// <summary>
-/// Valida un logo leyendo solo el header (sin decodificar la imagen completa): formato permitido
+/// Valida una imagen leyendo solo el header (sin decodificarla completa): formato permitido
 /// (PNG, JPEG o WebP), dimensiones entre 100x100 y 2000x2000, y relacion de aspecto no mayor a 5:1.
-/// El tamano maximo (2MB) se verifica antes, en el endpoint.
+/// El tamano maximo se verifica antes, en el endpoint.
 /// </summary>
-internal sealed class ImageSharpImageValidator : IImageValidator
+public sealed class ImageSharpImageValidator : IImageValidator
 {
     private const int MinDimension = 100;
     private const int MaxDimension = 2000;
@@ -43,23 +42,23 @@ internal sealed class ImageSharpImageValidator : IImageValidator
         }
         catch (UnknownImageFormatException)
         {
-            return LogoErrors.InvalidFormat;
+            return ImageValidationErrors.InvalidFormat;
         }
 
         if (format is not (PngFormat or JpegFormat or WebpFormat))
         {
-            return LogoErrors.InvalidFormat;
+            return ImageValidationErrors.InvalidFormat;
         }
 
         if (info.Width is < MinDimension or > MaxDimension || info.Height is < MinDimension or > MaxDimension)
         {
-            return LogoErrors.InvalidDimensions;
+            return ImageValidationErrors.InvalidDimensions;
         }
 
         double ratio = (double)info.Width / info.Height;
         if (ratio is > MaxAspectRatio or < MinAspectRatio)
         {
-            return LogoErrors.ExtremeAspectRatio;
+            return ImageValidationErrors.ExtremeAspectRatio;
         }
 
         return format.DefaultMimeType;

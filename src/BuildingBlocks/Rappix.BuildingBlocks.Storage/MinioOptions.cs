@@ -1,6 +1,6 @@
-namespace Rappix.Merchants.Infrastructure.Storage;
+namespace Rappix.BuildingBlocks.Storage;
 
-/// <summary>Configuracion de MinIO/S3 para el almacenamiento de logos.</summary>
+/// <summary>Configuracion de MinIO/S3 para el almacenamiento de objetos.</summary>
 public sealed class MinioOptions
 {
     /// <summary>Nombre de la seccion de configuracion.</summary>
@@ -21,8 +21,8 @@ public sealed class MinioOptions
     /// <summary>Secret key.</summary>
     public string SecretKey { get; set; } = "minioadmin";
 
-    /// <summary>Bucket de los logos.</summary>
-    public string Bucket { get; set; } = "merchants-logos";
+    /// <summary>Bucket de los objetos.</summary>
+    public string Bucket { get; set; } = "rappix";
 
     /// <summary>Usar TLS para conectarse a MinIO.</summary>
     public bool UseSsl { get; set; }

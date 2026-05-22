@@ -62,12 +62,3 @@ public static class OperatingHoursErrors
 {
     public static readonly Error InvalidRange = Error.Validation("Merchants.OperatingHours.InvalidRange", "La hora de apertura debe ser anterior a la de cierre.");
 }
-
-/// <summary>Errores de validacion del logo.</summary>
-public static class LogoErrors
-{
-    public static readonly Error TooLarge = Error.Validation("Merchants.Logo.TooLarge", "El logo supera el tamano maximo de 2MB.");
-    public static readonly Error InvalidFormat = Error.Validation("Merchants.Logo.InvalidFormat", "El logo debe ser PNG, JPEG o WebP.");
-    public static readonly Error InvalidDimensions = Error.Validation("Merchants.Logo.InvalidDimensions", "El logo debe medir entre 100x100 y 2000x2000 pixeles.");
-    public static readonly Error ExtremeAspectRatio = Error.Validation("Merchants.Logo.ExtremeAspectRatio", "La relacion de aspecto del logo es demasiado extrema (maximo 5:1).");
-}
