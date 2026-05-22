@@ -63,6 +63,21 @@ Guía: [docs/setup-merchants.md](docs/setup-merchants.md) · diseño: [ADR-0003]
 | Admin (`userType=Admin`) | `GET /admin/merchants?status=` · `POST .../approve` · `.../reject` · `.../suspend` · `.../unsuspend` · `PUT .../commission` |
 | gRPC interno | `MerchantValidationService.IsMerchantActive` · `GetMerchantBasicInfo` |
 
+### Catalog (Fase 3) · REST 5003 · gRPC 5013
+Catálogo por merchant: items multi-vertical con **atributos JSONB** validados por vertical, categorías,
+modificadores, **stock con concurrencia optimista (`xmin`, sin sobreventa)** y **búsqueda full-text en
+español** (`tsvector` generado + GIN). El catálogo se crea por **choreography** (consume
+`MerchantApprovedIntegrationEvent`) y se gatea con eventos de activación/suspensión. Primer **cliente
+gRPC** (valida el merchant contra Merchants con resiliencia + fallback al gating local) y servidor gRPC
+propio. Reutiliza los building blocks compartidos Storage/Imaging/WebApi.Auth (regla de tres).
+Guía: [docs/setup-catalog.md](docs/setup-catalog.md) · diseño: [ADR-0004](docs/adr/0004-catalog-design.md).
+
+| Grupo | Endpoints |
+|---|---|
+| Owner (`userType=Merchant`) | `GET /catalog/me` · `POST`/`DELETE /catalog/me/categories` · `POST`/`GET`/`PUT`/`DELETE /catalog/me/items` · `PUT .../availability` · `PUT .../attributes` · `POST .../modifiers` · `PUT .../stock` · `POST .../photo` |
+| Público | `GET /catalog/items/search?q=` · `GET /catalog/items/{id}` · `GET /catalog/items/{id}/photo-url` |
+| gRPC interno | `CatalogValidationService.GetItemPricing` |
+
 ## Estructura
 
 ```
