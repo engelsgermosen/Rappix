@@ -324,8 +324,12 @@ services:
       # Clientes gRPC por nombre de servicio en la red de Docker.
       Grpc__PricingUrl: "http://pricing-api:8081"
       Grpc__CatalogUrl: "http://catalog-api:8081"
+      Grpc__MerchantsUrl: "http://merchants-api:8081"
       # Responders simulados de pago/courier/entrega (Fase 5; se apagan cuando lleguen Payments/Dispatch reales).
       Orders__EnableSimulatedResponders: "true"
+      # Log de MassTransit en Debug para el stack dev: muestra el movimiento de mensajes (SEND/RECEIVE/Consume),
+      # clave para diagnosticar la saga. (appsettings.Development.json esta gitignored, por eso se fija aqui.)
+      Logging__LogLevel__MassTransit: "Debug"
     ports:
       - "5005:8080" # REST
       - "5015:8081" # HTTP/2 (gRPC interno futuro)

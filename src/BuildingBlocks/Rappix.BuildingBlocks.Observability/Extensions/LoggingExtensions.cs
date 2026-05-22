@@ -18,6 +18,14 @@ public static class LoggingExtensions
         {
             var seqUrl = context.Configuration["Seq:ServerUrl"] ?? "http://localhost:5341";
 
+            // El nivel de MassTransit es configurable via Logging:LogLevel:MassTransit (mismos nombres que MEL).
+            // Default Information (comportamiento previo); en Development se sube a Debug para ver el movimiento
+            // de mensajes (SEND/RECEIVE/Consume) — esencial al diagnosticar por que una saga no avanza.
+            LogEventLevel massTransitLevel =
+                Enum.TryParse(context.Configuration["Logging:LogLevel:MassTransit"], ignoreCase: true, out LogEventLevel parsedLevel)
+                    ? parsedLevel
+                    : LogEventLevel.Information;
+
             configuration
                 .ReadFrom.Configuration(context.Configuration)
                 .ReadFrom.Services(services)
@@ -28,7 +36,7 @@ public static class LoggingExtensions
                 .MinimumLevel.Information()
                 .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
                 .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
-                .MinimumLevel.Override("MassTransit", LogEventLevel.Information)
+                .MinimumLevel.Override("MassTransit", massTransitLevel)
                 .WriteTo.Console(outputTemplate:
                     "[{Timestamp:HH:mm:ss} {Level:u3}] [{Service}] {Message:lj} {Properties:j}{NewLine}{Exception}")
                 .WriteTo.Seq(seqUrl);

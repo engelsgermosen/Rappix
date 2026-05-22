@@ -12,7 +12,7 @@ namespace Rappix.Orders.Application.Orders.Accept;
 /// Valida la propiedad y que el pedido no sea terminal, y publica MerchantAccepted. La saga decide segun su
 /// estado real (descarta el evento si ya no esta esperando al merchant), evitando carreras con la proyeccion.
 /// </summary>
-internal sealed class AcceptOrderCommandHandler(IOrderRepository orders, IPublishEndpoint publishEndpoint)
+internal sealed class AcceptOrderCommandHandler(IOrderRepository orders, IPublishEndpoint publishEndpoint, IUnitOfWork unitOfWork)
     : IRequestHandler<AcceptOrderCommand, Result>
 {
     public async Task<Result> Handle(AcceptOrderCommand command, CancellationToken cancellationToken)
@@ -34,6 +34,9 @@ internal sealed class AcceptOrderCommandHandler(IOrderRepository orders, IPublis
         }
 
         await publishEndpoint.Publish(new MerchantAccepted(command.OrderId), cancellationToken);
+        // Con UseBusOutbox el publish queda BUFFERIZADO en el outbox del DbContext y solo se entrega al hacer
+        // SaveChanges. Sin esto el mensaje se pierde y la saga no sale de AwaitingMerchant.
+        await unitOfWork.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
 }

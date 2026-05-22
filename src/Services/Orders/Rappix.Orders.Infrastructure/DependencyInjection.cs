@@ -137,6 +137,14 @@ public static class DependencyInjection
                     outbox.UsePostgres();
                     outbox.UseBusOutbox();
                 });
+
+                // CRITICO: aplica el filtro de outbox EF a CADA endpoint (consumers + saga). Sin esto, los
+                // consumers "activity" y los responders simulados —que NO escriben en el DbContext— publican su
+                // evento-resultado (p. ej. QuoteConsumed) a traves del bus outbox, que lo bufferiza hasta un
+                // SaveChanges que nunca ocurre: el mensaje se PIERDE y la saga se atasca (sin error ni fault).
+                // El filtro por endpoint envuelve el consume en transaccion y hace el SaveChanges que vacia el
+                // buffer (y aporta dedup de inbox). La saga ya funcionaba porque su SaveChanges persiste OrderState.
+                bus.AddConfigureEndpointsCallback((context, _, cfg) => cfg.UseEntityFrameworkOutbox<OrdersDbContext>(context));
             },
             configureBus: (_, cfg) => cfg.UsePublishMessageScheduler());
     }

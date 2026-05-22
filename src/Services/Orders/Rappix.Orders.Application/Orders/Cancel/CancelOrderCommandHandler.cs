@@ -13,7 +13,7 @@ namespace Rappix.Orders.Application.Orders.Cancel;
 /// adelante), y publica OrderCancellationRequested. La saga compensa segun su estado real. El chequeo de
 /// cancelabilidad usa la proyeccion (consistencia eventual): una pequena ventana es aceptable y documentada.
 /// </summary>
-internal sealed class CancelOrderCommandHandler(IOrderRepository orders, IPublishEndpoint publishEndpoint)
+internal sealed class CancelOrderCommandHandler(IOrderRepository orders, IPublishEndpoint publishEndpoint, IUnitOfWork unitOfWork)
     : IRequestHandler<CancelOrderCommand, Result>
 {
     public async Task<Result> Handle(CancelOrderCommand command, CancellationToken cancellationToken)
@@ -36,6 +36,8 @@ internal sealed class CancelOrderCommandHandler(IOrderRepository orders, IPublis
 
         string reason = string.IsNullOrWhiteSpace(command.Reason) ? "Cancelado por el cliente" : command.Reason;
         await publishEndpoint.Publish(new OrderCancellationRequested(command.OrderId, reason), cancellationToken);
+        // SaveChanges vacia el buffer del bus outbox (sin esto el OrderCancellationRequested se pierde).
+        await unitOfWork.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
 }

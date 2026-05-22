@@ -9,7 +9,7 @@ using Rappix.Orders.Domain.Orders;
 namespace Rappix.Orders.Application.Orders.Reject;
 
 /// <summary>Valida la propiedad y publica MerchantRejected (la saga compensa y cancela).</summary>
-internal sealed class RejectOrderCommandHandler(IOrderRepository orders, IPublishEndpoint publishEndpoint)
+internal sealed class RejectOrderCommandHandler(IOrderRepository orders, IPublishEndpoint publishEndpoint, IUnitOfWork unitOfWork)
     : IRequestHandler<RejectOrderCommand, Result>
 {
     public async Task<Result> Handle(RejectOrderCommand command, CancellationToken cancellationToken)
@@ -32,6 +32,8 @@ internal sealed class RejectOrderCommandHandler(IOrderRepository orders, IPublis
 
         string reason = string.IsNullOrWhiteSpace(command.Reason) ? "Rechazado por el merchant" : command.Reason;
         await publishEndpoint.Publish(new MerchantRejected(command.OrderId, reason), cancellationToken);
+        // SaveChanges vacia el buffer del bus outbox (sin esto el MerchantRejected se pierde).
+        await unitOfWork.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
 }

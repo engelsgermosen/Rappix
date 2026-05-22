@@ -32,11 +32,14 @@ public sealed class MerchantOwnershipTests
         ITestHarness harness = provider.GetRequiredService<ITestHarness>();
         await harness.Start();
 
-        var handler = new AcceptOrderCommandHandler(orders, harness.Bus);
+        IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
+        var handler = new AcceptOrderCommandHandler(orders, harness.Bus, unitOfWork);
         Result result = await handler.Handle(new AcceptOrderCommand(order.Id.Value, ownerUserId), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         (await harness.Published.Any<MerchantAccepted>()).Should().BeTrue();
+        // Imprescindible con UseBusOutbox: el publish solo se entrega al hacer SaveChanges (vacia el buffer).
+        await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
 
         await harness.Stop();
     }
@@ -47,7 +50,7 @@ public sealed class MerchantOwnershipTests
         Order order = OrderOwnedBy(Guid.CreateVersion7());
         IOrderRepository orders = OrdersReturning(order);
 
-        var handler = new AcceptOrderCommandHandler(orders, Substitute.For<IPublishEndpoint>());
+        var handler = new AcceptOrderCommandHandler(orders, Substitute.For<IPublishEndpoint>(), Substitute.For<IUnitOfWork>());
         Result result = await handler.Handle(new AcceptOrderCommand(order.Id.Value, Guid.CreateVersion7()), CancellationToken.None);
 
         result.Error.Should().Be(OrderErrors.NotForMerchant);
@@ -64,11 +67,14 @@ public sealed class MerchantOwnershipTests
         ITestHarness harness = provider.GetRequiredService<ITestHarness>();
         await harness.Start();
 
-        var handler = new RejectOrderCommandHandler(orders, harness.Bus);
+        IUnitOfWork unitOfWork = Substitute.For<IUnitOfWork>();
+        var handler = new RejectOrderCommandHandler(orders, harness.Bus, unitOfWork);
         Result result = await handler.Handle(new RejectOrderCommand(order.Id.Value, ownerUserId, "sin stock"), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         (await harness.Published.Any<MerchantRejected>()).Should().BeTrue();
+        // Imprescindible con UseBusOutbox: el publish solo se entrega al hacer SaveChanges (vacia el buffer).
+        await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
 
         await harness.Stop();
     }
@@ -79,7 +85,7 @@ public sealed class MerchantOwnershipTests
         Order order = OrderOwnedBy(Guid.CreateVersion7());
         IOrderRepository orders = OrdersReturning(order);
 
-        var handler = new RejectOrderCommandHandler(orders, Substitute.For<IPublishEndpoint>());
+        var handler = new RejectOrderCommandHandler(orders, Substitute.For<IPublishEndpoint>(), Substitute.For<IUnitOfWork>());
         Result result = await handler.Handle(new RejectOrderCommand(order.Id.Value, Guid.CreateVersion7(), "x"), CancellationToken.None);
 
         result.Error.Should().Be(OrderErrors.NotForMerchant);
