@@ -93,7 +93,23 @@ Guía: [docs/setup-pricing.md](docs/setup-pricing.md) · diseño: [ADR-0005](doc
 |---|---|
 | Cliente (`userType=Customer`) | `POST /pricing/quotes` · `GET /pricing/quotes/{id}` |
 | Admin (`userType=Admin`) | `GET`/`POST`/`PUT`/`DELETE /admin/pricing/surge-rules` · `GET`/`POST`/`PUT`/`DELETE /admin/pricing/coupons` |
-| gRPC interno | `PricingService.QuotePrice` · `ConsumeQuote` |
+| gRPC interno | `PricingService.QuotePrice` · `ConsumeQuote` · `GetQuote` · `RevertQuoteConsumption` |
+
+### Orders (Fase 5) · REST 5005 · gRPC 5015
+El corazón transaccional: arma el pedido (**snapshot inmutable** del quote) y orquesta un flujo distribuido con
+una **saga orquestada** (MassTransit State Machine, estado persistido en EF Core). Consume el quote (congela
+precio + redime cupón) → **reserva stock** (hold) en Catalog → notifica al merchant (timeout 5 min) → cobro
+(2 min) → courier (3 min) → confirma stock → en curso → entregado. **Compensaciones en orden inverso** ante
+cualquier fallo (libera el hold, revierte quote y cupón, reembolsa si se cobró); `StockCommitFailed` tras
+cobrar va a `NeedsReview`, nunca auto-reembolsa. **Timeouts durables** con Quartz + Postgres. Payments
+(Fase 8) y Dispatch (Fase 6) se **simulan** con responders enchufables que ya hablan los contratos reales.
+Dos clientes gRPC (Pricing; reserva de Catalog). Diseño: [ADR-0006](docs/adr/0006-orders-design.md).
+
+| Grupo | Endpoints |
+|---|---|
+| Cliente (`userType=Customer`) | `POST /orders` · `GET /orders/{id}` · `GET /orders` · `POST /orders/{id}/cancel` |
+| Merchant (`userType=Merchant`) | `GET /orders/merchant/pending` · `POST /orders/{id}/accept` · `POST /orders/{id}/reject` |
+| Seam temporal (Dispatch, Fase 6) | `POST /orders/{id}/mark-delivered` |
 
 ## Estructura
 
