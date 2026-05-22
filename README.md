@@ -78,6 +78,23 @@ Guía: [docs/setup-catalog.md](docs/setup-catalog.md) · diseño: [ADR-0004](doc
 | Público | `GET /catalog/items/search?q=` · `GET /catalog/items/{id}` · `GET /catalog/items/{id}/photo-url` |
 | gRPC interno | `CatalogValidationService.GetItemPricing` |
 
+### Pricing (Fase 4) · REST 5004 · gRPC 5014
+Motor de tarifas: cotiza el precio total de un pedido y emite una **cotización (Quote) persistida con
+expiración** (10 min, expiración perezosa al leer). Desglose transparente y **determinístico** (orden:
+subtotal → surge → descuento → fees → ITBIS → propina → total; todo `decimal(19,4)`, redondeo bancario una
+sola vez al final). **Strategy pattern**: surge por zona + franja horaria × *demand factor* (cap x3,
+configurable), tarifa de envío por vertical y descuentos (primera compra + cupones). **Cupones** completos
+(código único, `MaxUses` con `xmin`, monto mínimo, límite por usuario; el uso se redime al **consumir** la
+cotización, no al cotizar). Dos **clientes gRPC** (precios de Catalog con fallback al cache local;
+validación de Merchants) y servidor gRPC propio. Cachea precios por `ItemCreatedIntegrationEvent`.
+Guía: [docs/setup-pricing.md](docs/setup-pricing.md) · diseño: [ADR-0005](docs/adr/0005-pricing-design.md).
+
+| Grupo | Endpoints |
+|---|---|
+| Cliente (`userType=Customer`) | `POST /pricing/quotes` · `GET /pricing/quotes/{id}` |
+| Admin (`userType=Admin`) | `GET`/`POST`/`PUT`/`DELETE /admin/pricing/surge-rules` · `GET`/`POST`/`PUT`/`DELETE /admin/pricing/coupons` |
+| gRPC interno | `PricingService.QuotePrice` · `ConsumeQuote` |
+
 ## Estructura
 
 ```
@@ -125,7 +142,7 @@ UIs disponibles:
 
 - [x] Fase 0 — Setup, BuildingBlocks, plantilla de servicio
 - [x] Fase 1 — Identity + Merchants
-- [ ] Fase 2 — Catalog + Pricing
+- [x] Fase 2 — Catalog + Pricing
 - [ ] Fase 3 — Orders + Payments (saga)
 - [ ] Fase 4 — Dispatch + Tracking (tiempo real)
 - [ ] Fase 5 — Notifications + Ratings
