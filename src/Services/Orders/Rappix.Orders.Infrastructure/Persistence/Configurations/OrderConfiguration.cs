@@ -22,7 +22,9 @@ internal sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.HasIndex(order => order.CustomerUserId);
 
         builder.Property(order => order.MerchantId).IsRequired();
-        builder.HasIndex(order => new { order.MerchantId, order.Status });
+        builder.Property(order => order.MerchantOwnerUserId).IsRequired();
+        // La consulta de pendientes del merchant filtra por el dueno (sub del JWT) + estado.
+        builder.HasIndex(order => new { order.MerchantOwnerUserId, order.Status });
 
         builder.Property(order => order.QuoteId).IsRequired();
         builder.Property(order => order.Vertical).HasMaxLength(20).IsRequired();

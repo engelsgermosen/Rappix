@@ -101,14 +101,25 @@ Ante eventos concurrentes del mismo pedido (p. ej. cancel + timeout), el perdedo
 reintenta contra el estado actualizado. Se prefirió a la concurrencia pesimista (SELECT FOR UPDATE), que
 alargaría la transacción sobre las tablas de inbox/outbox.
 
+### 8. Autorización del merchant por OwnerUserId (no por MerchantId)
+
+El `Order` guarda el `MerchantId` (Id de la entidad Merchant), pero el `sub` del JWT de un merchant es su
+`OwnerUserId` (usuario de Identity que administra el comercio): son entidades distintas, así que comparar
+`MerchantId == sub` siempre falla (un smoke lo confirmó con un 403 indebido). Decisión (Opción B): al **crear**
+el pedido, Orders resuelve el merchant vía el gRPC de Merchants (`GetMerchantBasicInfo`, extendido para
+devolver `owner_user_id`) y **persiste `Order.MerchantOwnerUserId`**. Los endpoints de merchant (accept/reject)
+comparan el `sub` del JWT contra ese campo y `GET /orders/merchant/pending` filtra por él. Se eligió persistir
+(vs resolver `userId→merchantId` en cada accept) para no añadir un round-trip gRPC en el hot path; el costo es
+una columna + una resolución en la creación del pedido (que además valida que el merchant exista). Esto cierra
+la simplificación "identidad del merchant = sub del JWT" que se había documentado como caveat.
+
 ## Consecuencias
 
 - **Positivas:** un único punto describe el flujo distribuido; compensaciones reales (stock liberado, quote y
   cupón revertidos); timeouts durables; los contratos de Payments/Dispatch quedan definidos y probados con
   simuladores; Catalog gana un patrón de reserva reutilizable.
-- **Negativas / costes:** la saga es la pieza más delicada (un error se propaga); se tocaron Catalog y Pricing
-  (additivo, sin romper sus suites); Quartz añade tablas `qrtz_*` y configuración; la identidad del merchant en
-  los endpoints se simplifica al `sub` del JWT (un sistema real resolvería la membresía usuario→merchant).
+- **Negativas / costes:** la saga es la pieza más delicada (un error se propaga); se tocaron Catalog, Pricing y
+  Merchants (additivo, sin romper sus suites); Quartz añade tablas `qrtz_*` y configuración.
 - **TODO futuro:** sustituir los responders simulados por Payments (Fase 8) y Dispatch (Fase 6) reales; gRPC
   interno `OrderService.GetOrderStatus` para Tracking; reaper de reservas vencidas con Hangfire si se requiere
   más allá del barrido perezoso.

@@ -4,5 +4,5 @@ using Rappix.Orders.Application.Responses;
 
 namespace Rappix.Orders.Application.Orders.MerchantPending;
 
-/// <summary>Lista los pedidos que esperan la aceptacion de un merchant (paginado).</summary>
-public sealed record ListMerchantPendingQuery(Guid MerchantId, int Page, int PageSize) : IRequest<Result<IReadOnlyList<OrderResponse>>>;
+/// <summary>Lista los pedidos que esperan la aceptacion de un merchant (paginado). MerchantUserId = sub del JWT.</summary>
+public sealed record ListMerchantPendingQuery(Guid MerchantUserId, int Page, int PageSize) : IRequest<Result<IReadOnlyList<OrderResponse>>>;

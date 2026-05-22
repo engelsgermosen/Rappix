@@ -17,6 +17,7 @@ namespace Rappix.Orders.Application.Orders.Place;
 internal sealed class PlaceOrderCommandHandler(
     IOrderRepository orders,
     IPricingClient pricing,
+    IMerchantValidationClient merchants,
     IUnitOfWork unitOfWork,
     IDateTimeProvider clock)
     : IRequestHandler<PlaceOrderCommand, Result<OrderResponse>>
@@ -40,6 +41,13 @@ internal sealed class PlaceOrderCommandHandler(
             return Result.Failure<OrderResponse>(OrderErrors.QuoteNotUsable);
         }
 
+        // Resolver el dueno del merchant para persistirlo en el pedido (autoriza accept/reject del merchant).
+        MerchantInfo merchant = await merchants.GetAsync(quote.MerchantId, cancellationToken);
+        if (!merchant.ServiceAvailable || !merchant.Found)
+        {
+            return Result.Failure<OrderResponse>(OrderErrors.MerchantUnavailable);
+        }
+
         var lines = new List<OrderLine>(quote.Lines.Count);
         foreach (QuoteSnapshotLine line in quote.Lines)
         {
@@ -55,6 +63,7 @@ internal sealed class PlaceOrderCommandHandler(
         Result<Order> order = Order.Create(
             command.CustomerUserId,
             quote.MerchantId,
+            merchant.OwnerUserId,
             command.QuoteId,
             quote.Vertical,
             quote.Currency,

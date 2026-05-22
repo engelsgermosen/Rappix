@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+option csharp_namespace = "Rappix.Orders.Infrastructure.Grpc.Merchants";
+
+package merchants.v1;
+
+// Copia client-only del contrato de Merchants (solo el metodo que Orders consume). Debe coincidir en
+// nombre de servicio, paquete y numeros de campo con el servidor (src/Services/Merchants/.../merchants.proto).
+service MerchantValidationService {
+  rpc GetMerchantBasicInfo (MerchantIdRequest) returns (MerchantBasicInfoResponse);
+}
+
+message MerchantIdRequest {
+  string merchant_id = 1;
+}
+
+message MerchantBasicInfoResponse {
+  bool found = 1;
+  bool is_active = 2;
+  string name = 3;
+  string slug = 4;
+  string vertical_type = 5;
+  string owner_user_id = 6;
+}

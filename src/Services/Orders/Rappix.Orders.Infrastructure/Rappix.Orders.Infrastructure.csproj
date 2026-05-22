@@ -30,9 +30,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Copias client-only de los contratos de Pricing y Catalog (csharp_namespace propio de Orders). -->
+    <!-- Copias client-only de los contratos de Pricing, Catalog y Merchants (csharp_namespace propio de Orders). -->
     <Protobuf Include="Protos\pricing.proto" GrpcServices="Client" />
     <Protobuf Include="Protos\stock-reservation.proto" GrpcServices="Client" />
+    <Protobuf Include="Protos\merchants.proto" GrpcServices="Client" />
   </ItemGroup>
 
   <ItemGroup>

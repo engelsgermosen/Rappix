@@ -20,7 +20,7 @@ internal sealed class RejectOrderCommandHandler(IOrderRepository orders, IPublis
             return Result.Failure(OrderErrors.NotFound);
         }
 
-        if (order.MerchantId != command.MerchantId)
+        if (order.MerchantOwnerUserId != command.MerchantUserId)
         {
             return Result.Failure(OrderErrors.NotForMerchant);
         }

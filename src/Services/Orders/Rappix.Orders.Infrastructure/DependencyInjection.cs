@@ -9,6 +9,7 @@ using Rappix.Orders.Application.Abstractions;
 using Rappix.Orders.Application.Sagas;
 using Rappix.Orders.Infrastructure.Grpc;
 using Rappix.Orders.Infrastructure.Grpc.Catalog;
+using Rappix.Orders.Infrastructure.Grpc.Merchants;
 using Rappix.Orders.Infrastructure.Grpc.Pricing;
 using Rappix.Orders.Infrastructure.Messaging.Activities;
 using Rappix.Orders.Infrastructure.Messaging.Projections;
@@ -35,6 +36,7 @@ public static class DependencyInjection
         AddDistributedCache(services, configuration);
         AddPricingGrpcClient(services, configuration);
         AddStockReservationGrpcClient(services, configuration);
+        AddMerchantsGrpcClient(services, configuration);
         AddScheduler(services, connectionString);
         AddMessaging(services, configuration);
 
@@ -68,6 +70,14 @@ public static class DependencyInjection
         services.AddGrpcClient<StockReservationService.StockReservationServiceClient>(options => options.Address = new Uri(catalogUrl))
             .AddStandardResilienceHandler();
         services.AddScoped<IStockReservationClient, StockReservationGrpcClient>();
+    }
+
+    private static void AddMerchantsGrpcClient(IServiceCollection services, IConfiguration configuration)
+    {
+        string merchantsUrl = configuration["Grpc:MerchantsUrl"] ?? "http://localhost:8081";
+        services.AddGrpcClient<MerchantValidationService.MerchantValidationServiceClient>(options => options.Address = new Uri(merchantsUrl))
+            .AddStandardResilienceHandler();
+        services.AddScoped<IMerchantValidationClient, MerchantValidationGrpcClient>();
     }
 
     private static void AddScheduler(IServiceCollection services, string connectionString)

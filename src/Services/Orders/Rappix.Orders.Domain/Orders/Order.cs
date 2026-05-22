@@ -25,6 +25,7 @@ public sealed class Order : AggregateRoot<OrderId>, IHasDomainEvents
         OrderId id,
         Guid customerUserId,
         Guid merchantId,
+        Guid merchantOwnerUserId,
         Guid quoteId,
         string vertical,
         string currency,
@@ -41,6 +42,7 @@ public sealed class Order : AggregateRoot<OrderId>, IHasDomainEvents
     {
         CustomerUserId = customerUserId;
         MerchantId = merchantId;
+        MerchantOwnerUserId = merchantOwnerUserId;
         QuoteId = quoteId;
         Vertical = vertical;
         Currency = currency;
@@ -59,8 +61,11 @@ public sealed class Order : AggregateRoot<OrderId>, IHasDomainEvents
     /// <summary>Cliente que realizo el pedido.</summary>
     public Guid CustomerUserId { get; private set; }
 
-    /// <summary>Merchant del pedido.</summary>
+    /// <summary>Merchant del pedido (Id de la entidad Merchant).</summary>
     public Guid MerchantId { get; private set; }
+
+    /// <summary>Usuario (Identity) propietario del merchant. Autoriza accept/reject del merchant (vs el sub del JWT).</summary>
+    public Guid MerchantOwnerUserId { get; private set; }
 
     /// <summary>Cotizacion congelada que respalda el pedido.</summary>
     public Guid QuoteId { get; private set; }
@@ -129,6 +134,7 @@ public sealed class Order : AggregateRoot<OrderId>, IHasDomainEvents
     public static Result<Order> Create(
         Guid customerUserId,
         Guid merchantId,
+        Guid merchantOwnerUserId,
         Guid quoteId,
         string vertical,
         string currency,
@@ -149,7 +155,7 @@ public sealed class Order : AggregateRoot<OrderId>, IHasDomainEvents
         }
 
         var order = new Order(
-            OrderId.New(), customerUserId, merchantId, quoteId, vertical, currency,
+            OrderId.New(), customerUserId, merchantId, merchantOwnerUserId, quoteId, vertical, currency,
             subtotal, deliveryFee, serviceFee, tax, tip, discountAmount, totalAmount, deliveryAddress, utcNow);
         order._lines.AddRange(lines);
 

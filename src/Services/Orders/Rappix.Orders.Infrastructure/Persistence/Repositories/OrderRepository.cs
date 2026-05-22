@@ -21,10 +21,10 @@ internal sealed class OrderRepository(OrdersDbContext context) : IOrderRepositor
             .Take(take)
             .ToListAsync(cancellationToken);
 
-    public async Task<IReadOnlyList<Order>> ListByMerchantAndStatusAsync(Guid merchantId, OrderStatus status, int skip, int take, CancellationToken cancellationToken) =>
+    public async Task<IReadOnlyList<Order>> ListByMerchantOwnerAndStatusAsync(Guid merchantOwnerUserId, OrderStatus status, int skip, int take, CancellationToken cancellationToken) =>
         await context.Orders
             .Include(order => order.Lines)
-            .Where(order => order.MerchantId == merchantId && order.Status == status)
+            .Where(order => order.MerchantOwnerUserId == merchantOwnerUserId && order.Status == status)
             .OrderBy(order => order.CreatedAtUtc)
             .Skip(skip)
             .Take(take)

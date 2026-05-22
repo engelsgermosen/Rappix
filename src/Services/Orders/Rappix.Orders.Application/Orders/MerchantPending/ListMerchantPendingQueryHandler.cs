@@ -15,7 +15,7 @@ internal sealed class ListMerchantPendingQueryHandler(IOrderRepository orders)
         int pageSize = Math.Clamp(query.PageSize, 1, 100);
         int skip = Math.Max(query.Page - 1, 0) * pageSize;
 
-        IReadOnlyList<Order> pending = await orders.ListByMerchantAndStatusAsync(query.MerchantId, OrderStatus.AwaitingMerchant, skip, pageSize, cancellationToken);
+        IReadOnlyList<Order> pending = await orders.ListByMerchantOwnerAndStatusAsync(query.MerchantUserId, OrderStatus.AwaitingMerchant, skip, pageSize, cancellationToken);
         return Result.Success<IReadOnlyList<OrderResponse>>([.. pending.Select(OrderResponse.From)]);
     }
 }

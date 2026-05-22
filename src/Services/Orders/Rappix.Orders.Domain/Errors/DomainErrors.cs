@@ -32,6 +32,10 @@ public static class OrderErrors
     /// <summary>El pedido ya no puede cancelarse (paso el punto de no retorno o ya es terminal).</summary>
     public static readonly Error NotCancellable =
         Error.Conflict("Orders.Order.NotCancellable", "El pedido ya no puede cancelarse en su estado actual.");
+
+    /// <summary>No se pudo resolver el merchant (servicio Merchants no disponible o merchant inexistente) al crear el pedido.</summary>
+    public static readonly Error MerchantUnavailable =
+        Error.Conflict("Orders.Order.MerchantUnavailable", "No se pudo resolver el merchant del pedido. Reintente.");
 }
 
 /// <summary>Errores del value object direccion de entrega.</summary>

@@ -24,26 +24,26 @@ internal static class MerchantOrderEndpoints
 
         merchant.MapGet("/merchant/pending", async (ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken, int page = 1, int pageSize = 20) =>
         {
-            Guid? merchantId = principal.GetUserId();
-            return merchantId is null
+            Guid? merchantUserId = principal.GetUserId();
+            return merchantUserId is null
                 ? Results.Unauthorized()
-                : (await sender.Send(new ListMerchantPendingQuery(merchantId.Value, page, pageSize), cancellationToken)).ToHttpResult();
+                : (await sender.Send(new ListMerchantPendingQuery(merchantUserId.Value, page, pageSize), cancellationToken)).ToHttpResult();
         });
 
         merchant.MapPost("/{orderId:guid}/accept", async (Guid orderId, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken) =>
         {
-            Guid? merchantId = principal.GetUserId();
-            return merchantId is null
+            Guid? merchantUserId = principal.GetUserId();
+            return merchantUserId is null
                 ? Results.Unauthorized()
-                : (await sender.Send(new AcceptOrderCommand(orderId, merchantId.Value), cancellationToken)).ToHttpResult();
+                : (await sender.Send(new AcceptOrderCommand(orderId, merchantUserId.Value), cancellationToken)).ToHttpResult();
         });
 
         merchant.MapPost("/{orderId:guid}/reject", async (Guid orderId, RejectOrderRequest? request, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken) =>
         {
-            Guid? merchantId = principal.GetUserId();
-            return merchantId is null
+            Guid? merchantUserId = principal.GetUserId();
+            return merchantUserId is null
                 ? Results.Unauthorized()
-                : (await sender.Send(new RejectOrderCommand(orderId, merchantId.Value, request?.Reason ?? "Rechazado por el merchant"), cancellationToken)).ToHttpResult();
+                : (await sender.Send(new RejectOrderCommand(orderId, merchantUserId.Value, request?.Reason ?? "Rechazado por el merchant"), cancellationToken)).ToHttpResult();
         });
 
         return group;

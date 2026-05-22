@@ -14,6 +14,6 @@ public interface IOrderRepository
     /// <summary>Lista los pedidos de un cliente (paginado, mas recientes primero).</summary>
     Task<IReadOnlyList<Order>> ListByCustomerAsync(Guid customerUserId, int skip, int take, CancellationToken cancellationToken);
 
-    /// <summary>Lista los pedidos de un merchant en un estado dado (p. ej. esperando aceptacion).</summary>
-    Task<IReadOnlyList<Order>> ListByMerchantAndStatusAsync(Guid merchantId, OrderStatus status, int skip, int take, CancellationToken cancellationToken);
+    /// <summary>Lista los pedidos de un merchant (por su usuario dueno) en un estado dado (p. ej. esperando aceptacion).</summary>
+    Task<IReadOnlyList<Order>> ListByMerchantOwnerAndStatusAsync(Guid merchantOwnerUserId, OrderStatus status, int skip, int take, CancellationToken cancellationToken);
 }
