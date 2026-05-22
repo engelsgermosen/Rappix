@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\mreng\\\\OneDrive\\\\Escritorio\\\\ProyectosPersonales\\\\AppLulu\\\\rappix-fase-0\\\\rappix\" -Directory)",
+      "PowerShell(ls \"C:\\\\Users\\\\mreng\\\\OneDrive\\\\Escritorio\\\\ProyectosPersonales\\\\AppLulu\\\\rappix-fase-0\\\\rappix\" | % { $_.Name })",
+      "PowerShell(ls \"C:\\\\Users\\\\mreng\\\\OneDrive\\\\Escritorio\\\\ProyectosPersonales\\\\AppLulu\\\\rappix-fase-0\\\\rappix\\\\src\" | % { $_.Name })",
+      "PowerShell(ls \"C:\\\\Users\\\\mreng\\\\OneDrive\\\\Escritorio\\\\ProyectosPersonales\\\\AppLulu\\\\rappix-fase-0\\\\rappix\\\\src\\\\Services\" | % { $_.Name })",
+      "Bash(find /c/Users/mreng/OneDrive/Escritorio\\\\ProyectosPersonales\\\\AppLulu\\\\rappix-fase-0\\\\rappix/src/Services/Catalog/Rappix.Catalog.Tests -name \"*.cs\" -type f | grep -v obj)",
+      "Bash(grep -r \"DomainEvent\\\\|DomainEventNotification\\\\|PublishDomainEvents\" src --include=\"*.cs\" ! -path \"*/bin/*\" ! -path \"*/obj/*\")",
+      "Bash(python -c \"import json; d=json.load\\(open\\('toolu_01DKhpQ9VTwPWR6NbxUrCiZa.json', encoding='utf-8'\\)\\); print\\(d[0]['text']\\)\")",
+      "Bash(python3 -c \"import json; d=json.load\\(open\\('toolu_01DKhpQ9VTwPWR6NbxUrCiZa.json', encoding='utf-8'\\)\\); print\\(d[0]['text']\\)\")",
+      "Bash(python -c \"import json,io; d=json.load\\(open\\('toolu_01DKhpQ9VTwPWR6NbxUrCiZa.json', encoding='utf-8'\\)\\); open\\('extracted.txt','w',encoding='utf-8'\\).write\\(d[0]['text']\\); print\\('written', len\\(d[0]['text']\\)\\)\")",
+      "Bash(dotnet test *)",
+      "Bash(git add *)",
+      "Bash(git commit -m '@ *)",
+      "PowerShell(git add src/Services/Merchants)",
+      "Bash(dotnet ef *)"
+    ]
+  }
+}

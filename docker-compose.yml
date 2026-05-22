@@ -330,6 +330,7 @@ services:
       # Log de MassTransit en Debug para el stack dev: muestra el movimiento de mensajes (SEND/RECEIVE/Consume),
       # clave para diagnosticar la saga. (appsettings.Development.json esta gitignored, por eso se fija aqui.)
       Logging__LogLevel__MassTransit: "Debug"
+      Orders__Timeouts__Merchant: "00:05:00"
     ports:
       - "5005:8080" # REST
       - "5015:8081" # HTTP/2 (gRPC interno futuro)
