@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+// Copia client-only del contrato del servicio Merchants (Fase 2). El csharp_namespace es propio de Pricing
+// para que el cliente generado viva en este servicio. El paquete (merchants.v1) coincide con el servidor.
+option csharp_namespace = "Rappix.Pricing.Infrastructure.Grpc.Merchants";
+
+package merchants.v1;
+
+// Servicio interno para que otros microservicios validen comercios sin HTTP.
+service MerchantValidationService {
+  // Indica si un merchant esta activo (visible y operativo).
+  rpc IsMerchantActive (MerchantIdRequest) returns (IsMerchantActiveResponse);
+
+  // Devuelve datos basicos de un merchant (incluye vertical, util para el pricing).
+  rpc GetMerchantBasicInfo (MerchantIdRequest) returns (MerchantBasicInfoResponse);
+}
+
+message MerchantIdRequest {
+  string merchant_id = 1;
+}
+
+message IsMerchantActiveResponse {
+  bool is_active = 1;
+  string status = 2;
+}
+
+message MerchantBasicInfoResponse {
+  bool found = 1;
+  bool is_active = 2;
+  string name = 3;
+  string slug = 4;
+  string vertical_type = 5;
+}

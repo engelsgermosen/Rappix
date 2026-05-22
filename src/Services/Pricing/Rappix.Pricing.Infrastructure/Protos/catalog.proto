@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+// Copia client-only del contrato del servicio Catalog (Fase 3). El csharp_namespace es propio de Pricing
+// para que el cliente generado viva en este servicio. El paquete (catalog.v1) coincide con el servidor.
+option csharp_namespace = "Rappix.Pricing.Infrastructure.Grpc.Catalog";
+
+package catalog.v1;
+
+// Servicio interno para consultar precio y comprabilidad de un item sin HTTP.
+service CatalogValidationService {
+  rpc GetItemPricing (ItemPricingRequest) returns (ItemPricingResponse);
+}
+
+message ItemPricingRequest {
+  string item_id = 1;
+}
+
+message ItemPricingResponse {
+  bool found = 1;
+  string item_id = 2;
+  string merchant_id = 3;
+  string name = 4;
+  // El precio viaja como string para preservar la precision decimal del dinero.
+  string price_amount = 5;
+  string currency = 6;
+  bool is_available = 7;
+  bool tracks_inventory = 8;
+  int32 stock_quantity = 9;
+  bool is_purchasable = 10;
+}
