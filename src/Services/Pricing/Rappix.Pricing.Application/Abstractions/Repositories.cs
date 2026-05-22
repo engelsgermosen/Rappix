@@ -36,8 +36,11 @@ public interface ICouponRepository
     /// <summary>Lista los cupones no borrados.</summary>
     Task<IReadOnlyList<Coupon>> ListAsync(CancellationToken cancellationToken);
 
-    /// <summary>Cuenta cuantas veces un cliente redimio un cupon (para el limite por usuario).</summary>
+    /// <summary>Cuenta cuantas veces un cliente redimio un cupon (sin contar redenciones revertidas), para el limite por usuario.</summary>
     Task<int> CountRedemptionsAsync(CouponId couponId, Guid customerUserId, CancellationToken cancellationToken);
+
+    /// <summary>Obtiene la redencion activa (no revertida) de un cupon en una cotizacion, para revertirla al compensar.</summary>
+    Task<CouponRedemption?> GetActiveRedemptionAsync(CouponId couponId, QuoteId quoteId, CancellationToken cancellationToken);
 
     /// <summary>Marca una nueva redencion para insercion.</summary>
     void AddRedemption(CouponRedemption redemption);

@@ -31,7 +31,11 @@ internal sealed class ConsumeQuoteCommandHandler(
             return Result.Failure<QuoteResponse>(QuoteErrors.NotFound);
         }
 
-        Result consume = quote.Consume(now);
+        // Solo se redime el cupon en un consumo FRESCO (Active -> Consumed); un reintento idempotente del
+        // mismo pedido (ya Consumed) devuelve exito sin volver a redimir.
+        bool freshConsume = quote.Status == QuoteStatus.Active;
+
+        Result consume = quote.Consume(now, command.OrderId);
         if (consume.IsFailure)
         {
             // Si el consumo fallo por expiracion, la cotizacion quedo marcada expirada: persistir la transicion.
@@ -43,7 +47,7 @@ internal sealed class ConsumeQuoteCommandHandler(
             return Result.Failure<QuoteResponse>(consume.Error);
         }
 
-        if (quote.AppliedCouponId is { } couponId)
+        if (freshConsume && quote.AppliedCouponId is { } couponId)
         {
             Coupon? coupon = await coupons.GetByIdIncludingDeletedAsync(couponId, cancellationToken);
             if (coupon is not null)

@@ -80,6 +80,12 @@ public sealed class Quote : AggregateRoot<QuoteId>, IHasDomainEvents
     /// <summary>Momento de consumo (UTC), si fue consumida.</summary>
     public DateTime? ConsumedAtUtc { get; private set; }
 
+    /// <summary>Pedido que consumio la cotizacion (para idempotencia de consumo y reversion de la saga).</summary>
+    public Guid? ConsumedByOrderId { get; private set; }
+
+    /// <summary>Momento de la ultima reversion del consumo (UTC), si la saga compenso. Audita el revert.</summary>
+    public DateTime? RevertedAtUtc { get; private set; }
+
     /// <summary>Lineas del carrito cotizado.</summary>
     public IReadOnlyCollection<QuoteLine> Lines => _lines.AsReadOnly();
 
@@ -146,14 +152,17 @@ public sealed class Quote : AggregateRoot<QuoteId>, IHasDomainEvents
     }
 
     /// <summary>
-    /// Consume la cotizacion (la referencia un pedido). Falla si ya fue consumida o si expiro (y la marca
-    /// expirada en ese caso). Transicion terminal Active -> Consumed.
+    /// Consume la cotizacion (la referencia un pedido). Idempotente por pedido: si ya fue consumida por el
+    /// MISMO pedido devuelve exito sin cambios (reintento seguro de la saga); por OTRO pedido falla con
+    /// AlreadyConsumed. Falla si expiro (y la marca expirada). Transicion Active -> Consumed.
     /// </summary>
-    public Result Consume(DateTime utcNow)
+    public Result Consume(DateTime utcNow, Guid orderId)
     {
         if (Status == QuoteStatus.Consumed)
         {
-            return Result.Failure(QuoteErrors.AlreadyConsumed);
+            return ConsumedByOrderId == orderId
+                ? Result.Success()
+                : Result.Failure(QuoteErrors.AlreadyConsumed);
         }
 
         if (Status == QuoteStatus.Expired || utcNow >= ExpiresAtUtc)
@@ -164,6 +173,33 @@ public sealed class Quote : AggregateRoot<QuoteId>, IHasDomainEvents
 
         Status = QuoteStatus.Consumed;
         ConsumedAtUtc = utcNow;
+        ConsumedByOrderId = orderId;
+        RevertedAtUtc = null;
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Revierte el consumo (compensacion de la saga): devuelve la cotizacion a Active. Solo es valido sobre
+    /// una cotizacion consumida por ESTE pedido; sobre cualquier otro estado (Active sin consumir, consumida
+    /// por otro pedido, Expired) devuelve un error tipado. Idempotente: re-revertir por el mismo pedido es
+    /// un no-op exitoso.
+    /// </summary>
+    public Result Revert(Guid orderId, DateTime utcNow)
+    {
+        // Idempotente: ya revertida por este pedido (Active tras un revert previo de este pedido).
+        if (Status == QuoteStatus.Active && ConsumedByOrderId == orderId && RevertedAtUtc is not null)
+        {
+            return Result.Success();
+        }
+
+        if (Status != QuoteStatus.Consumed || ConsumedByOrderId != orderId)
+        {
+            return Result.Failure(QuoteErrors.RevertNotAllowed);
+        }
+
+        Status = QuoteStatus.Active;
+        ConsumedAtUtc = null;
+        RevertedAtUtc = utcNow;
         return Result.Success();
     }
 }

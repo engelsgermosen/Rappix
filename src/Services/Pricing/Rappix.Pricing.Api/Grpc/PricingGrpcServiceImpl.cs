@@ -4,6 +4,8 @@ using MediatR;
 using Rappix.BuildingBlocks.Core.Results;
 using Rappix.Pricing.Application.Quotes.Consume;
 using Rappix.Pricing.Application.Quotes.Create;
+using Rappix.Pricing.Application.Quotes.Get;
+using Rappix.Pricing.Application.Quotes.Revert;
 using Rappix.Pricing.Application.Responses;
 using Rappix.Pricing.Domain.Common;
 
@@ -60,15 +62,71 @@ internal sealed class PricingGrpcServiceImpl(ISender sender) : PricingService.Pr
 
     public override async Task<ConsumeQuoteReply> ConsumeQuote(ConsumeQuoteRequest request, ServerCallContext context)
     {
-        if (!Guid.TryParse(request.QuoteId, out Guid quoteId))
+        if (!Guid.TryParse(request.QuoteId, out Guid quoteId) || !Guid.TryParse(request.OrderId, out Guid orderId))
         {
             return new ConsumeQuoteReply { Success = false, ErrorCode = "Pricing.Grpc.InvalidRequest" };
         }
 
-        Result<QuoteResponse> result = await sender.Send(new ConsumeQuoteCommand(quoteId), context.CancellationToken);
+        Result<QuoteResponse> result = await sender.Send(new ConsumeQuoteCommand(quoteId, orderId), context.CancellationToken);
         return result.IsSuccess
             ? new ConsumeQuoteReply { Success = true, Status = result.Value.Status }
             : new ConsumeQuoteReply { Success = false, ErrorCode = result.Error.Code };
+    }
+
+    public override async Task<GetQuoteReply> GetQuote(GetQuoteRequest request, ServerCallContext context)
+    {
+        if (!Guid.TryParse(request.QuoteId, out Guid quoteId))
+        {
+            return new GetQuoteReply { Success = false, ErrorCode = "Pricing.Grpc.InvalidRequest" };
+        }
+
+        Result<QuoteResponse> result = await sender.Send(new GetQuoteQuery(quoteId), context.CancellationToken);
+        if (result.IsFailure)
+        {
+            return new GetQuoteReply { Success = false, ErrorCode = result.Error.Code };
+        }
+
+        QuoteResponse quote = result.Value;
+        var reply = new GetQuoteReply
+        {
+            Success = true,
+            QuoteId = quote.QuoteId.ToString(),
+            CustomerUserId = quote.CustomerUserId.ToString(),
+            MerchantId = quote.MerchantId.ToString(),
+            Vertical = quote.Vertical,
+            Currency = quote.Currency,
+            Status = quote.Status,
+            CouponCode = quote.CouponCode ?? string.Empty,
+            CreatedAtUtc = quote.CreatedAtUtc.ToString("O", CultureInfo.InvariantCulture),
+            ExpiresAtUtc = quote.ExpiresAtUtc.ToString("O", CultureInfo.InvariantCulture),
+            Breakdown = ToBreakdownReply(quote.Breakdown),
+        };
+
+        reply.Lines.AddRange(quote.Lines.Select(line => new QuoteLineReply
+        {
+            ItemId = line.ItemId.ToString(),
+            ItemName = line.ItemName,
+            UnitPrice = Format(line.UnitPrice),
+            ModifierTotal = Format(line.ModifierTotal),
+            Quantity = line.Quantity,
+            LineSubtotal = Format(line.LineSubtotal),
+        }));
+
+        return reply;
+    }
+
+    public override async Task<RevertQuoteReply> RevertQuoteConsumption(RevertQuoteRequest request, ServerCallContext context)
+    {
+        if (!Guid.TryParse(request.QuoteId, out Guid quoteId) || !Guid.TryParse(request.OrderId, out Guid orderId))
+        {
+            return new RevertQuoteReply { Success = false, ErrorCode = "Pricing.Grpc.InvalidRequest" };
+        }
+
+        string? reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason;
+        Result<QuoteResponse> result = await sender.Send(new RevertQuoteCommand(quoteId, orderId, reason), context.CancellationToken);
+        return result.IsSuccess
+            ? new RevertQuoteReply { Success = true, Status = result.Value.Status }
+            : new RevertQuoteReply { Success = false, ErrorCode = result.Error.Code };
     }
 
     private static decimal ParseDecimal(string? value) =>

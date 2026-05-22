@@ -38,6 +38,9 @@ internal sealed class QuoteConfiguration : IEntityTypeConfiguration<Quote>
         builder.HasIndex(quote => quote.Status);
 
         builder.Property(quote => quote.ConsumedAtUtc);
+        builder.Property(quote => quote.ConsumedByOrderId);
+        builder.HasIndex(quote => quote.ConsumedByOrderId);
+        builder.Property(quote => quote.RevertedAtUtc);
 
         // Desglose monetario como value object embebido (numeric(19,4) por convencion).
         builder.OwnsOne(quote => quote.Breakdown, breakdown =>

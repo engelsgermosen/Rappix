@@ -32,10 +32,40 @@ public sealed class PricingGrpcTests(PricingApiFactory factory)
     {
         QuoteReply quote = await Client().QuotePriceAsync(NewRequest());
 
-        ConsumeQuoteReply consume = await Client().ConsumeQuoteAsync(new ConsumeQuoteRequest { QuoteId = quote.QuoteId });
+        ConsumeQuoteReply consume = await Client().ConsumeQuoteAsync(
+            new ConsumeQuoteRequest { QuoteId = quote.QuoteId, OrderId = Guid.CreateVersion7().ToString() });
 
         consume.Success.Should().BeTrue();
         consume.Status.Should().Be("Consumed");
+    }
+
+    [Fact]
+    public async Task GetQuote_AfterQuote_ReturnsLinesAndBreakdown()
+    {
+        QuoteReply quote = await Client().QuotePriceAsync(NewRequest());
+
+        GetQuoteReply fetched = await Client().GetQuoteAsync(new GetQuoteRequest { QuoteId = quote.QuoteId });
+
+        fetched.Success.Should().BeTrue();
+        fetched.QuoteId.Should().Be(quote.QuoteId);
+        fetched.Status.Should().Be("Active");
+        fetched.Lines.Should().HaveCount(1);
+        Parse(fetched.Breakdown.Total).Should().Be(407.10m);
+    }
+
+    [Fact]
+    public async Task ConsumeThenRevert_RestoresActive()
+    {
+        QuoteReply quote = await Client().QuotePriceAsync(NewRequest());
+        string orderId = Guid.CreateVersion7().ToString();
+
+        await Client().ConsumeQuoteAsync(new ConsumeQuoteRequest { QuoteId = quote.QuoteId, OrderId = orderId });
+
+        RevertQuoteReply revert = await Client().RevertQuoteConsumptionAsync(
+            new RevertQuoteRequest { QuoteId = quote.QuoteId, OrderId = orderId, Reason = "saga test" });
+
+        revert.Success.Should().BeTrue();
+        revert.Status.Should().Be("Active");
     }
 
     [Fact]

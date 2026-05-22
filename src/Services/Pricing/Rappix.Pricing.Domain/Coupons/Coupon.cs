@@ -230,6 +230,20 @@ public sealed class Coupon : AggregateRoot<CouponId>, IHasDomainEvents
         return Result.Success();
     }
 
+    /// <summary>
+    /// Deshace un uso del cupon (compensacion de la saga cuando se revierte el consumo de una cotizacion).
+    /// Decrementa UsedCount con la misma concurrencia optimista (xmin) que <see cref="Redeem"/>, sin bajar de
+    /// cero. Idempotente a nivel de cupon; el llamador no debe invocarla si la redencion ya fue revertida.
+    /// </summary>
+    public void UnRedeem(DateTime utcNow)
+    {
+        if (UsedCount > 0)
+        {
+            UsedCount--;
+            UpdatedAtUtc = utcNow;
+        }
+    }
+
     private static Result ValidateInvariants(
         DiscountType discountType,
         decimal value,

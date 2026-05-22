@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Rappix.Pricing.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Rappix.Pricing.Infrastructure.Persistence;
 namespace Rappix.Pricing.Infrastructure.Migrations
 {
     [DbContext(typeof(PricingDbContext))]
-    partial class PricingDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260522095036_AddQuoteRevertAndRedemptionAudit")]
+    partial class AddQuoteRevertAndRedemptionAudit
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

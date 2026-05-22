@@ -13,6 +13,13 @@ service PricingService {
   // Consume una cotizacion (la referencia un pedido) y, si tenia cupon, lo redime. Esta es la operacion
   // que el plan denomino "MarkCouponUsed": consumir la cotizacion es lo que dispara el uso del cupon.
   rpc ConsumeQuote (ConsumeQuoteRequest) returns (ConsumeQuoteReply);
+
+  // Devuelve la cotizacion completa (lineas + desglose) para que Orders arme el snapshot del pedido al crearlo.
+  rpc GetQuote (GetQuoteRequest) returns (GetQuoteReply);
+
+  // Revierte el consumo de una cotizacion (compensacion de la saga de Orders): la vuelve a Active y deshace
+  // la redencion del cupon. Idempotente.
+  rpc RevertQuoteConsumption (RevertQuoteRequest) returns (RevertQuoteReply);
 }
 
 message QuoteRequest {
@@ -57,9 +64,51 @@ message PriceBreakdownReply {
 
 message ConsumeQuoteRequest {
   string quote_id = 1;
+  string order_id = 2;          // pedido que consume (idempotencia por pedido)
 }
 
 message ConsumeQuoteReply {
+  bool success = 1;
+  string error_code = 2;
+  string status = 3;
+}
+
+message GetQuoteRequest {
+  string quote_id = 1;
+}
+
+message GetQuoteReply {
+  bool success = 1;
+  string error_code = 2;
+  string quote_id = 3;
+  string customer_user_id = 4;
+  string merchant_id = 5;
+  string vertical = 6;
+  string currency = 7;
+  string status = 8;
+  string coupon_code = 9;
+  string created_at_utc = 10;   // ISO 8601 UTC
+  string expires_at_utc = 11;   // ISO 8601 UTC
+  PriceBreakdownReply breakdown = 12;
+  repeated QuoteLineReply lines = 13;
+}
+
+message QuoteLineReply {
+  string item_id = 1;
+  string item_name = 2;
+  string unit_price = 3;        // decimal como string
+  string modifier_total = 4;    // decimal como string
+  int32 quantity = 5;
+  string line_subtotal = 6;     // decimal como string
+}
+
+message RevertQuoteRequest {
+  string quote_id = 1;
+  string order_id = 2;
+  string reason = 3;
+}
+
+message RevertQuoteReply {
   bool success = 1;
   string error_code = 2;
   string status = 3;

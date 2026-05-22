@@ -49,6 +49,10 @@ public static class QuoteErrors
     public static readonly Error ConcurrencyConflict =
         Error.Conflict("Pricing.Quote.ConcurrencyConflict", "Conflicto de concurrencia al consumir la cotizacion. Reintente.");
 
+    /// <summary>No se puede revertir el consumo: la cotizacion no fue consumida por este pedido (o ya expiro).</summary>
+    public static readonly Error RevertNotAllowed =
+        Error.Conflict("Pricing.Quote.RevertNotAllowed", "La cotizacion no puede revertirse: no fue consumida por este pedido.");
+
     /// <summary>El merchant no esta activo y no puede cotizarse.</summary>
     public static readonly Error MerchantInactive =
         Error.Conflict("Pricing.Quote.MerchantInactive", "El merchant no esta activo; no se puede cotizar.");

@@ -81,11 +81,12 @@ public sealed class CouponConcurrencyTests(PricingApiFactory factory)
 
     private async Task<Outcome> ConsumeWithRetryAsync(Guid quoteId)
     {
+        Guid orderId = Guid.CreateVersion7();
         for (int attempt = 0; attempt < 100; attempt++)
         {
             using IServiceScope scope = factory.Services.CreateScope();
             ISender sender = scope.ServiceProvider.GetRequiredService<ISender>();
-            Result<QuoteResponse> result = await sender.Send(new ConsumeQuoteCommand(quoteId));
+            Result<QuoteResponse> result = await sender.Send(new ConsumeQuoteCommand(quoteId, orderId));
 
             if (result.IsSuccess)
             {

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Rappix.Pricing.Application.Abstractions;
 using Rappix.Pricing.Domain.Coupons;
+using Rappix.Pricing.Domain.Quotes;
 
 namespace Rappix.Pricing.Infrastructure.Persistence.Repositories;
 
@@ -27,7 +28,17 @@ internal sealed class CouponRepository(PricingDbContext context) : ICouponReposi
 
     public Task<int> CountRedemptionsAsync(CouponId couponId, Guid customerUserId, CancellationToken cancellationToken) =>
         context.CouponRedemptions.CountAsync(
-            redemption => redemption.CouponId == couponId && redemption.CustomerUserId == customerUserId, cancellationToken);
+            redemption => redemption.CouponId == couponId
+                && redemption.CustomerUserId == customerUserId
+                && redemption.RevertedAtUtc == null,
+            cancellationToken);
+
+    public Task<CouponRedemption?> GetActiveRedemptionAsync(CouponId couponId, QuoteId quoteId, CancellationToken cancellationToken) =>
+        context.CouponRedemptions.FirstOrDefaultAsync(
+            redemption => redemption.CouponId == couponId
+                && redemption.QuoteId == quoteId
+                && redemption.RevertedAtUtc == null,
+            cancellationToken);
 
     public void AddRedemption(CouponRedemption redemption) => context.CouponRedemptions.Add(redemption);
 }

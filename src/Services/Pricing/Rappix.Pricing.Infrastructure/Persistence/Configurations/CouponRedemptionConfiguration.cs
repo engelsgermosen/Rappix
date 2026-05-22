@@ -19,7 +19,14 @@ internal sealed class CouponRedemptionConfiguration : IEntityTypeConfiguration<C
         builder.Property(redemption => redemption.QuoteId).IsRequired();
         builder.Property(redemption => redemption.RedeemedAtUtc).IsRequired();
 
+        // Reversion por compensacion de la saga (auditoria: no se borra el registro, se marca revertido).
+        builder.Property(redemption => redemption.RevertedAtUtc);
+        builder.Property(redemption => redemption.RevertReason).HasMaxLength(200);
+
         // Indice para contar redenciones de un (cupon, cliente) al validar el limite por usuario.
         builder.HasIndex(redemption => new { redemption.CouponId, redemption.CustomerUserId });
+
+        // Indice para localizar la redencion activa de una cotizacion al revertir.
+        builder.HasIndex(redemption => redemption.QuoteId);
     }
 }

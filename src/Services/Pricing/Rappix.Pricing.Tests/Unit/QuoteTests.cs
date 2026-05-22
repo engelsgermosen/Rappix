@@ -11,6 +11,8 @@ namespace Rappix.Pricing.Tests.Unit;
 public sealed class QuoteTests
 {
     private static readonly DateTime Now = new(2026, 5, 22, 12, 0, 0, DateTimeKind.Utc);
+    private static readonly Guid OrderId = Guid.CreateVersion7();
+    private static readonly Guid OtherOrderId = Guid.CreateVersion7();
 
     [Fact]
     public void Create_NoLines_Fails()
@@ -55,20 +57,31 @@ public sealed class QuoteTests
     {
         Quote quote = NewQuote();
 
-        Result result = quote.Consume(Now.AddMinutes(5));
+        Result result = quote.Consume(Now.AddMinutes(5), OrderId);
 
         result.IsSuccess.Should().BeTrue();
         quote.Status.Should().Be(QuoteStatus.Consumed);
         quote.ConsumedAtUtc.Should().Be(Now.AddMinutes(5));
+        quote.ConsumedByOrderId.Should().Be(OrderId);
     }
 
     [Fact]
-    public void Consume_AlreadyConsumed_Fails()
+    public void Consume_AlreadyConsumedByAnotherOrder_Fails()
     {
         Quote quote = NewQuote();
-        quote.Consume(Now.AddMinutes(1));
+        quote.Consume(Now.AddMinutes(1), OrderId);
 
-        quote.Consume(Now.AddMinutes(2)).Error.Should().Be(QuoteErrors.AlreadyConsumed);
+        quote.Consume(Now.AddMinutes(2), OtherOrderId).Error.Should().Be(QuoteErrors.AlreadyConsumed);
+    }
+
+    [Fact]
+    public void Consume_AgainBySameOrder_IsIdempotent()
+    {
+        Quote quote = NewQuote();
+        quote.Consume(Now.AddMinutes(1), OrderId);
+
+        quote.Consume(Now.AddMinutes(2), OrderId).IsSuccess.Should().BeTrue();
+        quote.Status.Should().Be(QuoteStatus.Consumed);
     }
 
     [Fact]
@@ -76,7 +89,7 @@ public sealed class QuoteTests
     {
         Quote quote = NewQuote();
 
-        Result result = quote.Consume(Now.AddMinutes(11));
+        Result result = quote.Consume(Now.AddMinutes(11), OrderId);
 
         result.Error.Should().Be(QuoteErrors.Expired);
         quote.Status.Should().Be(QuoteStatus.Expired);
@@ -86,7 +99,7 @@ public sealed class QuoteTests
     public void MarkExpired_OnlyTransitionsFromActive()
     {
         Quote quote = NewQuote();
-        quote.Consume(Now.AddMinutes(1));
+        quote.Consume(Now.AddMinutes(1), OrderId);
 
         quote.MarkExpired();
 
