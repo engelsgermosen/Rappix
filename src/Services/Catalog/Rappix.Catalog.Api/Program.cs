@@ -129,6 +129,7 @@ app.UseWhen(
 
 // gRPC interno.
 app.MapGrpcService<CatalogValidationServiceImpl>();
+app.MapGrpcService<StockReservationServiceImpl>();
 
 ApiVersionSet versionSet = app.NewApiVersionSet()
     .HasApiVersion(new ApiVersion(1, 0))

@@ -35,13 +35,16 @@ internal sealed class GetItemPricingQueryHandler(
             : catalog?.IsEnabled ?? false;
 
         int? stockQuantity = null;
+        bool inStock = true;
         if (item.TracksInventory)
         {
             StockLevel? stock = await stocks.GetByItemIdAsync(item.Id, cancellationToken);
+            // stock_quantity informa el fisico en existencia; la comprabilidad usa el disponible
+            // (fisico menos holds activos) para no vender unidades ya apartadas por otra saga.
             stockQuantity = stock?.Quantity ?? 0;
+            inStock = (stock?.Available ?? 0) > 0;
         }
 
-        bool inStock = !item.TracksInventory || stockQuantity > 0;
         bool purchasable = merchantActive && item.IsAvailable && inStock;
 
         return new ItemPricingResponse(

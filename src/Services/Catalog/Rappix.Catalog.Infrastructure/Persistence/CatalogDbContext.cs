@@ -28,6 +28,9 @@ public sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> options,
     /// <summary>Niveles de stock.</summary>
     public DbSet<StockLevel> StockLevels => Set<StockLevel>();
 
+    /// <summary>Reservas (holds) de stock tomadas por pedidos durante su saga.</summary>
+    public DbSet<StockReservation> StockReservations => Set<StockReservation>();
+
     /// <inheritdoc />
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

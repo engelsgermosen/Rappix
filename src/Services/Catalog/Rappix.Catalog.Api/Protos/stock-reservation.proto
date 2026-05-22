@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+option csharp_namespace = "Rappix.Catalog.Api.Grpc";
+
+package catalog.reservation.v1;
+
+// Servicio interno para que Orders ejecute el patron de reserva de stock durante su saga:
+// Reserve (hold) -> Commit (decremento definitivo) o Release (libera el hold). Separado del
+// CatalogValidationService (lectura/comprabilidad) para no mezclar el contrato de escritura de
+// inventario con el de validacion. Todas las operaciones son idempotentes por order_id.
+service StockReservationService {
+  // Aparta stock para un pedido, todo-o-nada. Idempotente: re-enviar el mismo pedido no duplica holds.
+  rpc ReserveStock (ReserveStockRequest) returns (ReserveStockReply);
+  // Confirma los holds del pedido (decremento definitivo del fisico). Idempotente.
+  rpc CommitStock (CommitStockRequest) returns (CommitStockReply);
+  // Libera los holds del pedido (compensacion). Idempotente.
+  rpc ReleaseStock (ReleaseStockRequest) returns (ReleaseStockReply);
+}
+
+message ReserveStockLine {
+  string item_id = 1;
+  int32 quantity = 2;
+}
+
+message ReserveStockRequest {
+  string order_id = 1;
+  repeated ReserveStockLine lines = 2;
+  int32 ttl_seconds = 3;
+}
+
+message ReserveStockReply {
+  bool success = 1;
+  string error_code = 2;
+}
+
+message CommitStockRequest {
+  string order_id = 1;
+}
+
+message CommitStockReply {
+  bool success = 1;
+  string error_code = 2;
+}
+
+message ReleaseStockRequest {
+  string order_id = 1;
+}
+
+message ReleaseStockReply {
+  bool success = 1;
+  string error_code = 2;
+}

@@ -22,6 +22,11 @@ internal sealed class StockLevelConfiguration : IEntityTypeConfiguration<StockLe
         builder.HasIndex(stock => stock.MerchantId);
 
         builder.Property(stock => stock.Quantity).IsRequired();
+
+        // Contador agregado de unidades apartadas por holds. Default 0: las filas existentes y los items
+        // sin reservas se comportan igual que antes (Available == Quantity), preservando el comportamiento.
+        builder.Property(stock => stock.ReservedQuantity).IsRequired().HasDefaultValue(0);
+
         builder.Property(stock => stock.UpdatedAtUtc).IsRequired();
 
         // Concurrencia optimista via la columna de sistema xmin de PostgreSQL (token de version de fila).

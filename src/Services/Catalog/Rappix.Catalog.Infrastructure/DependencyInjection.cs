@@ -29,6 +29,7 @@ public static class DependencyInjection
         services.AddScoped<ICatalogRepository, CatalogRepository>();
         services.AddScoped<IItemRepository, ItemRepository>();
         services.AddScoped<IStockRepository, StockRepository>();
+        services.AddScoped<IStockReservationRepository, StockReservationRepository>();
 
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 

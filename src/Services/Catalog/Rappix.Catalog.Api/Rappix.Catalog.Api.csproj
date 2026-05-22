@@ -22,6 +22,8 @@
   <ItemGroup>
     <!-- Servidor gRPC propio (CatalogValidationService). GrpcServices=Both para que las pruebas usen el cliente generado sobre el TestServer. -->
     <Protobuf Include="Protos\catalog.proto" GrpcServices="Both" />
+    <!-- Servicio de reserva de stock (consumido por la saga de Orders). Both para usar el cliente en pruebas. -->
+    <Protobuf Include="Protos\stock-reservation.proto" GrpcServices="Both" />
   </ItemGroup>
 
   <ItemGroup>

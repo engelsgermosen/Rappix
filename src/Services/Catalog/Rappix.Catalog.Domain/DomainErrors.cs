@@ -108,6 +108,10 @@ public static class StockErrors
     /// <summary>El stock fue modificado por otra operacion concurrente (conflicto de xmin).</summary>
     public static readonly Error ConcurrencyConflict =
         Error.Conflict("Catalog.Stock.ConcurrencyConflict", "El stock fue modificado por otra operacion. Reintente.");
+
+    /// <summary>Operacion de reserva invalida (liberar/confirmar mas de lo apartado).</summary>
+    public static readonly Error InvalidReservation =
+        Error.Validation("Catalog.Stock.InvalidReservation", "La operacion de reserva es invalida para el stock actual.");
 }
 
 /// <summary>Errores de los grupos de modificadores y sus opciones.</summary>
