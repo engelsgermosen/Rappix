@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Rappix.Pricing.Infrastructure</RootNamespace>
+    <AssemblyName>Rappix.Pricing.Infrastructure</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Permite a las pruebas instanciar tipos internos (repositorios, consumers, clientes gRPC). -->
+    <InternalsVisibleTo Include="Rappix.Pricing.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="MassTransit.EntityFrameworkCore" />
+    <!-- Cache distribuida para la idempotencia del middleware REST (Redis en prod, memoria en dev/tests). -->
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rappix.Pricing.Application\Rappix.Pricing.Application.csproj" />
+    <ProjectReference Include="..\Rappix.Pricing.Domain\Rappix.Pricing.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Contracts\Rappix.Contracts\Rappix.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Core\Rappix.BuildingBlocks.Core.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Messaging\Rappix.BuildingBlocks.Messaging.csproj" />
+  </ItemGroup>
+
+</Project>
