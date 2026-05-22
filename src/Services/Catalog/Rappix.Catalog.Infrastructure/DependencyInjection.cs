@@ -36,10 +36,25 @@ public static class DependencyInjection
         services.AddRappixImageValidator();
         services.AddRappixObjectStorage(configuration);
 
+        AddDistributedCache(services, configuration);
         AddMerchantsGrpcClient(services, configuration);
         AddMessaging(services, configuration);
 
         return services;
+    }
+
+    private static void AddDistributedCache(IServiceCollection services, IConfiguration configuration)
+    {
+        // La idempotencia del middleware REST necesita IDistributedCache. Redis si esta configurado; memoria si no.
+        string? redisConnection = configuration.GetConnectionString("Redis");
+        if (string.IsNullOrWhiteSpace(redisConnection))
+        {
+            services.AddDistributedMemoryCache();
+        }
+        else
+        {
+            services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
+        }
     }
 
     private static void AddMerchantsGrpcClient(IServiceCollection services, IConfiguration configuration)

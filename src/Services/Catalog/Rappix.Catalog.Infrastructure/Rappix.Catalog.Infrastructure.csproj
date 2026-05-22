@@ -14,6 +14,8 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="MassTransit.EntityFrameworkCore" />
+    <!-- Cache distribuida para la idempotencia del middleware REST (Redis en prod, memoria en dev/tests). -->
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
     <!-- Cliente gRPC del servicio Merchants (validacion de comercio) con resiliencia (retry + circuit breaker). -->
     <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Grpc.Net.ClientFactory" />
