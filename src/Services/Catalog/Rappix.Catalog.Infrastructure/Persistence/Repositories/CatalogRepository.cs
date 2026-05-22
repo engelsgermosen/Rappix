@@ -14,6 +14,12 @@ internal sealed class CatalogRepository(CatalogDbContext context) : ICatalogRepo
             .Include(catalog => catalog.Categories)
             .FirstOrDefaultAsync(catalog => catalog.MerchantId == merchantId, cancellationToken);
 
+    public async Task<Guid?> GetMerchantIdByOwnerAsync(Guid ownerUserId, CancellationToken cancellationToken) =>
+        await context.Catalogs
+            .Where(catalog => catalog.OwnerUserId == ownerUserId)
+            .Select(catalog => (Guid?)catalog.MerchantId)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public Task<bool> ExistsByMerchantAsync(Guid merchantId, CancellationToken cancellationToken) =>
         context.Catalogs.AnyAsync(catalog => catalog.MerchantId == merchantId, cancellationToken);
 }

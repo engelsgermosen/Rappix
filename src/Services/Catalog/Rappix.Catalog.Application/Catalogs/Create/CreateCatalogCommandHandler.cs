@@ -27,7 +27,7 @@ internal sealed class CreateCatalogCommandHandler(
                 $"Vertical desconocido: {command.VerticalType}."));
         }
 
-        MerchantCatalog catalog = MerchantCatalog.Create(command.MerchantId, vertical, clock.UtcNow);
+        MerchantCatalog catalog = MerchantCatalog.Create(command.MerchantId, command.OwnerUserId, vertical, clock.UtcNow);
         catalogs.Add(catalog);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return Result.Success();

@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+option csharp_namespace = "Rappix.Catalog.Api.Grpc";
+
+package catalog.v1;
+
+// Servicio interno para que otros microservicios (Orders, Pricing) consulten precio y comprabilidad
+// de un item sin HTTP. La comprabilidad combina merchant activo + item disponible + stock.
+service CatalogValidationService {
+  rpc GetItemPricing (ItemPricingRequest) returns (ItemPricingResponse);
+}
+
+message ItemPricingRequest {
+  string item_id = 1;
+}
+
+message ItemPricingResponse {
+  bool found = 1;
+  string item_id = 2;
+  string merchant_id = 3;
+  string name = 4;
+  // El precio viaja como string para preservar la precision decimal del dinero.
+  string price_amount = 5;
+  string currency = 6;
+  bool is_available = 7;
+  bool tracks_inventory = 8;
+  int32 stock_quantity = 9;
+  bool is_purchasable = 10;
+}

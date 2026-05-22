@@ -19,7 +19,7 @@ internal sealed partial class MerchantApprovedConsumer(ISender sender, ILogger<M
         MerchantApprovedIntegrationEvent message = context.Message;
         LogCreatingCatalog(logger, message.MerchantId, message.VerticalType);
 
-        var command = new CreateCatalogCommand(message.MerchantId, message.VerticalType);
+        var command = new CreateCatalogCommand(message.MerchantId, message.OwnerUserId, message.VerticalType);
         Result result = await sender.Send(command, context.CancellationToken);
         if (result.IsFailure)
         {

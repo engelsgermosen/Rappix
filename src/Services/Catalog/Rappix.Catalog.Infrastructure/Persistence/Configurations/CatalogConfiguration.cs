@@ -16,6 +16,9 @@ internal sealed class CatalogConfiguration : IEntityTypeConfiguration<MerchantCa
         builder.Property(catalog => catalog.MerchantId).IsRequired();
         builder.HasIndex(catalog => catalog.MerchantId).IsUnique();
 
+        builder.Property(catalog => catalog.OwnerUserId).IsRequired();
+        builder.HasIndex(catalog => catalog.OwnerUserId).IsUnique();
+
         builder.Property(catalog => catalog.VerticalType)
             .HasConversion<string>()
             .HasMaxLength(20)

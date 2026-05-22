@@ -12,7 +12,16 @@
     <PackageReference Include="Asp.Versioning.Http" />
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" />
     <PackageReference Include="Scalar.AspNetCore" />
+    <PackageReference Include="Grpc.AspNetCore" />
+    <PackageReference Include="Grpc.Tools">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Servidor gRPC propio (CatalogValidationService). GrpcServices=Both para que las pruebas usen el cliente generado sobre el TestServer. -->
+    <Protobuf Include="Protos\catalog.proto" GrpcServices="Both" />
   </ItemGroup>
 
   <ItemGroup>

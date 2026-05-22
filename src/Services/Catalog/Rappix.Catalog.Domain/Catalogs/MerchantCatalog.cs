@@ -20,10 +20,11 @@ public sealed class MerchantCatalog : AggregateRoot<CatalogId>, IHasDomainEvents
     {
     }
 
-    private MerchantCatalog(CatalogId id, Guid merchantId, VerticalType verticalType, bool isEnabled, DateTime utcNow)
+    private MerchantCatalog(CatalogId id, Guid merchantId, Guid ownerUserId, VerticalType verticalType, bool isEnabled, DateTime utcNow)
         : base(id)
     {
         MerchantId = merchantId;
+        OwnerUserId = ownerUserId;
         VerticalType = verticalType;
         IsEnabled = isEnabled;
         CreatedAtUtc = utcNow;
@@ -31,6 +32,9 @@ public sealed class MerchantCatalog : AggregateRoot<CatalogId>, IHasDomainEvents
 
     /// <summary>Merchant (servicio Merchants) dueno del catalogo. Unico.</summary>
     public Guid MerchantId { get; private set; }
+
+    /// <summary>Usuario (Identity) propietario del merchant; mapea el sujeto autenticado a su catalogo.</summary>
+    public Guid OwnerUserId { get; private set; }
 
     /// <summary>Vertical de negocio, cacheado desde el evento de aprobacion.</summary>
     public VerticalType VerticalType { get; private set; }
@@ -48,8 +52,8 @@ public sealed class MerchantCatalog : AggregateRoot<CatalogId>, IHasDomainEvents
     public IReadOnlyCollection<Category> Categories => _categories.AsReadOnly();
 
     /// <summary>Crea el catalogo (lo invoca el consumer de MerchantApproved). Arranca habilitado.</summary>
-    public static MerchantCatalog Create(Guid merchantId, VerticalType verticalType, DateTime utcNow) =>
-        new(CatalogId.New(), merchantId, verticalType, isEnabled: true, utcNow);
+    public static MerchantCatalog Create(Guid merchantId, Guid ownerUserId, VerticalType verticalType, DateTime utcNow) =>
+        new(CatalogId.New(), merchantId, ownerUserId, verticalType, isEnabled: true, utcNow);
 
     /// <summary>Habilita el catalogo (merchant reactivado). Idempotente.</summary>
     public void Enable(DateTime utcNow)

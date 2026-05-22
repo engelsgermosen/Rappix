@@ -11,6 +11,9 @@ public interface ICatalogRepository
     /// <summary>Obtiene el catalogo de un merchant, incluyendo sus categorias.</summary>
     Task<MerchantCatalog?> GetByMerchantAsync(Guid merchantId, CancellationToken cancellationToken);
 
+    /// <summary>Resuelve el MerchantId del catalogo de un usuario propietario (o null si no tiene catalogo).</summary>
+    Task<Guid?> GetMerchantIdByOwnerAsync(Guid ownerUserId, CancellationToken cancellationToken);
+
     /// <summary>Indica si el merchant ya tiene catalogo (idempotencia del consumer).</summary>
     Task<bool> ExistsByMerchantAsync(Guid merchantId, CancellationToken cancellationToken);
 }
