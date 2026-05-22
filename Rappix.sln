@@ -91,6 +91,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rappix.Orders.Infrastructur
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rappix.Orders.Api", "src\Services\Orders\Rappix.Orders.Api\Rappix.Orders.Api.csproj", "{7E9440B8-6CB2-4796-A33C-1DB0867D0E7F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rappix.Orders.Tests", "src\Services\Orders\Rappix.Orders.Tests\Rappix.Orders.Tests.csproj", "{7E504D6D-6094-4EAF-A7FC-05F704D1AF23}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -473,6 +475,18 @@ Global
 		{7E9440B8-6CB2-4796-A33C-1DB0867D0E7F}.Release|x64.Build.0 = Release|Any CPU
 		{7E9440B8-6CB2-4796-A33C-1DB0867D0E7F}.Release|x86.ActiveCfg = Release|Any CPU
 		{7E9440B8-6CB2-4796-A33C-1DB0867D0E7F}.Release|x86.Build.0 = Release|Any CPU
+		{7E504D6D-6094-4EAF-A7FC-05F704D1AF23}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E504D6D-6094-4EAF-A7FC-05F704D1AF23}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E504D6D-6094-4EAF-A7FC-05F704D1AF23}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7E504D6D-6094-4EAF-A7FC-05F704D1AF23}.Debug|x64.Build.0 = Debug|Any CPU
+		{7E504D6D-6094-4EAF-A7FC-05F704D1AF23}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7E504D6D-6094-4EAF-A7FC-05F704D1AF23}.Debug|x86.Build.0 = Debug|Any CPU
+		{7E504D6D-6094-4EAF-A7FC-05F704D1AF23}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E504D6D-6094-4EAF-A7FC-05F704D1AF23}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E504D6D-6094-4EAF-A7FC-05F704D1AF23}.Release|x64.ActiveCfg = Release|Any CPU
+		{7E504D6D-6094-4EAF-A7FC-05F704D1AF23}.Release|x64.Build.0 = Release|Any CPU
+		{7E504D6D-6094-4EAF-A7FC-05F704D1AF23}.Release|x86.ActiveCfg = Release|Any CPU
+		{7E504D6D-6094-4EAF-A7FC-05F704D1AF23}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -517,5 +531,6 @@ Global
 		{038C190C-B970-4E01-9E9A-6BB0E2267CD6} = {53A5E032-9A5F-5C5F-4C24-3FD98F4CF9B3}
 		{2C16924D-D6D5-4165-87BC-20CAAA55196D} = {53A5E032-9A5F-5C5F-4C24-3FD98F4CF9B3}
 		{7E9440B8-6CB2-4796-A33C-1DB0867D0E7F} = {53A5E032-9A5F-5C5F-4C24-3FD98F4CF9B3}
+		{7E504D6D-6094-4EAF-A7FC-05F704D1AF23} = {53A5E032-9A5F-5C5F-4C24-3FD98F4CF9B3}
 	EndGlobalSection
 EndGlobal
