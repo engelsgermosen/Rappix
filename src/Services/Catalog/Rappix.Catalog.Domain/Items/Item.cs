@@ -20,7 +20,9 @@ public sealed class Item : AggregateRoot<ItemId>, IHasDomainEvents
     public const int MaxDescriptionLength = 2000;
 
     private readonly List<Modifier> _modifiers = [];
-    private readonly Dictionary<string, string> _attributes = new(StringComparer.OrdinalIgnoreCase);
+
+    // No es readonly: EF Core reasigna este campo al materializar el atributo JSONB.
+    private Dictionary<string, string> _attributes = new(StringComparer.OrdinalIgnoreCase);
 
     private Item()
     {

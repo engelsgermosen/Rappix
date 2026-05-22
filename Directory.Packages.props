@@ -80,6 +80,8 @@
     <PackageVersion Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="10.0.0" />
     <PackageVersion Include="Grpc.AspNetCore" Version="2.67.0" />
     <PackageVersion Include="Grpc.Net.Client" Version="2.67.0" />
+    <!-- AddGrpcClient (fabrica de clientes gRPC) para el cliente del servicio Merchants (Catalog, Fase 3). -->
+    <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.67.0" />
     <PackageVersion Include="Google.Protobuf" Version="3.29.1" />
     <PackageVersion Include="Grpc.Tools" Version="2.68.1" />
   </ItemGroup>

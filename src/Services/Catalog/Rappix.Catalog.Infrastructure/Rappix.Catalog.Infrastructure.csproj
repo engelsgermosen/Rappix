@@ -14,6 +14,18 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="MassTransit.EntityFrameworkCore" />
+    <!-- Cliente gRPC del servicio Merchants (validacion de comercio) con resiliencia (retry + circuit breaker). -->
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Net.ClientFactory" />
+    <PackageReference Include="Grpc.Tools">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Copia client-only del contrato de Merchants para el cliente gRPC (csharp_namespace propio). -->
+    <Protobuf Include="Protos\merchants.proto" GrpcServices="Client" />
   </ItemGroup>
 
   <ItemGroup>
