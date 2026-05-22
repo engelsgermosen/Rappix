@@ -107,6 +107,15 @@ builder.Services.AddOpenApi("v1", options =>
 
 WebApplication app = builder.Build();
 
+// Aplica las migraciones EF Core al arrancar, antes de los hosted services (Quartz + el bus MassTransit,
+// que necesitan el esquema: qrtz_* + inbox/outbox). Se omite en pruebas (entorno "Testing").
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    await using var migrationScope = app.Services.CreateAsyncScope();
+    await Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.MigrateAsync(
+        migrationScope.ServiceProvider.GetRequiredService<Rappix.Orders.Infrastructure.Persistence.OrdersDbContext>().Database);
+}
+
 app.UseExceptionHandler();
 app.UseCorrelationId();
 app.UseRappixRequestLogging();

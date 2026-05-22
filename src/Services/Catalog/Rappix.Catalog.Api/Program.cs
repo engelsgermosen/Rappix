@@ -109,6 +109,15 @@ builder.Services.AddOpenApi("v1", options =>
 
 WebApplication app = builder.Build();
 
+// Aplica las migraciones EF Core al arrancar, antes de cualquier hosted service. Se omite en pruebas:
+// los WebApplicationFactory migran explicitamente en su InitializeAsync (entorno "Testing").
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    await using var migrationScope = app.Services.CreateAsyncScope();
+    await Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.MigrateAsync(
+        migrationScope.ServiceProvider.GetRequiredService<Rappix.Catalog.Infrastructure.Persistence.CatalogDbContext>().Database);
+}
+
 app.UseExceptionHandler();
 app.UseCorrelationId();
 app.UseRappixRequestLogging();
