@@ -47,6 +47,7 @@ internal sealed class MerchantValidationServiceImpl(ISender sender)
             Name = info.Name,
             Slug = info.Slug,
             VerticalType = info.VerticalType,
+            OwnerUserId = info.OwnerUserId,
         };
     }
 }

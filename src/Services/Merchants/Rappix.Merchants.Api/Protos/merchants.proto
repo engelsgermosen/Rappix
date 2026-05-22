@@ -28,4 +28,6 @@ message MerchantBasicInfoResponse {
   string name = 3;
   string slug = 4;
   string vertical_type = 5;
+  // Usuario (Identity) propietario del comercio. Lo consume Orders para autorizar accept/reject del dueño.
+  string owner_user_id = 6;
 }

@@ -9,11 +9,12 @@ public sealed record MerchantActivationResponse(
     string Status,
     string Name,
     string Slug,
-    string VerticalType)
+    string VerticalType,
+    string OwnerUserId)
 {
     /// <summary>Respuesta para un merchant inexistente.</summary>
     public static readonly MerchantActivationResponse NotFoundResult =
-        new(false, false, "NotFound", string.Empty, string.Empty, string.Empty);
+        new(false, false, "NotFound", string.Empty, string.Empty, string.Empty, string.Empty);
 
     /// <summary>Proyecta el estado de activacion del agregado.</summary>
     public static MerchantActivationResponse From(Merchant merchant) => new(
@@ -22,5 +23,6 @@ public sealed record MerchantActivationResponse(
         merchant.Status.ToString(),
         merchant.Name,
         merchant.Slug.Value,
-        merchant.VerticalType.ToString());
+        merchant.VerticalType.ToString(),
+        merchant.OwnerUserId.ToString());
 }
