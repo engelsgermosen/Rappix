@@ -11,10 +11,11 @@ public sealed class ItemPriceCache
     {
     }
 
-    private ItemPriceCache(Guid itemId, Guid merchantId, decimal basePrice, string currency, DateTime updatedAtUtc)
+    private ItemPriceCache(Guid itemId, Guid merchantId, string name, decimal basePrice, string currency, DateTime updatedAtUtc)
     {
         ItemId = itemId;
         MerchantId = merchantId;
+        Name = name;
         BasePrice = basePrice;
         Currency = currency;
         UpdatedAtUtc = updatedAtUtc;
@@ -26,6 +27,9 @@ public sealed class ItemPriceCache
     /// <summary>Merchant dueno del item.</summary>
     public Guid MerchantId { get; private set; }
 
+    /// <summary>Nombre del item (snapshot, usado al cotizar por fallback cuando Catalog no responde).</summary>
+    public string Name { get; private set; } = null!;
+
     /// <summary>Precio base del item.</summary>
     public decimal BasePrice { get; private set; }
 
@@ -36,13 +40,14 @@ public sealed class ItemPriceCache
     public DateTime UpdatedAtUtc { get; private set; }
 
     /// <summary>Crea una entrada de cache.</summary>
-    public static ItemPriceCache Create(Guid itemId, Guid merchantId, decimal basePrice, string currency, DateTime updatedAtUtc) =>
-        new(itemId, merchantId, basePrice, currency, updatedAtUtc);
+    public static ItemPriceCache Create(Guid itemId, Guid merchantId, string name, decimal basePrice, string currency, DateTime updatedAtUtc) =>
+        new(itemId, merchantId, name, basePrice, currency, updatedAtUtc);
 
     /// <summary>Actualiza el precio cacheado (idempotente ante reentregas del evento).</summary>
-    public void Update(Guid merchantId, decimal basePrice, string currency, DateTime updatedAtUtc)
+    public void Update(Guid merchantId, string name, decimal basePrice, string currency, DateTime updatedAtUtc)
     {
         MerchantId = merchantId;
+        Name = name;
         BasePrice = basePrice;
         Currency = currency;
         UpdatedAtUtc = updatedAtUtc;

@@ -48,6 +48,14 @@ public static class QuoteErrors
     /// <summary>El conflicto de concurrencia al guardar (xmin de un cupon).</summary>
     public static readonly Error ConcurrencyConflict =
         Error.Conflict("Pricing.Quote.ConcurrencyConflict", "Conflicto de concurrencia al consumir la cotizacion. Reintente.");
+
+    /// <summary>El merchant no esta activo y no puede cotizarse.</summary>
+    public static readonly Error MerchantInactive =
+        Error.Conflict("Pricing.Quote.MerchantInactive", "El merchant no esta activo; no se puede cotizar.");
+
+    /// <summary>El merchant no existe.</summary>
+    public static readonly Error MerchantNotFound =
+        Error.NotFound("Pricing.Quote.MerchantNotFound", "Merchant no encontrado.");
 }
 
 /// <summary>Errores de las lineas de la cotizacion.</summary>
