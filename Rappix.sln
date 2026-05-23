@@ -129,6 +129,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rappix.Payments.Api", "src\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rappix.Payments.Tests", "src\Services\Payments\Rappix.Payments.Tests\Rappix.Payments.Tests.csproj", "{44230BF4-FF9A-485C-810A-FCA7D20A1188}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Notifications", "Notifications", "{C30EA34C-96E3-EEAB-A84E-085AED71DD06}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
