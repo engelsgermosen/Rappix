@@ -57,3 +57,7 @@ tools/.smoke-client.log
 tools/.smoke-client.err
 
 **/Properties/launchSettings.json
+
+.claude/
+
+.pr-body.md
