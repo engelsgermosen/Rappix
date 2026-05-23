@@ -135,7 +135,32 @@ await connection.invoke("Subscribe", orderId);
 
 ## 4. Smoke E2E completo (el cierre de Fase 7)
 
-El push en vivo (segundo tramo `IClientNotifier → SignalR → cliente`) **no** está cubierto por tests automatizados (limitación del TestServer + LongPolling con SignalR Groups). El smoke manual ES la verificación.
+El push en vivo (segundo tramo `IClientNotifier → SignalR → cliente`) **no** está cubierto por tests automatizados (limitación del TestServer + LongPolling con SignalR Groups). El smoke E2E ES la verificación.
+
+### Smoke automatizado (recomendado)
+
+`tools/smoke-tracking-e2e.ps1` automatiza el flujo entero (setup + crear pedido + lanzar el smoke-client en background + accept + 2 location updates + mark-delivered + lectura de pushes recibidos). Requiere `Orders__Simulation__DeliveryDelayMs` ≥ 20000 en `docker-compose.yml` (ya en main; con delay <1s el simulated delivery cierra la saga antes de que las ubicaciones lleguen).
+
+```powershell
+docker compose down -v
+docker compose up -d --build
+./tools/smoke-tracking-e2e.ps1
+```
+
+Salida esperada (6 pushes en orden, con timestamps reales del smoke):
+
+```
+[smoke] StatusChanged   status=Placed             changedAtUtc=...11.872Z  reason=(no reason)
+[smoke] StatusChanged   status=MerchantAccepted   changedAtUtc=...21.918Z
+[smoke] StatusChanged   status=CourierAssigned    changedAtUtc=...22.209Z
+[smoke] LocationUpdated lat=18.487  lng=-69.932   reportedAtUtc=...29.917Z  courierId=...
+[smoke] LocationUpdated lat=18.4875 lng=-69.9325  reportedAtUtc=...32.994Z  courierId=...
+[smoke] StatusChanged   status=Delivered          changedAtUtc=...36.012Z
+```
+
+Si el smoke automatizado pasa con los 6 pushes en orden, los 4 tests SKIP en `TrackingHubConnectionTests` (limitación de TestServer + SignalR Groups por LongPolling) quedan **cubiertos por evidencia del flujo real**.
+
+### Smoke manual (paso a paso)
 
 ### Pasos
 

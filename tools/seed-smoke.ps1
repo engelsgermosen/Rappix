@@ -260,7 +260,7 @@ Write-Host "  # En Seq Dispatch: CourierRequested consumido -> GEOSEARCH -> clai
 Write-Host "  # En Seq Tracking: OrderSubmitted/OrderAccepted/CourierAssigned consumidos (proyeccion)" -ForegroundColor Gray
 Write-Host "  # En Seq Orders: AwaitingCourier -> Committing -> InProgress" -ForegroundColor Gray
 Write-Host ""
-Write-Host "  # 2.b) Fase 7 — SMOKE E2E DEL HUB SIGNALR (push en vivo, el corazon de Tracking)" -ForegroundColor Green
+Write-Host "  # 2.b) Fase 7 - SMOKE E2E del Hub SignalR (push en vivo, el corazon de Tracking)" -ForegroundColor Green
 Write-Host "  # Abre OTRA terminal ANTES de hacer el accept del merchant para captar todos los pushes:" -ForegroundColor Gray
 Write-Host @"
   dotnet run --project tools/Rappix.Tracking.SmokeClient -- "`$ORDER_ID" "`$CUSTOMER"

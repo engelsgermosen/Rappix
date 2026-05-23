@@ -327,6 +327,10 @@ services:
       Grpc__MerchantsUrl: "http://merchants-api:8081"
       # Responders simulados de pago/courier/entrega (Fase 5; se apagan cuando lleguen Payments/Dispatch reales).
       Orders__EnableSimulatedResponders: "true"
+      # Delay del simulated delivery (ms) — sin esto la entrega es <1s tras CourierAssigned y el
+      # smoke E2E de Tracking no alcanza a probar LocationUpdated. 30s da espacio para 2-3 POST
+      # /me/location del courier antes del Delivered automatico.
+      Orders__Simulation__DeliveryDelayMs: "30000"
       # Log de MassTransit en Debug para el stack dev: muestra el movimiento de mensajes (SEND/RECEIVE/Consume),
       # clave para diagnosticar la saga. (appsettings.Development.json esta gitignored, por eso se fija aqui.)
       Logging__LogLevel__MassTransit: "Debug"
