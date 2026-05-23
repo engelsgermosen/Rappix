@@ -49,6 +49,9 @@ public static class DependencyInjection
 
         services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConnection));
         services.AddScoped<IRedisGeoIndex, RedisGeoIndex>();
+
+        // Rehidratacion del geo set desde BD al arranque (cubre el caso de Redis flush / restart).
+        services.AddHostedService<RedisGeoRehydrationService>();
     }
 
     private static void AddDistributedCache(IServiceCollection services, IConfiguration configuration)
