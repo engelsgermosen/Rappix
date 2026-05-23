@@ -74,7 +74,9 @@ public static class DependencyInjection
             // captura — Payments reacciona al terminal igual que Tracking y Dispatch).
             bus.AddConsumer<OrderDeliveredCaptureConsumer>();
 
-            // OrderTerminalCompensationConsumer (commit 7) llega despues.
+            // Compensacion: void pre-captura, NeedsReview post-captura, refund explicito al
+            // RefundRequested de la saga. Multi-IConsumer sobre los 3 eventos.
+            bus.AddConsumer<OrderTerminalCompensationConsumer>();
 
             bus.AddEntityFrameworkOutbox<PaymentsDbContext>(outbox =>
             {
