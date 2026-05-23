@@ -47,7 +47,10 @@ public static class DependencyInjection
             // Consumers de Dispatch: asignacion + stream de ubicaciones.
             bus.AddConsumer<CourierAssignedConsumer>();
             bus.AddConsumer<CourierLocationUpdatedConsumer>();
-            // Consumers terminales entran en commit 8.
+
+            // Consumers terminales (multi-IConsumer sobre los 4 eventos: OrderDelivered, OrderCompleted,
+            // OrderCancelled, OrderFailed). Cierra el tracking + limpia el mapping courier->order.
+            bus.AddConsumer<OrderTerminalEventsConsumer>();
 
             bus.AddEntityFrameworkOutbox<TrackingDbContext>(outbox =>
             {
