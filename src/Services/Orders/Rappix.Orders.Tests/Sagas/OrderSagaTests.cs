@@ -16,9 +16,12 @@ using Rappix.Orders.Domain.Orders;
 using Rappix.Orders.Infrastructure.Messaging.Activities;
 using Rappix.Orders.Infrastructure.Messaging.Simulation;
 
-// Fase 6: el SimulatedCourierResponder se borro porque Dispatch lo reemplaza. En estos tests in-memory
-// (sin Dispatch real ni broker), publicamos CourierAssignedIntegrationEvent / CourierUnavailableIntegrationEvent
-// directamente en el harness para ejercer las transiciones de la saga.
+// Fase 6: el SimulatedCourierResponder se borro porque Dispatch lo reemplaza.
+// Fase 8: el SimulatedPaymentResponder se borro porque Payments lo reemplaza.
+// En estos tests in-memory (sin Dispatch/Payments reales ni broker), publicamos los integration
+// events de las respuestas (PaymentSucceeded/Failed, CourierAssigned/Unavailable) directamente en
+// el harness para ejercer las transiciones de la saga. Los contratos en Rappix.Contracts.* quedan
+// intocados — el unico cambio es que el productor pasa de un responder in-process a un servicio real.
 
 namespace Rappix.Orders.Tests.Sagas;
 
@@ -39,6 +42,10 @@ public sealed class OrderSagaTests
         (await context.Saga.Exists(orderId, machine => machine.AwaitingMerchant)).Should().NotBeNull();
 
         await context.Harness.Bus.Publish(new MerchantAccepted(orderId));
+        // Sin SimulatedPaymentResponder: simulamos a Payments publicando PaymentSucceeded manualmente.
+        (await context.Saga.Exists(orderId, machine => machine.AwaitingPayment)).Should().NotBeNull();
+        await context.Harness.Bus.Publish(new PaymentSucceededIntegrationEvent { OrderId = orderId, PaymentId = Guid.CreateVersion7(), Amount = 250m });
+
         // Sin SimulatedCourierResponder: simulamos a Dispatch publicando CourierAssigned manualmente.
         (await context.Saga.Exists(orderId, machine => machine.AwaitingCourier)).Should().NotBeNull();
         await context.Harness.Bus.Publish(new CourierAssignedIntegrationEvent { OrderId = orderId, CourierId = Guid.CreateVersion7() });
@@ -94,11 +101,14 @@ public sealed class OrderSagaTests
     [Fact]
     public async Task PaymentFails_ReleasesStockAndRevertsQuote_Failed()
     {
-        await using SagaContext context = await StartAsync(options => options.Simulation.PaymentOutcome = "Fail");
+        await using SagaContext context = await StartAsync();
         Guid orderId = await context.SubmitAsync();
         (await context.Saga.Exists(orderId, machine => machine.AwaitingMerchant)).Should().NotBeNull();
 
         await context.Harness.Bus.Publish(new MerchantAccepted(orderId));
+        // Sin SimulatedPaymentResponder: simulamos a Payments publicando PaymentFailed (gateway rechazo).
+        (await context.Saga.Exists(orderId, machine => machine.AwaitingPayment)).Should().NotBeNull();
+        await context.Harness.Bus.Publish(new PaymentFailedIntegrationEvent { OrderId = orderId, Reason = "Pago rechazado (test)" });
 
         (await context.Saga.Exists(orderId, machine => machine.Failed)).Should().NotBeNull();
         await context.Stock.Received().ReleaseAsync(orderId, Arg.Any<CancellationToken>());
@@ -113,6 +123,10 @@ public sealed class OrderSagaTests
         (await context.Saga.Exists(orderId, machine => machine.AwaitingMerchant)).Should().NotBeNull();
 
         await context.Harness.Bus.Publish(new MerchantAccepted(orderId));
+        // Sin SimulatedPaymentResponder: publicamos PaymentSucceeded para llegar a AwaitingCourier.
+        (await context.Saga.Exists(orderId, machine => machine.AwaitingPayment)).Should().NotBeNull();
+        await context.Harness.Bus.Publish(new PaymentSucceededIntegrationEvent { OrderId = orderId, PaymentId = Guid.CreateVersion7(), Amount = 250m });
+
         // Sin SimulatedCourierResponder: simulamos a Dispatch publicando CourierUnavailable.
         (await context.Saga.Exists(orderId, machine => machine.AwaitingCourier)).Should().NotBeNull();
         await context.Harness.Bus.Publish(new CourierUnavailableIntegrationEvent { OrderId = orderId, Reason = "Sin couriers disponibles" });
@@ -164,11 +178,10 @@ public sealed class OrderSagaTests
     [Fact]
     public async Task PaymentTimeout_AutoFails()
     {
-        await using SagaContext context = await StartAsync(options =>
-        {
-            options.Timeouts.Payment = TimeSpan.FromSeconds(1);
-            options.Simulation.PaymentOutcome = "Timeout"; // el responder no contesta
-        });
+        // Sin SimulatedPaymentResponder, ningun consumer responde PaymentRequested. El timeout (1s)
+        // hace el resto: compensa (release + revert) y falla. Esto valida que la saga sigue protegida
+        // cuando Payments no responde a tiempo (gateway caido, red, etc.).
+        await using SagaContext context = await StartAsync(options => options.Timeouts.Payment = TimeSpan.FromSeconds(1));
         Guid orderId = await context.SubmitAsync();
         (await context.Saga.Exists(orderId, machine => machine.AwaitingMerchant)).Should().NotBeNull();
 
@@ -183,12 +196,15 @@ public sealed class OrderSagaTests
     {
         // Sin SimulatedCourierResponder, ningun consumer responde CourierRequested. El timeout (1s) hace
         // el resto: compensa (refund + release + revert) y cancela. Esto valida que la saga sigue
-        // protegida cuando Dispatch no responde a tiempo.
+        // protegida cuando Dispatch no responde a tiempo. Publicamos PaymentSucceeded manualmente
+        // (en produccion lo haria Payments) para llegar a AwaitingCourier.
         await using SagaContext context = await StartAsync(options => options.Timeouts.Courier = TimeSpan.FromSeconds(1));
         Guid orderId = await context.SubmitAsync();
         (await context.Saga.Exists(orderId, machine => machine.AwaitingMerchant)).Should().NotBeNull();
 
         await context.Harness.Bus.Publish(new MerchantAccepted(orderId));
+        (await context.Saga.Exists(orderId, machine => machine.AwaitingPayment)).Should().NotBeNull();
+        await context.Harness.Bus.Publish(new PaymentSucceededIntegrationEvent { OrderId = orderId, PaymentId = Guid.CreateVersion7(), Amount = 250m });
 
         (await context.Saga.Exists(orderId, machine => machine.Cancelled)).Should().NotBeNull();
         (await context.Harness.Published.Any<RefundRequestedIntegrationEvent>()).Should().BeTrue();
@@ -205,6 +221,10 @@ public sealed class OrderSagaTests
         Guid orderId = await context.SubmitAsync();
         (await context.Saga.Exists(orderId, machine => machine.AwaitingMerchant)).Should().NotBeNull();
         await context.Harness.Bus.Publish(new MerchantAccepted(orderId));
+        // Sin SimulatedPaymentResponder: publicamos PaymentSucceeded para avanzar a AwaitingCourier.
+        (await context.Saga.Exists(orderId, machine => machine.AwaitingPayment)).Should().NotBeNull();
+        await context.Harness.Bus.Publish(new PaymentSucceededIntegrationEvent { OrderId = orderId, PaymentId = Guid.CreateVersion7(), Amount = 250m });
+
         // Sin SimulatedCourierResponder: publicamos CourierAssigned para avanzar a Committing.
         (await context.Saga.Exists(orderId, machine => machine.AwaitingCourier)).Should().NotBeNull();
         await context.Harness.Bus.Publish(new CourierAssignedIntegrationEvent { OrderId = orderId, CourierId = Guid.CreateVersion7() });
@@ -238,7 +258,7 @@ public sealed class OrderSagaTests
         {
             ReservationTtlSeconds = 1800,
             Timeouts = { Merchant = TimeSpan.FromSeconds(300), Payment = TimeSpan.FromSeconds(300), Courier = TimeSpan.FromSeconds(300) },
-            Simulation = { PaymentOutcome = "Success", AutoDeliver = true, DeliveryDelayMs = 0 },
+            Simulation = { AutoDeliver = true, DeliveryDelayMs = 0 },
         };
         configureOptions?.Invoke(options);
 
@@ -256,8 +276,9 @@ public sealed class OrderSagaTests
             configurator.AddConsumer<CommitStockConsumer>();
             configurator.AddConsumer<ReleaseStockConsumer>();
             configurator.AddConsumer<RevertQuoteConsumer>();
-            configurator.AddConsumer<SimulatedPaymentResponder>();
             // SimulatedCourierResponder eliminado en Fase 6: cada test publica CourierAssigned/Unavailable
+            // manualmente para ejercer las transiciones (o deja correr el timeout).
+            // SimulatedPaymentResponder eliminado en Fase 8: cada test publica PaymentSucceeded/Failed
             // manualmente para ejercer las transiciones (o deja correr el timeout).
             configurator.AddConsumer<SimulatedDeliveryResponder>();
         });

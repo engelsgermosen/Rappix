@@ -124,12 +124,14 @@ public static class DependencyInjection
                 bus.AddConsumer<RevertQuoteConsumer>();
                 bus.AddConsumer<OrderStatusProjectionConsumer>();
 
-                // Responders simulados de pago/entrega (borrables cuando lleguen los servicios reales en
-                // Fase 8 Payments y Fase 7 Tracking-with-delivery-confirm). El responder de COURIER se borro
-                // en Fase 6: ahora el servicio Dispatch responde CourierRequested con un courier real.
+                // Responder simulado de ENTREGA (borrable cuando un servicio real publique
+                // OrderDeliveredIntegrationEvent — la propia Fase 6 dejo Dispatch.OrderTerminalEventsConsumer
+                // como el consumidor, pero el "delivered" lo dispara hoy el endpoint mark-delivered + este
+                // responder). El responder de COURIER se borro en Fase 6 (Dispatch responde
+                // CourierRequested con un courier real). El responder de PAGO se borro en Fase 8
+                // (Payments consume PaymentRequested y publica PaymentSucceeded/Failed real).
                 if (enableSimulated)
                 {
-                    bus.AddConsumer<SimulatedPaymentResponder>();
                     bus.AddConsumer<SimulatedDeliveryResponder>();
                 }
 

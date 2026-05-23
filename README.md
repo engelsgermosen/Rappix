@@ -39,7 +39,7 @@ Rappix es un marketplace de tres lados (clientes, comercios, repartidores) que d
 | Orders | Saga del pedido | 5005 |
 | Dispatch | Asignación de couriers | 5006 / gRPC 5016 |
 | Tracking | Push en vivo (SignalR) | 5007 / HTTP/2 5017 |
-| Payments | Stripe y splits | 5008 |
+| Payments | Stripe (hold+capture) | 5008 / HTTP/2 5018 |
 | Notifications | Push, email, SMS | 5009 |
 | Ratings | Calificaciones | 5010 |
 | Gateway | YARP | 5000 |
@@ -101,9 +101,10 @@ una **saga orquestada** (MassTransit State Machine, estado persistido en EF Core
 precio + redime cupón) → **reserva stock** (hold) en Catalog → notifica al merchant (timeout 5 min) → cobro
 (2 min) → courier (3 min) → confirma stock → en curso → entregado. **Compensaciones en orden inverso** ante
 cualquier fallo (libera el hold, revierte quote y cupón, reembolsa si se cobró); `StockCommitFailed` tras
-cobrar va a `NeedsReview`, nunca auto-reembolsa. **Timeouts durables** con Quartz + Postgres. Payments
-(Fase 8) y Dispatch (Fase 6) se **simulan** con responders enchufables que ya hablan los contratos reales.
-Dos clientes gRPC (Pricing; reserva de Catalog). Diseño: [ADR-0006](docs/adr/0006-orders-design.md).
+cobrar va a `NeedsReview`, nunca auto-reembolsa. **Timeouts durables** con Quartz + Postgres. Dispatch
+(Fase 6) y Payments (Fase 8) responden los contratos reales; solo la entrega final sigue simulada vía
+un `SimulatedDeliveryResponder` enchufable. Dos clientes gRPC (Pricing; reserva de Catalog).
+Diseño: [ADR-0006](docs/adr/0006-orders-design.md).
 
 | Grupo | Endpoints |
 |---|---|
@@ -125,6 +126,23 @@ setup y smoke E2E: [docs/setup-tracking.md](docs/setup-tracking.md); flujo de me
 |---|---|
 | Hub SignalR (push en vivo) | `/hubs/tracking` — `Subscribe(orderId)` / `Unsubscribe(orderId)` |
 | Snapshot REST (fallback)   | `GET /api/v1/tracking/orders/{orderId}` |
+
+### Payments (Fase 8) · REST + webhook 5008 · HTTP/2 5018 (reservado)
+Cobra al cliente vía **Stripe** (o un **Fake** conmutable in-process) en modelo **hold + capture**:
+autoriza al confirmar el pedido (saga `AwaitingPayment`), captura al `OrderDelivered` (Dispatch).
+Compensación **Void** pre-captura (hold cancelado, cliente nunca cobrado) o **NeedsReview** post-captura
+(humano decide vía dashboard, nunca auto-refund). Refund **explícito** cuando la saga emite
+`RefundRequestedIntegrationEvent`. **Idempotencia de dinero en 3 niveles**: inbox EF (broker re-entrega) +
+PK natural `Payment.Id == OrderId` (race entre instancias) + Stripe Idempotency-Key (timeout HTTP
+mid-flight). Webhook firmado en `POST /api/v1/payments/webhooks/stripe` (informativo en Fase 8 — flujo
+síncrono con `pm_card_visa`). Reemplaza al `SimulatedPaymentResponder` de Orders. Sin Redis
+(no idempotency middleware). Diseño: [ADR-0009](docs/adr/0009-payments-design.md); setup y smoke
+E2E: [docs/setup-payments.md](docs/setup-payments.md).
+
+| Superficie | Endpoint |
+|---|---|
+| Webhook Stripe (firma `Stripe-Signature`) | `POST /api/v1/payments/webhooks/stripe` |
+| Consumers (bus) | `PaymentRequestedIntegrationEvent` (autoriza hold) · `OrderDeliveredIntegrationEvent` (captura) · `OrderCancelled`/`OrderFailed` (void o NeedsReview) · `RefundRequestedIntegrationEvent` (refund explícito) |
 
 ## Estructura
 
@@ -193,7 +211,7 @@ Requisitos: PowerShell 5+, el contenedor postgres `rappix-postgres` y los 5 serv
 - [x] Fase 5 — Orders (saga)
 - [x] Fase 6 — Dispatch
 - [x] Fase 7 — Tracking (push en vivo)
-- [ ] Fase 8 — Payments
+- [x] Fase 8 — Payments (Stripe hold+capture)
 - [ ] Fase 9 — Observability / Notifications / Ratings
 - [ ] Fase 10 — Back-office + pulido final
 

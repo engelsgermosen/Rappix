@@ -16,12 +16,13 @@ public sealed class OrdersOptions
     public int ReservationTtlSeconds { get; set; } = 1800;
 
     /// <summary>
-    /// Habilita los responders simulados de pago/entrega (se apagan cuando lleguen los servicios reales).
-    /// El courier YA NO se simula desde la Fase 6: el servicio Dispatch responde CourierRequested.
+    /// Habilita el responder simulado de ENTREGA (se apaga cuando un servicio real publique
+    /// OrderDeliveredIntegrationEvent). El courier ya no se simula desde Fase 6 (Dispatch real). El
+    /// pago ya no se simula desde Fase 8 (Payments real). Renombrarlo es cosmetico y se difiere.
     /// </summary>
     public bool EnableSimulatedResponders { get; set; } = true;
 
-    /// <summary>Configuracion de los responders simulados.</summary>
+    /// <summary>Configuracion del responder simulado de entrega.</summary>
     public SimulationOptions Simulation { get; set; } = new();
 
     /// <summary>
@@ -42,15 +43,12 @@ public sealed class OrdersOptions
         public TimeSpan Courier { get; set; } = TimeSpan.FromMinutes(3);
     }
 
-    /// <summary>Resultados simulados configurables para demostrar caminos felices y de fallo sin Payments real (Fase 8).</summary>
+    /// <summary>
+    /// Configuracion del responder simulado de ENTREGA (PaymentOutcome y PaymentDelayMs se borraron
+    /// en Fase 8 al introducir el servicio Payments real).
+    /// </summary>
     public sealed class SimulationOptions
     {
-        /// <summary>Resultado del pago simulado: Success | Fail | Timeout.</summary>
-        public string PaymentOutcome { get; set; } = "Success";
-
-        /// <summary>Latencia simulada del pago (ms).</summary>
-        public int PaymentDelayMs { get; set; }
-
         /// <summary>Si el responder de entrega completa el pedido automaticamente (lleva InProgress -> Completed).</summary>
         public bool AutoDeliver { get; set; } = true;
 
