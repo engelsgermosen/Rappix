@@ -143,4 +143,13 @@
     <PackageVersion Include="NetTopologySuite" Version="2.6.0" />   <!-- 2.6.0: requerido por Npgsql.NetTopologySuite 10 (2.5.0 = NU1605 downgrade) -->
     <PackageVersion Include="Bogus" Version="35.6.1" />
   </ItemGroup>
+
+  <ItemGroup Label="Payments service (Fase 8)">
+    <!-- SDK oficial de Stripe. Referenciado SOLO en Rappix.Payments.Infrastructure (adaptador
+         StripePaymentGateway); Domain/Application/Contracts no lo conocen.
+         Version verificada como stable actual en NuGet al pinear (no asumir, ver vigilance item #1 del plan). -->
+    <PackageVersion Include="Stripe.net" Version="51.1.0" />
+    <!-- [SkippableFact] para tests opt-in que requieren STRIPE_API_KEY en env (no corren en CI). -->
+    <PackageVersion Include="Xunit.SkippableFact" Version="1.5.61" />
+  </ItemGroup>
 </Project>

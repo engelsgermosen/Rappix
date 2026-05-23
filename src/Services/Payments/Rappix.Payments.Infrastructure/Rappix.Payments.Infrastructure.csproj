@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Rappix.Payments.Infrastructure</RootNamespace>
+    <AssemblyName>Rappix.Payments.Infrastructure</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Permite a las pruebas instanciar repositorios, gateways y consumers internos. -->
+    <InternalsVisibleTo Include="Rappix.Payments.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="MassTransit.EntityFrameworkCore" />
+    <!-- Stripe SDK aislado en Infrastructure: ni Domain ni Application lo conocen.
+         Si en el futuro se cambia de pasarela, solo se reemplaza el adaptador StripePaymentGateway. -->
+    <PackageReference Include="Stripe.net" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rappix.Payments.Application\Rappix.Payments.Application.csproj" />
+    <ProjectReference Include="..\Rappix.Payments.Domain\Rappix.Payments.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Contracts\Rappix.Contracts\Rappix.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Core\Rappix.BuildingBlocks.Core.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Messaging\Rappix.BuildingBlocks.Messaging.csproj" />
+  </ItemGroup>
+
+</Project>

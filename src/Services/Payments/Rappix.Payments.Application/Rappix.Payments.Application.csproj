@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Rappix.Payments.Application</RootNamespace>
+    <AssemblyName>Rappix.Payments.Application</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Permite a las pruebas instanciar handlers y abstracciones internas. -->
+    <InternalsVisibleTo Include="Rappix.Payments.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rappix.Payments.Domain\Rappix.Payments.Domain.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Core\Rappix.BuildingBlocks.Core.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Messaging\Rappix.BuildingBlocks.Messaging.csproj" />
+    <ProjectReference Include="..\..\..\Contracts\Rappix.Contracts\Rappix.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

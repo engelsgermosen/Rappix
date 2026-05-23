@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Rappix.Payments.Tests</RootNamespace>
+    <AssemblyName>Rappix.Payments.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- Convenciones de prueba: nombres con guion bajo y helpers de instancia. -->
+    <NoWarn>$(NoWarn);CA1707;CA1822</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Testcontainers.RabbitMq" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="MassTransit" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
+    <!-- StripePaymentGateway tests opt-in: [SkippableFact] que salta si no hay STRIPE_API_KEY en env.
+         No corre en CI; permite validacion manual contra Stripe test mode. -->
+    <PackageReference Include="Xunit.SkippableFact" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rappix.Payments.Api\Rappix.Payments.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>
