@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Rappix.Notifications.Infrastructure</RootNamespace>
+    <AssemblyName>Rappix.Notifications.Infrastructure</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Permite a las pruebas instanciar repositorios, canales y consumers internos. -->
+    <InternalsVisibleTo Include="Rappix.Notifications.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="MassTransit.EntityFrameworkCore" />
+    <!-- SendGrid SDK aislado en Infrastructure: ni Domain ni Application lo conocen. Si en el
+         futuro se cambia de proveedor (Mailgun, SES), solo se reemplaza el adaptador SendGridNotificationChannel.
+         Misma version (9.29.3 vias CPM) que Rappix.Identity.Infrastructure usa para su IEmailSender. -->
+    <PackageReference Include="SendGrid" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rappix.Notifications.Application\Rappix.Notifications.Application.csproj" />
+    <ProjectReference Include="..\Rappix.Notifications.Domain\Rappix.Notifications.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Contracts\Rappix.Contracts\Rappix.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Core\Rappix.BuildingBlocks.Core.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Messaging\Rappix.BuildingBlocks.Messaging.csproj" />
+  </ItemGroup>
+
+</Project>
