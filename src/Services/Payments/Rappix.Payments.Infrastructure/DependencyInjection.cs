@@ -70,8 +70,11 @@ public static class DependencyInjection
             // publica PaymentSucceeded/PaymentFailed.
             bus.AddConsumer<PaymentRequestedConsumer>();
 
-            // OrderDeliveredCaptureConsumer (commit 6) y OrderTerminalCompensationConsumer (commit 7)
-            // llegan despues.
+            // Captura al recibir OrderDelivered de Dispatch (terminal feliz; la saga no orquesta la
+            // captura — Payments reacciona al terminal igual que Tracking y Dispatch).
+            bus.AddConsumer<OrderDeliveredCaptureConsumer>();
+
+            // OrderTerminalCompensationConsumer (commit 7) llega despues.
 
             bus.AddEntityFrameworkOutbox<PaymentsDbContext>(outbox =>
             {

@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Rappix.Payments.Api": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:55192;http://localhost:55194"
+    }
+  }
+}
