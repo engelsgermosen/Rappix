@@ -30,11 +30,14 @@ $IDENTITY  = "http://localhost:5001"
 $MERCHANTS = "http://localhost:5002"
 $CATALOG   = "http://localhost:5003"
 $PRICING   = "http://localhost:5004"
+$ORDERS    = "http://localhost:5005"
+$DISPATCH  = "http://localhost:5006"
 $PG        = "rappix-postgres"   # nombre del contenedor postgres
 
 $CustomerEmail = "cliente@rappix.test"
 $MerchantEmail = "comercio@rappix.test"
 $AdminEmail    = "admin@rappix.test"
+$CourierEmail  = "courier@rappix.test"
 $Pwd           = "Sup3rSecret!"
 
 # ----- Helpers -----
@@ -95,10 +98,11 @@ function Login($email) {
 Step "1. Registrar usuarios"
 TryRegister $CustomerEmail @{}                                  # Customer por defecto
 TryRegister $MerchantEmail @{ accountType = "Merchant" }        # Merchant
+TryRegister $CourierEmail  @{ accountType = "Courier" }         # Courier (Fase 6)
 TryRegister $AdminEmail    @{}                                  # luego lo elevamos a Admin
 
 Step "2. Confirmar emails + elevar admin (SQL)"
-Psql "rappix_identity" "UPDATE identity.users SET ""EmailConfirmed""=true WHERE ""Email"" IN ('$CustomerEmail','$MerchantEmail','$AdminEmail');"
+Psql "rappix_identity" "UPDATE identity.users SET ""EmailConfirmed""=true WHERE ""Email"" IN ('$CustomerEmail','$MerchantEmail','$CourierEmail','$AdminEmail');"
 Ok "Emails confirmados"
 Psql "rappix_identity" "UPDATE identity.users SET ""UserType""='Admin' WHERE ""Email""='$AdminEmail';"
 Ok "Admin elevado"
@@ -106,6 +110,7 @@ Ok "Admin elevado"
 Step "3. Login (tokens frescos, post-confirmacion)"
 $CUSTOMER = Login $CustomerEmail; Ok "Token cliente"
 $MERCHANT = Login $MerchantEmail; Ok "Token merchant"
+$COURIER  = Login $CourierEmail;  Ok "Token courier"
 $ADMIN    = Login $AdminEmail;    Ok "Token admin"
 
 Step "4. Completar perfil del merchant"
@@ -132,6 +137,14 @@ PutJson "$MERCHANTS/api/v1/merchants/me/operating-hours" @{
     hours = @(@{ dayOfWeek = "Monday"; opensAt = "00:00"; closesAt = "23:59" })
 } $MERCHANT | Out-Null
 Ok "Horarios"
+
+# Fase 6: PickupLocation es obligatoria para enviar a aprobacion. La saga de Orders la
+# resuelve via gRPC y la propaga en CourierRequested para que Dispatch haga el matching.
+PutJson "$MERCHANTS/api/v1/merchants/me/pickup-location" @{
+    latitude  = 18.4861
+    longitude = -69.9312
+} $MERCHANT | Out-Null
+Ok "Pickup location del merchant"
 
 PostEmpty "$MERCHANTS/api/v1/merchants/me/submit-for-approval" $MERCHANT | Out-Null
 Ok "Enviado a aprobacion"
@@ -174,7 +187,28 @@ $ITEM_ID = $item.id
 Ok "Item creado, stock 10"
 Info "itemId = $ITEM_ID"
 
-Step "7. Crear cotizacion (cliente)"
+Step "7. Configurar al courier (Fase 6: Dispatch)"
+# El UserRegisteredConsumer de Dispatch ya creo el CourierProfile en Offline al registrar.
+# Espera por si el evento aun no llego.
+Start-Sleep -Seconds 2
+PutJson "$DISPATCH/api/v1/couriers/me/vehicle" @{
+    vehicleType = "Moto"
+    plate       = "A1234"
+    capacityKg  = 15
+} $COURIER | Out-Null
+Ok "Vehiculo del courier"
+
+# El courier debe reportar location antes de ir Online para entrar al Redis Geo.
+PostJson "$DISPATCH/api/v1/couriers/me/location" @{
+    latitude  = 18.4862
+    longitude = -69.9311
+} $COURIER | Out-Null
+Ok "Location del courier reportada"
+
+PostEmpty "$DISPATCH/api/v1/couriers/me/online" $COURIER | Out-Null
+Ok "Courier Online (en Redis Geo: dispatch:couriers:geo)"
+
+Step "8. Crear cotizacion (cliente)"
 $quote = PostJson "$PRICING/api/v1/pricing/quotes" @{
     merchantId  = $MERCHANT_ID
     vertical    = "Food"
@@ -195,12 +229,13 @@ Write-Host ""
 Write-Host "Variables listas (copialas si abres otra terminal):" -ForegroundColor White
 Write-Host "  `$CUSTOMER    = '$CUSTOMER'"
 Write-Host "  `$MERCHANT    = '$MERCHANT'"
+Write-Host "  `$COURIER     = '$COURIER'"
 Write-Host "  `$ADMIN       = '$ADMIN'"
 Write-Host "  `$MERCHANT_ID = '$MERCHANT_ID'"
 Write-Host "  `$ITEM_ID     = '$ITEM_ID'"
 Write-Host "  `$QUOTE_ID    = '$QUOTE_ID'"
 Write-Host ""
-Write-Host "Abre Seq (http://localhost:5341, filtro Service='orders') y luego:" -ForegroundColor White
+Write-Host "Abre Seq (http://localhost:5341, filtro Service='orders' o 'dispatch') y luego:" -ForegroundColor White
 Write-Host ""
 Write-Host "  # 1) Crear pedido (arranca la saga)" -ForegroundColor Green
 Write-Host @"
@@ -213,27 +248,39 @@ Write-Host @"
 Write-Host ""
 Write-Host "  # En Seq deberias ver: ValidatingQuote -> ReservingStock -> AwaitingMerchant" -ForegroundColor Gray
 Write-Host ""
-Write-Host "  # 2) Merchant acepta (AHORA debe dar 200, no 403)" -ForegroundColor Green
+Write-Host "  # 2) Merchant acepta" -ForegroundColor Green
 Write-Host @"
   Invoke-RestMethod -Method Post -Uri "http://localhost:5005/api/v1/orders/`$ORDER_ID/accept" ``
     -Headers @{ Authorization = "Bearer `$MERCHANT" }
 "@
 Write-Host ""
-Write-Host "  # En Seq: AwaitingPayment -> AwaitingCourier -> Committing -> InProgress" -ForegroundColor Gray
+Write-Host "  # En Seq Orders: AwaitingPayment -> AwaitingCourier" -ForegroundColor Gray
+Write-Host "  # En Seq Dispatch: CourierRequested consumido -> GEOSEARCH -> claim -> CourierAssigned" -ForegroundColor Gray
+Write-Host "  # En Seq Orders: AwaitingCourier -> Committing -> InProgress" -ForegroundColor Gray
 Write-Host ""
-Write-Host "  # 3) Marcar entregado" -ForegroundColor Green
+Write-Host "  # 3) Verificar la asignacion (Fase 6 Dispatch)" -ForegroundColor Green
+Write-Host @"
+  Invoke-RestMethod -Method Get -Uri "http://localhost:5006/api/v1/couriers/me/current-assignment" ``
+    -Headers @{ Authorization = "Bearer `$COURIER" }
+  # Debe devolver { assignmentId, orderId=`$ORDER_ID, assignedAtUtc }.
+"@
+Write-Host ""
+Write-Host "  # 4) Marcar entregado" -ForegroundColor Green
 Write-Host @"
   Invoke-RestMethod -Method Post -Uri "http://localhost:5005/api/v1/orders/`$ORDER_ID/mark-delivered" ``
     -Headers @{ Authorization = "Bearer `$MERCHANT" }
 "@
 Write-Host ""
-Write-Host "  # 4) Verificar estado final = Completed" -ForegroundColor Green
+Write-Host "  # 5) Verificar estado final = Completed + courier liberado (Online de nuevo)" -ForegroundColor Green
 Write-Host @"
   Invoke-RestMethod -Method Get -Uri "http://localhost:5005/api/v1/orders/`$ORDER_ID" ``
     -Headers @{ Authorization = "Bearer `$CUSTOMER" } | Select-Object status, completedAtUtc
+  Invoke-RestMethod -Method Get -Uri "http://localhost:5006/api/v1/couriers/me" ``
+    -Headers @{ Authorization = "Bearer `$COURIER" } | Select-Object status
+  # status courier debe ser 'Online' (Dispatch lo libero al consumir OrderDelivered).
 "@
 Write-Host ""
-Write-Host "  # 5) Verificar stock bajo de 10 a 8" -ForegroundColor Green
+Write-Host "  # 6) Verificar stock bajo de 10 a 8" -ForegroundColor Green
 Write-Host @"
   Invoke-RestMethod -Method Get -Uri "http://localhost:5003/api/v1/catalog/me/items/`$ITEM_ID" ``
     -Headers @{ Authorization = "Bearer `$MERCHANT" }

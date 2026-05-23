@@ -350,6 +350,52 @@ services:
     networks:
       - rappix-net
 
+  # ──────────────────────────────────────────────────────────────
+  # Dispatch Service (Fase 6). REST en 8080, gRPC h2c en 8081 (reservado
+  # para Fase 7 Tracking — sin servicio expuesto aun). Asigna couriers a
+  # pedidos: choreography (UserRegistered) + matching geo (Redis) + claim
+  # atomico. Reemplaza al SimulatedCourierResponder de Orders.
+  # ──────────────────────────────────────────────────────────────
+  dispatch-api:
+    build:
+      context: .
+      dockerfile: src/Services/Dispatch/Rappix.Dispatch.Api/Dockerfile
+    container_name: rappix-dispatch
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # No se define ASPNETCORE_URLS: los dos puertos (8080 REST, 8081 HTTP/2) van en codigo (ConfigureKestrel).
+      ConnectionStrings__DispatchDb: "Host=postgres;Port=5432;Database=rappix_dispatch;Username=rappix;Password=rappix_dev_2026"
+      ConnectionStrings__Redis: "redis:6379,password=rappix_redis_2026"
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Port: "5672"
+      RabbitMq__Username: rappix
+      RabbitMq__Password: rappix_mq_2026
+      Seq__ServerUrl: "http://seq:80"
+      Jwt__Issuer: "https://localhost:5001"
+      Jwt__Audience: rappix
+      # Misma clave que Identity: Dispatch solo valida los tokens que Identity emite.
+      Jwt__SigningKey: "${IDENTITY_JWT_SIGNINGKEY:?Define IDENTITY_JWT_SIGNINGKEY en .env}"
+      # Matching geo: radio de busqueda y maximo de candidatos por solicitud.
+      Dispatch__Matching__RadiusMeters: "5000"
+      Dispatch__Matching__CandidateLimit: "10"
+      # Log de MassTransit en Debug para el stack dev (consistente con Orders).
+      Logging__LogLevel__MassTransit: "Debug"
+    ports:
+      - "5006:8080" # REST
+      - "5016:8081" # HTTP/2 (reservado Fase 7)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      seq:
+        condition: service_started
+    networks:
+      - rappix-net
+
 volumes:
   postgres_data:
   redis_data:
