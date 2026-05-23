@@ -9,8 +9,10 @@ using Rappix.BuildingBlocks.Observability.Extensions;
 using Rappix.BuildingBlocks.WebApi.Errors;
 using Rappix.BuildingBlocks.WebApi.Middleware;
 using Rappix.Tracking.Api.Authentication;
+using Rappix.Tracking.Api.Hubs;
 using Rappix.Tracking.Api.OpenApi;
 using Rappix.Tracking.Application;
+using Rappix.Tracking.Application.Abstractions;
 using Rappix.Tracking.Infrastructure;
 using Scalar.AspNetCore;
 
@@ -75,11 +77,38 @@ builder.Services
             ClockSkew = TimeSpan.FromSeconds(30),
             NameClaimType = "sub",
         };
+
+        // SignalR sobre WebSockets: el handshake en navegador NO permite header Authorization en
+        // el upgrade, asi que el cliente envia el bearer como ?access_token=... en la query. Se
+        // pesca SOLO en paths /hubs/tracking (mitigacion de leaks por logs/referer/proxy en
+        // endpoints REST).
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = ctx =>
+            {
+                string? accessToken = ctx.Request.Query["access_token"];
+                PathString path = ctx.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/tracking"))
+                {
+                    ctx.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            },
+        };
     });
 
 // Cualquier usuario autenticado consulta SUS pedidos (la authorization fina por ownership se valida
 // dentro de los handlers: JWT.sub vs OrderTracking.CustomerUserId).
 builder.Services.AddAuthorization();
+
+// SignalR sobre el listener HTTP/1.1 (puerto 8080) — comparte el mismo Kestrel que el REST.
+// Sin backplane Redis en Fase 7 (single instance; AddStackExchangeRedis se anadira en una fase
+// futura cuando se escale a multiples replicas — el paquete ya esta en CPM listo).
+builder.Services.AddSignalR();
+
+// Implementacion SignalR de IClientNotifier. Singleton porque IHubContext es thread-safe; los
+// consumers MassTransit (scoped) lo inyectan sin scope mismatch (singleton-into-scoped es valido).
+builder.Services.AddSingleton<IClientNotifier, SignalRClientNotifier>();
 
 // Versionado de API por segmento de URL.
 builder.Services
@@ -146,10 +175,14 @@ ApiVersionSet versionSet = app.NewApiVersionSet()
     .ReportApiVersions()
     .Build();
 
-// Grupo /api/v1 para los endpoints REST. El primer endpoint (GET tracking snapshot) entra en commit 5;
-// el TrackingHub en /hubs/tracking entra en commit 4.
+// Grupo /api/v1 para los endpoints REST. El primer endpoint (GET tracking snapshot) entra en commit 5.
 RouteGroupBuilder apiV1 = app.MapGroup("/api/v{version:apiVersion}").WithApiVersionSet(versionSet);
 _ = apiV1; // marcador para los commits siguientes.
+
+// Hub SignalR /hubs/tracking. El [Authorize] del hub rechaza el handshake sin JWT valido (401).
+// Subscribe(orderId) hace el check de ownership: JWT.sub == OrderTracking.CustomerUserId; mismo
+// mensaje "no autorizado" para 404/403 (no se revela existencia).
+app.MapHub<TrackingHub>("/hubs/tracking");
 
 app.MapGet("/health", () => Results.Ok(new { service = "tracking", status = "ok" }));
 
