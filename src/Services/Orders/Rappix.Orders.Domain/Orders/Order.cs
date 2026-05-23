@@ -37,6 +37,8 @@ public sealed class Order : AggregateRoot<OrderId>, IHasDomainEvents
         decimal discountAmount,
         decimal totalAmount,
         DeliveryAddress deliveryAddress,
+        double pickupLatitude,
+        double pickupLongitude,
         DateTime utcNow)
         : base(id)
     {
@@ -54,6 +56,8 @@ public sealed class Order : AggregateRoot<OrderId>, IHasDomainEvents
         DiscountAmount = discountAmount;
         TotalAmount = totalAmount;
         DeliveryAddress = deliveryAddress;
+        PickupLatitude = pickupLatitude;
+        PickupLongitude = pickupLongitude;
         Status = OrderStatus.Submitted;
         CreatedAtUtc = utcNow;
     }
@@ -99,6 +103,15 @@ public sealed class Order : AggregateRoot<OrderId>, IHasDomainEvents
 
     /// <summary>Direccion de entrega (value object embebido).</summary>
     public DeliveryAddress DeliveryAddress { get; private set; } = null!;
+
+    /// <summary>
+    /// Latitud del pickup (ubicacion fisica del comercio) congelada al crear el pedido. La saga la
+    /// propaga en CourierRequestedIntegrationEvent para que Dispatch (Fase 6) haga matching geo.
+    /// </summary>
+    public double PickupLatitude { get; private set; }
+
+    /// <summary>Longitud del pickup congelada al crear el pedido.</summary>
+    public double PickupLongitude { get; private set; }
 
     /// <summary>Estado del pedido (espejo del estado de la saga).</summary>
     public OrderStatus Status { get; private set; }
@@ -147,6 +160,8 @@ public sealed class Order : AggregateRoot<OrderId>, IHasDomainEvents
         decimal discountAmount,
         decimal totalAmount,
         DeliveryAddress deliveryAddress,
+        double pickupLatitude,
+        double pickupLongitude,
         DateTime utcNow)
     {
         if (lines.Count == 0)
@@ -156,12 +171,14 @@ public sealed class Order : AggregateRoot<OrderId>, IHasDomainEvents
 
         var order = new Order(
             OrderId.New(), customerUserId, merchantId, merchantOwnerUserId, quoteId, vertical, currency,
-            subtotal, deliveryFee, serviceFee, tax, tip, discountAmount, totalAmount, deliveryAddress, utcNow);
+            subtotal, deliveryFee, serviceFee, tax, tip, discountAmount, totalAmount, deliveryAddress,
+            pickupLatitude, pickupLongitude, utcNow);
         order._lines.AddRange(lines);
 
         order.RaiseDomainEvent(new OrderSubmittedDomainEvent(
             order.Id, customerUserId, merchantId, quoteId, totalAmount, currency,
-            deliveryAddress.Street, deliveryAddress.Latitude, deliveryAddress.Longitude));
+            deliveryAddress.Street, deliveryAddress.Latitude, deliveryAddress.Longitude,
+            pickupLatitude, pickupLongitude));
 
         return order;
     }

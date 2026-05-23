@@ -27,6 +27,8 @@ internal sealed class OrderStateConfiguration : IEntityTypeConfiguration<OrderSt
         builder.Property(state => state.Currency).HasMaxLength(3);
         builder.Property(state => state.DeliveryLatitude);
         builder.Property(state => state.DeliveryLongitude);
+        builder.Property(state => state.PickupLatitude);
+        builder.Property(state => state.PickupLongitude);
 
         builder.Property(state => state.PaymentCaptured);
         builder.Property(state => state.PaymentId);

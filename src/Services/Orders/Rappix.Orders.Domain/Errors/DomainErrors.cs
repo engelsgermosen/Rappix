@@ -36,6 +36,10 @@ public static class OrderErrors
     /// <summary>No se pudo resolver el merchant (servicio Merchants no disponible o merchant inexistente) al crear el pedido.</summary>
     public static readonly Error MerchantUnavailable =
         Error.Conflict("Orders.Order.MerchantUnavailable", "No se pudo resolver el merchant del pedido. Reintente.");
+
+    /// <summary>El merchant no tiene ubicacion de pickup configurada (no es enviable a Dispatch).</summary>
+    public static readonly Error MerchantPickupMissing =
+        Error.Conflict("Orders.Order.MerchantPickupMissing", "El comercio no tiene ubicacion de pickup configurada; el pedido no se puede tomar.");
 }
 
 /// <summary>Errores del value object direccion de entrega.</summary>

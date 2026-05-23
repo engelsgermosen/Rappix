@@ -52,6 +52,11 @@ internal sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         });
         builder.Navigation(order => order.DeliveryAddress).IsRequired();
 
+        // Pickup (ubicacion fisica del comercio congelada al crear el pedido). La saga la propaga a
+        // CourierRequestedIntegrationEvent para que Dispatch (Fase 6) haga matching geo de couriers.
+        builder.Property(order => order.PickupLatitude).HasColumnName("pickup_latitude").IsRequired();
+        builder.Property(order => order.PickupLongitude).HasColumnName("pickup_longitude").IsRequired();
+
         builder.HasMany(order => order.Lines)
             .WithOne()
             .HasForeignKey(line => line.OrderId)

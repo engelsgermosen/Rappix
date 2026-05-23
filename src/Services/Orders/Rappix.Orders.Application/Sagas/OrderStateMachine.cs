@@ -64,6 +64,8 @@ public sealed class OrderStateMachine : MassTransitStateMachine<OrderState>
                     context.Saga.Currency = context.Message.Currency;
                     context.Saga.DeliveryLatitude = context.Message.DeliveryLatitude;
                     context.Saga.DeliveryLongitude = context.Message.DeliveryLongitude;
+                    context.Saga.PickupLatitude = context.Message.PickupLatitude;
+                    context.Saga.PickupLongitude = context.Message.PickupLongitude;
                 })
                 .Publish(context => new ConsumeQuote(context.Saga.CorrelationId, context.Saga.QuoteId))
                 .TransitionTo(ValidatingQuote));
@@ -112,7 +114,7 @@ public sealed class OrderStateMachine : MassTransitStateMachine<OrderState>
                     context.Saga.PaymentCaptured = true;
                     context.Saga.PaymentId = context.Message.PaymentId;
                 })
-                .Publish(context => new CourierRequestedIntegrationEvent { OrderId = context.Saga.CorrelationId, MerchantId = context.Saga.MerchantId, DeliveryLatitude = context.Saga.DeliveryLatitude, DeliveryLongitude = context.Saga.DeliveryLongitude })
+                .Publish(context => new CourierRequestedIntegrationEvent { OrderId = context.Saga.CorrelationId, MerchantId = context.Saga.MerchantId, PickupLatitude = context.Saga.PickupLatitude, PickupLongitude = context.Saga.PickupLongitude, DeliveryLatitude = context.Saga.DeliveryLatitude, DeliveryLongitude = context.Saga.DeliveryLongitude })
                 .Schedule(CourierTimeout, context => new CourierTimeoutExpired(context.Saga.CorrelationId))
                 .Publish(context => new OrderStatusChanged(context.Saga.CorrelationId, OrderStatus.AwaitingCourier, DateTime.UtcNow, null))
                 .TransitionTo(AwaitingCourier),

@@ -42,10 +42,17 @@ internal sealed class PlaceOrderCommandHandler(
         }
 
         // Resolver el dueno del merchant para persistirlo en el pedido (autoriza accept/reject del merchant).
+        // Tambien congela el pickup (ubicacion fisica) para que la saga lo propague a Dispatch en
+        // CourierRequestedIntegrationEvent (Fase 6). Sin pickup el pedido no es enviable.
         MerchantInfo merchant = await merchants.GetAsync(quote.MerchantId, cancellationToken);
         if (!merchant.ServiceAvailable || !merchant.Found)
         {
             return Result.Failure<OrderResponse>(OrderErrors.MerchantUnavailable);
+        }
+
+        if (!merchant.HasPickupLocation)
+        {
+            return Result.Failure<OrderResponse>(OrderErrors.MerchantPickupMissing);
         }
 
         var lines = new List<OrderLine>(quote.Lines.Count);
@@ -76,6 +83,8 @@ internal sealed class PlaceOrderCommandHandler(
             quote.DiscountAmount,
             quote.Total,
             address.Value,
+            merchant.PickupLatitude,
+            merchant.PickupLongitude,
             clock.UtcNow);
         if (order.IsFailure)
         {

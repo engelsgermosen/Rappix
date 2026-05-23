@@ -23,7 +23,14 @@ internal sealed partial class MerchantValidationGrpcClient(
                 cancellationToken: cancellationToken);
 
             Guid ownerUserId = Guid.TryParse(response.OwnerUserId, out Guid parsed) ? parsed : Guid.Empty;
-            return new MerchantInfo(ServiceAvailable: true, Found: response.Found, IsActive: response.IsActive, OwnerUserId: ownerUserId);
+            return new MerchantInfo(
+                ServiceAvailable: true,
+                Found: response.Found,
+                IsActive: response.IsActive,
+                OwnerUserId: ownerUserId,
+                PickupLatitude: response.PickupLatitude,
+                PickupLongitude: response.PickupLongitude,
+                HasPickupLocation: response.HasPickupLocation);
         }
         catch (RpcException ex)
         {

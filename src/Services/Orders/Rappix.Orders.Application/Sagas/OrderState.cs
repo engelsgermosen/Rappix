@@ -40,6 +40,12 @@ public sealed class OrderState : SagaStateMachineInstance
     /// <summary>Longitud de entrega (para el courier).</summary>
     public double DeliveryLongitude { get; set; }
 
+    /// <summary>Latitud del pickup (ubicacion fisica del comercio); la saga la pasa a CourierRequested.</summary>
+    public double PickupLatitude { get; set; }
+
+    /// <summary>Longitud del pickup.</summary>
+    public double PickupLongitude { get; set; }
+
     // --- Tracking ---
 
     /// <summary>Indica si el pago se capturo (determina si una compensacion debe reembolsar).</summary>

@@ -29,6 +29,8 @@ internal sealed class OrderSubmittedDomainEventHandler(IPublishEndpoint publishE
                 DeliveryAddress = domainEvent.DeliveryAddress,
                 DeliveryLatitude = domainEvent.DeliveryLatitude,
                 DeliveryLongitude = domainEvent.DeliveryLongitude,
+                PickupLatitude = domainEvent.PickupLatitude,
+                PickupLongitude = domainEvent.PickupLongitude,
             },
             cancellationToken);
     }

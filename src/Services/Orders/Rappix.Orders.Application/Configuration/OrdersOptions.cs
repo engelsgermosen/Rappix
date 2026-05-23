@@ -1,6 +1,6 @@
 namespace Rappix.Orders.Application.Configuration;
 
-/// <summary>Opciones del servicio Orders: timeouts de la saga, TTL de reserva y simulacion de pago/courier.</summary>
+/// <summary>Opciones del servicio Orders: timeouts de la saga, TTL de reserva y simulacion de pago/entrega.</summary>
 public sealed class OrdersOptions
 {
     /// <summary>Nombre de la seccion en appsettings.</summary>
@@ -15,7 +15,10 @@ public sealed class OrdersOptions
     /// </summary>
     public int ReservationTtlSeconds { get; set; } = 1800;
 
-    /// <summary>Habilita los responders simulados de pago/courier/entrega (se apagan cuando lleguen los servicios reales).</summary>
+    /// <summary>
+    /// Habilita los responders simulados de pago/entrega (se apagan cuando lleguen los servicios reales).
+    /// El courier YA NO se simula desde la Fase 6: el servicio Dispatch responde CourierRequested.
+    /// </summary>
     public bool EnableSimulatedResponders { get; set; } = true;
 
     /// <summary>Configuracion de los responders simulados.</summary>
@@ -39,20 +42,14 @@ public sealed class OrdersOptions
         public TimeSpan Courier { get; set; } = TimeSpan.FromMinutes(3);
     }
 
-    /// <summary>Resultados simulados configurables para demostrar caminos felices y de fallo sin Payments/Dispatch reales.</summary>
+    /// <summary>Resultados simulados configurables para demostrar caminos felices y de fallo sin Payments real (Fase 8).</summary>
     public sealed class SimulationOptions
     {
         /// <summary>Resultado del pago simulado: Success | Fail | Timeout.</summary>
         public string PaymentOutcome { get; set; } = "Success";
 
-        /// <summary>Resultado del courier simulado: Success | Unavailable | Timeout.</summary>
-        public string CourierOutcome { get; set; } = "Success";
-
         /// <summary>Latencia simulada del pago (ms).</summary>
         public int PaymentDelayMs { get; set; }
-
-        /// <summary>Latencia simulada del courier (ms).</summary>
-        public int CourierDelayMs { get; set; }
 
         /// <summary>Si el responder de entrega completa el pedido automaticamente (lleva InProgress -> Completed).</summary>
         public bool AutoDeliver { get; set; } = true;

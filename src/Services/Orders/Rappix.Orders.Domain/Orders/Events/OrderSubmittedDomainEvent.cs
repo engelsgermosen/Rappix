@@ -15,4 +15,6 @@ public sealed record OrderSubmittedDomainEvent(
     string Currency,
     string DeliveryAddress,
     double DeliveryLatitude,
-    double DeliveryLongitude) : DomainEvent;
+    double DeliveryLongitude,
+    double PickupLatitude,
+    double PickupLongitude) : DomainEvent;

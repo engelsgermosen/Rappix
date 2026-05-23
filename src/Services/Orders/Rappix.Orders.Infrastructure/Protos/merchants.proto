@@ -21,4 +21,9 @@ message MerchantBasicInfoResponse {
   string slug = 4;
   string vertical_type = 5;
   string owner_user_id = 6;
+  // Pickup (ubicacion fisica del comercio): Orders la persiste y la propaga en
+  // OrderSubmitted -> CourierRequested para que Dispatch (Fase 6) haga matching geo de couriers.
+  double pickup_latitude = 7;
+  double pickup_longitude = 8;
+  bool has_pickup_location = 9;
 }

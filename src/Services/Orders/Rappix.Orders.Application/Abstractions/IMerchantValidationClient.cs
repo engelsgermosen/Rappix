@@ -11,9 +11,21 @@ public interface IMerchantValidationClient
     Task<MerchantInfo> GetAsync(Guid merchantId, CancellationToken cancellationToken);
 }
 
-/// <summary>Datos basicos de un comercio resueltos desde Merchants.</summary>
-public sealed record MerchantInfo(bool ServiceAvailable, bool Found, bool IsActive, Guid OwnerUserId)
+/// <summary>
+/// Datos basicos de un comercio resueltos desde Merchants. Incluye la ubicacion fisica (pickup),
+/// que Orders persiste y propaga a la saga para que Dispatch (Fase 6) haga matching geo de couriers.
+/// </summary>
+public sealed record MerchantInfo(
+    bool ServiceAvailable,
+    bool Found,
+    bool IsActive,
+    Guid OwnerUserId,
+    double PickupLatitude,
+    double PickupLongitude,
+    bool HasPickupLocation)
 {
     /// <summary>Resultado cuando el servicio Merchants no esta disponible.</summary>
-    public static readonly MerchantInfo Unavailable = new(ServiceAvailable: false, Found: false, IsActive: false, OwnerUserId: Guid.Empty);
+    public static readonly MerchantInfo Unavailable = new(
+        ServiceAvailable: false, Found: false, IsActive: false, OwnerUserId: Guid.Empty,
+        PickupLatitude: 0d, PickupLongitude: 0d, HasPickupLocation: false);
 }

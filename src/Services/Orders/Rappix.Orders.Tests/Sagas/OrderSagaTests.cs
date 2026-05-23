@@ -16,6 +16,10 @@ using Rappix.Orders.Domain.Orders;
 using Rappix.Orders.Infrastructure.Messaging.Activities;
 using Rappix.Orders.Infrastructure.Messaging.Simulation;
 
+// Fase 6: el SimulatedCourierResponder se borro porque Dispatch lo reemplaza. En estos tests in-memory
+// (sin Dispatch real ni broker), publicamos CourierAssignedIntegrationEvent / CourierUnavailableIntegrationEvent
+// directamente en el harness para ejercer las transiciones de la saga.
+
 namespace Rappix.Orders.Tests.Sagas;
 
 /// <summary>
@@ -35,6 +39,9 @@ public sealed class OrderSagaTests
         (await context.Saga.Exists(orderId, machine => machine.AwaitingMerchant)).Should().NotBeNull();
 
         await context.Harness.Bus.Publish(new MerchantAccepted(orderId));
+        // Sin SimulatedCourierResponder: simulamos a Dispatch publicando CourierAssigned manualmente.
+        (await context.Saga.Exists(orderId, machine => machine.AwaitingCourier)).Should().NotBeNull();
+        await context.Harness.Bus.Publish(new CourierAssignedIntegrationEvent { OrderId = orderId, CourierId = Guid.CreateVersion7() });
 
         (await context.Saga.Exists(orderId, machine => machine.Completed)).Should().NotBeNull();
         (await context.Harness.Published.Any<OrderCompletedIntegrationEvent>()).Should().BeTrue();
@@ -101,11 +108,14 @@ public sealed class OrderSagaTests
     [Fact]
     public async Task CourierUnavailable_RefundsReleasesAndReverts_Cancelled()
     {
-        await using SagaContext context = await StartAsync(options => options.Simulation.CourierOutcome = "Unavailable");
+        await using SagaContext context = await StartAsync();
         Guid orderId = await context.SubmitAsync();
         (await context.Saga.Exists(orderId, machine => machine.AwaitingMerchant)).Should().NotBeNull();
 
         await context.Harness.Bus.Publish(new MerchantAccepted(orderId));
+        // Sin SimulatedCourierResponder: simulamos a Dispatch publicando CourierUnavailable.
+        (await context.Saga.Exists(orderId, machine => machine.AwaitingCourier)).Should().NotBeNull();
+        await context.Harness.Bus.Publish(new CourierUnavailableIntegrationEvent { OrderId = orderId, Reason = "Sin couriers disponibles" });
 
         (await context.Saga.Exists(orderId, machine => machine.Cancelled)).Should().NotBeNull();
         (await context.Harness.Published.Any<RefundRequestedIntegrationEvent>()).Should().BeTrue();
@@ -171,11 +181,10 @@ public sealed class OrderSagaTests
     [Fact]
     public async Task CourierTimeout_RefundsAndCancels()
     {
-        await using SagaContext context = await StartAsync(options =>
-        {
-            options.Timeouts.Courier = TimeSpan.FromSeconds(1);
-            options.Simulation.CourierOutcome = "Timeout"; // el responder no contesta
-        });
+        // Sin SimulatedCourierResponder, ningun consumer responde CourierRequested. El timeout (1s) hace
+        // el resto: compensa (refund + release + revert) y cancela. Esto valida que la saga sigue
+        // protegida cuando Dispatch no responde a tiempo.
+        await using SagaContext context = await StartAsync(options => options.Timeouts.Courier = TimeSpan.FromSeconds(1));
         Guid orderId = await context.SubmitAsync();
         (await context.Saga.Exists(orderId, machine => machine.AwaitingMerchant)).Should().NotBeNull();
 
@@ -196,8 +205,11 @@ public sealed class OrderSagaTests
         Guid orderId = await context.SubmitAsync();
         (await context.Saga.Exists(orderId, machine => machine.AwaitingMerchant)).Should().NotBeNull();
         await context.Harness.Bus.Publish(new MerchantAccepted(orderId));
+        // Sin SimulatedCourierResponder: publicamos CourierAssigned para avanzar a Committing.
+        (await context.Saga.Exists(orderId, machine => machine.AwaitingCourier)).Should().NotBeNull();
+        await context.Harness.Bus.Publish(new CourierAssignedIntegrationEvent { OrderId = orderId, CourierId = Guid.CreateVersion7() });
 
-        // Pago y courier OK (defaults) -> CommitStock falla -> NeedsReview, conservando el dinero.
+        // Pago OK + courier asignado -> CommitStock falla -> NeedsReview, conservando el dinero.
         (await context.Saga.Exists(orderId, machine => machine.NeedsReview)).Should().NotBeNull();
         await context.Stock.DidNotReceive().ReleaseAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
         await context.Pricing.DidNotReceive().RevertQuoteAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
@@ -226,7 +238,7 @@ public sealed class OrderSagaTests
         {
             ReservationTtlSeconds = 1800,
             Timeouts = { Merchant = TimeSpan.FromSeconds(300), Payment = TimeSpan.FromSeconds(300), Courier = TimeSpan.FromSeconds(300) },
-            Simulation = { PaymentOutcome = "Success", CourierOutcome = "Success", AutoDeliver = true, DeliveryDelayMs = 0 },
+            Simulation = { PaymentOutcome = "Success", AutoDeliver = true, DeliveryDelayMs = 0 },
         };
         configureOptions?.Invoke(options);
 
@@ -245,7 +257,8 @@ public sealed class OrderSagaTests
             configurator.AddConsumer<ReleaseStockConsumer>();
             configurator.AddConsumer<RevertQuoteConsumer>();
             configurator.AddConsumer<SimulatedPaymentResponder>();
-            configurator.AddConsumer<SimulatedCourierResponder>();
+            // SimulatedCourierResponder eliminado en Fase 6: cada test publica CourierAssigned/Unavailable
+            // manualmente para ejercer las transiciones (o deja correr el timeout).
             configurator.AddConsumer<SimulatedDeliveryResponder>();
         });
 
@@ -262,7 +275,9 @@ public sealed class OrderSagaTests
         DeliveryAddress address = DeliveryAddress.Create("Calle 1", null, 18.48, -69.93).Value;
         return Order.Create(
             Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), "Food", "DOP", [line],
-            200m, 50m, 0m, 0m, 0m, 0m, 250m, address, DateTime.UtcNow).Value;
+            200m, 50m, 0m, 0m, 0m, 0m, 250m, address,
+            pickupLatitude: 18.4861, pickupLongitude: -69.9312,
+            DateTime.UtcNow).Value;
     }
 
     private sealed class SagaContext(
@@ -293,6 +308,8 @@ public sealed class OrderSagaTests
                 DeliveryAddress = "Calle 1",
                 DeliveryLatitude = 18.48,
                 DeliveryLongitude = -69.93,
+                PickupLatitude = 18.4861,
+                PickupLongitude = -69.9312,
             });
             return id;
         }

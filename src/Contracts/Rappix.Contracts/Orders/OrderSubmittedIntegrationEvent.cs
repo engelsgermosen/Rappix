@@ -35,4 +35,10 @@ public sealed record OrderSubmittedIntegrationEvent : IntegrationEvent
 
     /// <summary>Longitud de entrega.</summary>
     public required double DeliveryLongitude { get; init; }
+
+    /// <summary>Latitud del pickup (ubicacion fisica del comercio). La saga la propaga a CourierRequested.</summary>
+    public required double PickupLatitude { get; init; }
+
+    /// <summary>Longitud del pickup.</summary>
+    public required double PickupLongitude { get; init; }
 }
