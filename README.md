@@ -118,7 +118,8 @@ Sin Redis (no idempotency middleware, no Geo, sin SignalR backplane en Fase 7). 
 Ownership por `JWT.sub == OrderTracking.CustomerUserId` validado en `Subscribe` y en `GET`; 404 y 403
 indistinguibles para no filtrar existencia. Estados visibles al cliente: `Placed → MerchantAccepted →
 CourierAssigned → Delivered/Cancelled/Failed`. Diseño: [ADR-0008](docs/adr/0008-tracking-design.md);
-setup y smoke E2E: [docs/setup-tracking.md](docs/setup-tracking.md).
+setup y smoke E2E: [docs/setup-tracking.md](docs/setup-tracking.md); flujo de mensajes:
+[docs/diagrams/tracking-flow.md](docs/diagrams/tracking-flow.md).
 
 | Superficie | Endpoint |
 |---|---|
