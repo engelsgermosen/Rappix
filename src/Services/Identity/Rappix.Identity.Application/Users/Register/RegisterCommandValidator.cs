@@ -27,12 +27,15 @@ internal sealed class RegisterCommandValidator : AbstractValidator<RegisterComma
             .MaximumLength(100);
 
         RuleFor(command => command.AccountType)
-            .Must(BeCustomerOrMerchant)
+            .Must(BeWhitelisted)
             .When(command => command.AccountType is not null)
-            .WithMessage("accountType debe ser 'Customer' o 'Merchant'.");
+            .WithMessage("accountType debe ser 'Customer', 'Merchant' o 'Courier'.");
     }
 
-    private static bool BeCustomerOrMerchant(string? accountType) =>
+    // Whitelist explicito: Admin queda fuera del self-registration (lo escala el operador).
+    // Tipos validos: Customer (default), Merchant, Courier.
+    private static bool BeWhitelisted(string? accountType) =>
         string.Equals(accountType, "Customer", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(accountType, "Merchant", StringComparison.OrdinalIgnoreCase);
+        || string.Equals(accountType, "Merchant", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(accountType, "Courier", StringComparison.OrdinalIgnoreCase);
 }

@@ -59,9 +59,14 @@ internal sealed partial class RegisterCommandHandler(
         }
 
         DateTime now = clock.UtcNow;
-        UserType userType = string.Equals(command.AccountType, "Merchant", StringComparison.OrdinalIgnoreCase)
-            ? UserType.Merchant
-            : UserType.Customer;
+        // Switch de 3 ramas: Customer (default) | Merchant | Courier. Admin queda fuera del self-registration
+        // (lo escala un admin via SQL/admin-API). El validator filtra valores no whitelisted.
+        UserType userType = command.AccountType?.Trim().ToLowerInvariant() switch
+        {
+            "merchant" => UserType.Merchant,
+            "courier" => UserType.Courier,
+            _ => UserType.Customer,
+        };
         var user = User.Register(email, phone, passwordHasher.Hash(command.Password), command.FirstName, command.LastName, userType, now);
 
         string rawToken = tokenService.GenerateOpaqueToken();

@@ -4,7 +4,7 @@ using Rappix.Identity.Application.Responses;
 
 namespace Rappix.Identity.Application.Users.Register;
 
-/// <summary>Registro local de un usuario. accountType admite "Customer" (default) o "Merchant". Envia email de confirmacion.</summary>
+/// <summary>Registro local de un usuario. accountType admite "Customer" (default), "Merchant" o "Courier". Envia email de confirmacion.</summary>
 public sealed record RegisterCommand(
     string Email,
     string? PhoneNumber,

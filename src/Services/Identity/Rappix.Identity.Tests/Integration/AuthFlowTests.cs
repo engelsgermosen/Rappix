@@ -130,6 +130,45 @@ public sealed class AuthFlowTests(IdentityApiFactory factory) : IClassFixture<Id
     }
 
     [Fact]
+    public async Task Register_AsCourier_CreatesUserWithCourierType()
+    {
+        HttpClient client = factory.CreateClient();
+        string email = UniqueEmail();
+
+        HttpResponseMessage register = await client.PostAsJsonAsync("/api/v1/auth/register", new
+        {
+            email,
+            phoneNumber = (string?)null,
+            password = "C0urierPass!",
+            firstName = "Coco",
+            lastName = "Reparto",
+            accountType = "Courier",
+        });
+
+        register.StatusCode.Should().Be(HttpStatusCode.OK);
+        UserResult created = (await register.Content.ReadFromJsonAsync<UserResult>(JsonOptions))!;
+        created.UserType.Should().Be("Courier");
+    }
+
+    [Fact]
+    public async Task Register_WithInvalidAccountType_ReturnsBadRequest()
+    {
+        // Whitelist explicito: solo Customer / Merchant / Courier. "Admin" y typos quedan fuera.
+        HttpClient client = factory.CreateClient();
+        HttpResponseMessage register = await client.PostAsJsonAsync("/api/v1/auth/register", new
+        {
+            email = UniqueEmail(),
+            phoneNumber = (string?)null,
+            password = "B@dType123",
+            firstName = "X",
+            lastName = "Y",
+            accountType = "Admin",
+        });
+
+        register.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task Me_WithoutToken_ReturnsUnauthorized()
     {
         HttpClient client = factory.CreateClient();
