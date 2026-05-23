@@ -50,11 +50,11 @@ public static class DependencyInjection
 
         if (string.Equals(gateway, "Stripe", StringComparison.OrdinalIgnoreCase))
         {
-            // El adaptador StripePaymentGateway llega en el commit 9 de Fase 8. Antes de eso, fallar
-            // ruidosamente al arrancar es mejor que cargar Fake en silencio cuando el operador pidio Stripe.
-            throw new InvalidOperationException(
-                "Payments:Gateway=Stripe aun no esta cableado (sera anadido en el commit 9 de Fase 8). " +
-                "Use Payments:Gateway=Fake o no defina la clave.");
+            // StripePaymentGateway: wrap real sobre Stripe.net (PaymentIntent + Refund con
+            // Idempotency-Key estable). Requiere Payments:Stripe:ApiKey (sk_test_... o sk_live_...);
+            // el constructor lanza InvalidOperationException si falta — fail-fast al arrancar.
+            services.AddSingleton<IPaymentGateway, StripePaymentGateway>();
+            return;
         }
 
         // FakePaymentGateway como Singleton: el ConcurrentDictionary interno acumula respuestas por
