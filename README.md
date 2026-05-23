@@ -40,7 +40,7 @@ Rappix es un marketplace de tres lados (clientes, comercios, repartidores) que d
 | Dispatch | Asignación de couriers | 5006 / gRPC 5016 |
 | Tracking | Push en vivo (SignalR) | 5007 / HTTP/2 5017 |
 | Payments | Stripe (hold+capture) | 5008 / HTTP/2 5018 |
-| Notifications | Push, email, SMS | 5009 |
+| Notifications | Email (Fake/SendGrid conmutable) | 5009 |
 | Ratings | Calificaciones | 5010 |
 | Gateway | YARP | 5000 |
 
@@ -144,6 +144,25 @@ E2E: [docs/setup-payments.md](docs/setup-payments.md).
 | Webhook Stripe (firma `Stripe-Signature`) | `POST /api/v1/payments/webhooks/stripe` |
 | Consumers (bus) | `PaymentRequestedIntegrationEvent` (autoriza hold) · `OrderDeliveredIntegrationEvent` (captura) · `OrderCancelled`/`OrderFailed` (void o NeedsReview) · `RefundRequestedIntegrationEvent` (refund explícito) |
 
+### Notifications (Fase 9) · REST 5009
+Notifica a los **3 actores** del pedido (cliente, merchant, courier) por **email** vía canal conmutable
+(**Fake** por defecto — log-only en Seq, smoke E2E sin SendGrid — o **SendGrid** opt-in con la misma
+cuenta de Identity). Consume 9 integration events: 2 de Identity (UserRegistered, UserEmailConfirmed) +
+4 de Merchants (Approved/Activated/Rejected/Suspended) + 3 de Orders/Dispatch para el flujo del pedido
+(OrderSubmitted, OrderAccepted, CourierAssigned + los 4 terminales OrderDelivered/Completed/Cancelled/Failed).
+**Resolución de emails sin acoplar**: 3 proyecciones locales (`UserContact`, `MerchantContact`,
+`NotificationOrder`) pobladas desde los eventos — cero gRPC sincronico, cero modificación a contratos
+existentes. **Idempotencia por clave de NEGOCIO** (no por MessageId del broker): unique partial index
+`UX_Notification_BusinessKey` sobre `(RelatedOrderId, RecipientUserId, NotificationType)` deduplica
+el caso clave `OrderDelivered` + `OrderCompleted` (dos eventos distintos -> misma notificación lógica
+-> 1 email, no 2). Sin Redis, sin gRPC, sin idempotency middleware. Diseño:
+[ADR-0010](docs/adr/0010-notifications-design.md).
+
+| Superficie | Endpoint |
+|---|---|
+| Health check | `GET /health` |
+| Consumers (bus) | `UserRegisteredIntegrationEvent` · `UserEmailConfirmedIntegrationEvent` · `MerchantApproved/Activated/Rejected/Suspended` · `OrderSubmittedIntegrationEvent` · `OrderAcceptedIntegrationEvent` · `CourierAssignedIntegrationEvent` · `OrderDelivered/Completed/Cancelled/Failed` |
+
 ## Estructura
 
 ```
@@ -212,8 +231,8 @@ Requisitos: PowerShell 5+, el contenedor postgres `rappix-postgres` y los 5 serv
 - [x] Fase 6 — Dispatch
 - [x] Fase 7 — Tracking (push en vivo)
 - [x] Fase 8 — Payments (Stripe hold+capture)
-- [ ] Fase 9 — Observability / Notifications / Ratings
-- [ ] Fase 10 — Back-office + pulido final
+- [x] Fase 9 — Notifications (email Fake/SendGrid + 3 proyecciones locales + dedup por clave de negocio)
+- [ ] Fase 10 — Observability + Ratings + Back-office + pulido final
 
 ## Licencia
 

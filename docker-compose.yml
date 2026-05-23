@@ -489,6 +489,44 @@ services:
     networks:
       - rappix-net
 
+  notifications-api:
+    build:
+      context: .
+      dockerfile: src/Services/Notifications/Rappix.Notifications.Api/Dockerfile
+    container_name: rappix-notifications
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__NotificationsDb: "Host=postgres;Port=5432;Database=rappix_notifications;Username=rappix;Password=rappix_dev_2026"
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Port: "5672"
+      RabbitMq__Username: rappix
+      RabbitMq__Password: rappix_mq_2026
+      Seq__ServerUrl: "http://seq:80"
+      Jwt__Issuer: "https://localhost:5001"
+      Jwt__Audience: rappix
+      # Misma clave que Identity (compartida por todo el cluster).
+      Jwt__SigningKey: "${IDENTITY_JWT_SIGNINGKEY:?Define IDENTITY_JWT_SIGNINGKEY en .env}"
+      # Selector de canal: Fake (default, smoke E2E sin cuenta SendGrid) o SendGrid (requiere las 3 vars siguientes).
+      Notifications__Channel: "${NOTIFICATIONS_CHANNEL:-Fake}"
+      # SendGrid: las mismas vars que Identity ya usa para su SendGridEmailSender (cuenta compartida).
+      Notifications__SendGrid__ApiKey: "${SENDGRID_API_KEY:-}"
+      Notifications__SendGrid__FromEmail: "${SENDGRID_FROM_EMAIL:-noreply@rappix.local}"
+      Notifications__SendGrid__FromName: "${SENDGRID_FROM_NAME:-Rappix}"
+      Logging__LogLevel__MassTransit: "Debug"
+    ports:
+      - "5009:8080" # REST + /health
+      # Sin 5019:8081 — Notifications no expone HTTP/2 ni gRPC en Fase 9.
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      seq:
+        condition: service_started
+    networks:
+      - rappix-net
+
 volumes:
   postgres_data:
   redis_data:
