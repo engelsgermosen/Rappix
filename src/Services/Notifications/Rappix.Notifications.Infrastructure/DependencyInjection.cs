@@ -56,8 +56,12 @@ public static class DependencyInjection
             // primer pedido. Cold-start gap documentado en ADR-0010.
             bus.AddConsumer<MerchantLifecycleConsumer>();
 
-            // Commits 7-8 anaden los 5 consumers de eventos de pedido (OrderSubmitted, OrderAccepted,
-            // CourierAssigned, OrderTerminalEvents).
+            // Consumers de pedido: proyectan NotificationOrder y/o notifican a destinatarios via
+            // NotifyHandler. Cada uno hace su mapping evento->destinatario+plantilla.
+            bus.AddConsumer<OrderSubmittedConsumer>();
+            bus.AddConsumer<OrderAcceptedConsumer>();
+
+            // Commit 8 anade CourierAssigned + OrderTerminalEvents (4 events multi-IConsumer).
 
             bus.AddEntityFrameworkOutbox<NotificationsDbContext>(outbox =>
             {
