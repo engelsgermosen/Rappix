@@ -32,6 +32,7 @@ $CATALOG   = "http://localhost:5003"
 $PRICING   = "http://localhost:5004"
 $ORDERS    = "http://localhost:5005"
 $DISPATCH  = "http://localhost:5006"
+$TRACKING  = "http://localhost:5007"
 $PG        = "rappix-postgres"   # nombre del contenedor postgres
 
 $CustomerEmail = "cliente@rappix.test"
@@ -256,7 +257,27 @@ Write-Host @"
 Write-Host ""
 Write-Host "  # En Seq Orders: AwaitingPayment -> AwaitingCourier" -ForegroundColor Gray
 Write-Host "  # En Seq Dispatch: CourierRequested consumido -> GEOSEARCH -> claim -> CourierAssigned" -ForegroundColor Gray
+Write-Host "  # En Seq Tracking: OrderSubmitted/OrderAccepted/CourierAssigned consumidos (proyeccion)" -ForegroundColor Gray
 Write-Host "  # En Seq Orders: AwaitingCourier -> Committing -> InProgress" -ForegroundColor Gray
+Write-Host ""
+Write-Host "  # 2.b) Fase 7 - SMOKE E2E del Hub SignalR (push en vivo, el corazon de Tracking)" -ForegroundColor Green
+Write-Host "  # Abre OTRA terminal ANTES de hacer el accept del merchant para captar todos los pushes:" -ForegroundColor Gray
+Write-Host @"
+  dotnet run --project tools/Rappix.Tracking.SmokeClient -- "`$ORDER_ID" "`$CUSTOMER"
+  # Debe imprimir, en orden, como respuesta del flujo de los pasos siguientes:
+  #   [smoke] StatusChanged   status=Placed            <- snapshot inicial al Subscribe (REST snapshot)
+  #   [smoke] StatusChanged   status=MerchantAccepted  <- cuando hagas el accept (paso 2)
+  #   [smoke] StatusChanged   status=CourierAssigned   <- cuando Dispatch asigne el courier
+  #   [smoke] LocationUpdated lat=...  lng=...         <- por cada POST /me/location que dispares
+  #   [smoke] StatusChanged   status=Delivered         <- cuando hagas el mark-delivered (paso 4)
+"@
+Write-Host ""
+Write-Host "  # 2.c) Verifica privacidad: cliente B intenta suscribirse al pedido de A -> rechazado" -ForegroundColor Green
+Write-Host @"
+  # En otra terminal, con el JWT de OTRO cliente (no `$CUSTOMER):
+  dotnet run --project tools/Rappix.Tracking.SmokeClient -- "`$ORDER_ID" "<JWT-DE-OTRO-USER>"
+  # Debe imprimir: [smoke] Fallo conectar o suscribir: HubException: no autorizado
+"@
 Write-Host ""
 Write-Host "  # 3) Verificar la asignacion (Fase 6 Dispatch)" -ForegroundColor Green
 Write-Host @"
@@ -265,10 +286,25 @@ Write-Host @"
   # Debe devolver { assignmentId, orderId=`$ORDER_ID, assignedAtUtc }.
 "@
 Write-Host ""
+Write-Host "  # 3.b) Mientras el courier mueve, dispara location updates (push en vivo en Tracking)" -ForegroundColor Green
+Write-Host @"
+  # Repite esto cuantas veces quieras para ver LocationUpdated llegando al smoke-client:
+  Invoke-RestMethod -Method Post -Uri "http://localhost:5006/api/v1/couriers/me/location" ``
+    -Headers @{ Authorization = "Bearer `$COURIER"; "Content-Type"="application/json" } ``
+    -Body (@{ latitude = 18.4870; longitude = -69.9320 } | ConvertTo-Json)
+"@
+Write-Host ""
 Write-Host "  # 4) Marcar entregado" -ForegroundColor Green
 Write-Host @"
   Invoke-RestMethod -Method Post -Uri "http://localhost:5005/api/v1/orders/`$ORDER_ID/mark-delivered" ``
     -Headers @{ Authorization = "Bearer `$MERCHANT" }
+"@
+Write-Host ""
+Write-Host "  # 4.b) Snapshot REST de tracking (fallback cuando WS no conecta)" -ForegroundColor Green
+Write-Host @"
+  Invoke-RestMethod -Method Get -Uri "http://localhost:5007/api/v1/tracking/orders/`$ORDER_ID" ``
+    -Headers @{ Authorization = "Bearer `$CUSTOMER" }
+  # Debe devolver status=Delivered + pickup + delivery + lastLocation (si hubo POST /me/location).
 "@
 Write-Host ""
 Write-Host "  # 5) Verificar estado final = Completed + courier liberado (Online de nuevo)" -ForegroundColor Green

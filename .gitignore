@@ -51,3 +51,7 @@ TestResults/
 # Sistema
 .DS_Store
 Thumbs.db
+
+# Tracking smoke E2E artifacts (logs generados por tools/smoke-tracking-e2e.ps1)
+tools/.smoke-client.log
+tools/.smoke-client.err

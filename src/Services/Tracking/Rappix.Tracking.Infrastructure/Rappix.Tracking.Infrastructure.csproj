@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Rappix.Tracking.Infrastructure</RootNamespace>
+    <AssemblyName>Rappix.Tracking.Infrastructure</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Permite a las pruebas instanciar repositorios y consumers internos. -->
+    <InternalsVisibleTo Include="Rappix.Tracking.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="MassTransit.EntityFrameworkCore" />
+    <!-- Sin paquetes Redis: Tracking no usa IdempotencyMiddleware (solo GET REST + Hub SignalR sin
+         POST mutantes), no necesita IDistributedCache; no usa Redis Geo (Dispatch sí); y SignalR
+         queda in-memory en Fase 7 (sin backplane). -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rappix.Tracking.Application\Rappix.Tracking.Application.csproj" />
+    <ProjectReference Include="..\Rappix.Tracking.Domain\Rappix.Tracking.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Contracts\Rappix.Contracts\Rappix.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Core\Rappix.BuildingBlocks.Core.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Messaging\Rappix.BuildingBlocks.Messaging.csproj" />
+  </ItemGroup>
+
+</Project>

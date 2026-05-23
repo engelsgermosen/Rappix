@@ -327,6 +327,10 @@ services:
       Grpc__MerchantsUrl: "http://merchants-api:8081"
       # Responders simulados de pago/courier/entrega (Fase 5; se apagan cuando lleguen Payments/Dispatch reales).
       Orders__EnableSimulatedResponders: "true"
+      # Delay del simulated delivery (ms) — sin esto la entrega es <1s tras CourierAssigned y el
+      # smoke E2E de Tracking no alcanza a probar LocationUpdated. 30s da espacio para 2-3 POST
+      # /me/location del courier antes del Delivered automatico.
+      Orders__Simulation__DeliveryDelayMs: "30000"
       # Log de MassTransit en Debug para el stack dev: muestra el movimiento de mensajes (SEND/RECEIVE/Consume),
       # clave para diagnosticar la saga. (appsettings.Development.json esta gitignored, por eso se fija aqui.)
       Logging__LogLevel__MassTransit: "Debug"
@@ -388,6 +392,48 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      seq:
+        condition: service_started
+    networks:
+      - rappix-net
+
+  # ──────────────────────────────────────────────────────────────
+  # Tracking Service (Fase 7). REST + SignalR en 8080, HTTP/2 h2c en 8081
+  # reservado (sin servicio gRPC expuesto). Proyecta eventos de Orders y
+  # Dispatch a un read model (rappix_tracking) y empuja al cliente la
+  # ubicacion del courier + estado del pedido en vivo. Ownership por
+  # JWT.sub == OrderTracking.CustomerUserId. Sin Redis (no usa idempotency
+  # middleware, no usa Geo, sin SignalR backplane en Fase 7).
+  # ──────────────────────────────────────────────────────────────
+  tracking-api:
+    build:
+      context: .
+      dockerfile: src/Services/Tracking/Rappix.Tracking.Api/Dockerfile
+    container_name: rappix-tracking
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # No se define ASPNETCORE_URLS: los dos puertos (8080 REST+SignalR, 8081 HTTP/2) van en codigo.
+      ConnectionStrings__TrackingDb: "Host=postgres;Port=5432;Database=rappix_tracking;Username=rappix;Password=rappix_dev_2026"
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Port: "5672"
+      RabbitMq__Username: rappix
+      RabbitMq__Password: rappix_mq_2026
+      Seq__ServerUrl: "http://seq:80"
+      Jwt__Issuer: "https://localhost:5001"
+      Jwt__Audience: rappix
+      # Misma clave que Identity: Tracking solo valida los tokens que Identity emite (incluso para el
+      # handshake del Hub SignalR, que recibe el bearer en ?access_token=...).
+      Jwt__SigningKey: "${IDENTITY_JWT_SIGNINGKEY:?Define IDENTITY_JWT_SIGNINGKEY en .env}"
+      Logging__LogLevel__MassTransit: "Debug"
+    ports:
+      - "5007:8080" # REST + SignalR
+      - "5017:8081" # HTTP/2 (reservado gRPC futuro)
+    depends_on:
+      postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy

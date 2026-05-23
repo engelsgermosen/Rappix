@@ -79,6 +79,10 @@
   </ItemGroup>
 
   <ItemGroup Label="Real-time / gRPC">
+    <!-- Cliente SignalR para tests de integracion del Hub (Fase 7 Tracking). -->
+    <PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.0" />
+    <!-- Backplane Redis para SignalR. Preparado para scale-out futuro; NO referenciado en Fase 7
+         (single instance, sin backplane). -->
     <PackageVersion Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="10.0.0" />
     <PackageVersion Include="Grpc.AspNetCore" Version="2.67.0" />
     <PackageVersion Include="Grpc.Net.Client" Version="2.67.0" />

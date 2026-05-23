@@ -37,8 +37,8 @@ Rappix es un marketplace de tres lados (clientes, comercios, repartidores) que d
 | Catalog | Items y stock | 5003 |
 | Pricing | Cálculo de tarifas | 5004 |
 | Orders | Saga del pedido | 5005 |
-| Dispatch | Asignación de couriers | 5006 |
-| Tracking | GPS vivo y ETA | 5007 |
+| Dispatch | Asignación de couriers | 5006 / gRPC 5016 |
+| Tracking | Push en vivo (SignalR) | 5007 / HTTP/2 5017 |
 | Payments | Stripe y splits | 5008 |
 | Notifications | Push, email, SMS | 5009 |
 | Ratings | Calificaciones | 5010 |
@@ -111,6 +111,21 @@ Dos clientes gRPC (Pricing; reserva de Catalog). Diseño: [ADR-0006](docs/adr/00
 | Merchant (`userType=Merchant`) | `GET /orders/merchant/pending` · `POST /orders/{id}/accept` · `POST /orders/{id}/reject` |
 | Seam temporal (Dispatch, Fase 6) | `POST /orders/{id}/mark-delivered` |
 
+### Tracking (Fase 7) · REST + SignalR 5007 · HTTP/2 5017 (reservado)
+Read model dedicado que proyecta los eventos de Orders y Dispatch a un estado por pedido y empuja al
+cliente final, en tiempo real vía SignalR, la **ubicación del courier asignado + el estado del pedido**.
+Sin Redis (no idempotency middleware, no Geo, sin SignalR backplane en Fase 7). Sin clientes gRPC.
+Ownership por `JWT.sub == OrderTracking.CustomerUserId` validado en `Subscribe` y en `GET`; 404 y 403
+indistinguibles para no filtrar existencia. Estados visibles al cliente: `Placed → MerchantAccepted →
+CourierAssigned → Delivered/Cancelled/Failed`. Diseño: [ADR-0008](docs/adr/0008-tracking-design.md);
+setup y smoke E2E: [docs/setup-tracking.md](docs/setup-tracking.md); flujo de mensajes:
+[docs/diagrams/tracking-flow.md](docs/diagrams/tracking-flow.md).
+
+| Superficie | Endpoint |
+|---|---|
+| Hub SignalR (push en vivo) | `/hubs/tracking` — `Subscribe(orderId)` / `Unsubscribe(orderId)` |
+| Snapshot REST (fallback)   | `GET /api/v1/tracking/orders/{orderId}` |
+
 ## Estructura
 
 ```
@@ -171,12 +186,16 @@ Requisitos: PowerShell 5+, el contenedor postgres `rappix-postgres` y los 5 serv
 ## Roadmap
 
 - [x] Fase 0 — Setup, BuildingBlocks, plantilla de servicio
-- [x] Fase 1 — Identity + Merchants
-- [x] Fase 2 — Catalog + Pricing
-- [ ] Fase 3 — Orders + Payments (saga)
-- [ ] Fase 4 — Dispatch + Tracking (tiempo real)
-- [ ] Fase 5 — Notifications + Ratings
-- [ ] Fase 6 — Back-office + pulido final
+- [x] Fase 1 — Identity
+- [x] Fase 2 — Merchants
+- [x] Fase 3 — Catalog
+- [x] Fase 4 — Pricing
+- [x] Fase 5 — Orders (saga)
+- [x] Fase 6 — Dispatch
+- [x] Fase 7 — Tracking (push en vivo)
+- [ ] Fase 8 — Payments
+- [ ] Fase 9 — Observability / Notifications / Ratings
+- [ ] Fase 10 — Back-office + pulido final
 
 ## Licencia
 
