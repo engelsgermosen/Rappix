@@ -60,8 +60,14 @@ public static class DependencyInjection
             // NotifyHandler. Cada uno hace su mapping evento->destinatario+plantilla.
             bus.AddConsumer<OrderSubmittedConsumer>();
             bus.AddConsumer<OrderAcceptedConsumer>();
+            bus.AddConsumer<CourierAssignedConsumer>();
 
-            // Commit 8 anade CourierAssigned + OrderTerminalEvents (4 events multi-IConsumer).
+            // Multi-IConsumer sobre los 4 eventos terminales del pedido (OrderDelivered de Dispatch,
+            // OrderCompleted/Cancelled/Failed de la saga de Orders). CRITICO: OrderDelivered y
+            // OrderCompleted mapean al MISMO NotificationType.OrderDelivered — el unique partial
+            // index UX_Notification_BusinessKey dedupe ambos por (RelatedOrderId, RecipientUserId,
+            // NotificationType). Sin esto el cliente recibiria dos emails "fue entregado".
+            bus.AddConsumer<OrderTerminalEventsConsumer>();
 
             bus.AddEntityFrameworkOutbox<NotificationsDbContext>(outbox =>
             {
