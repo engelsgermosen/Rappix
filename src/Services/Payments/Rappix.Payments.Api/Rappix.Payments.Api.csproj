@@ -16,6 +16,10 @@
          no se expone servicio gRPC en Fase 8). -->
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+    <!-- Stripe.net en Api SOLO para validar la firma del webhook con EventUtility.ConstructEvent.
+         El gateway de pagos (StripePaymentGateway) vive aislado en Infrastructure; aqui la dependencia
+         es localizada al endpoint /api/v1/payments/webhooks/stripe que es inherentemente Stripe-specific. -->
+    <PackageReference Include="Stripe.net" />
   </ItemGroup>
 
   <ItemGroup>
