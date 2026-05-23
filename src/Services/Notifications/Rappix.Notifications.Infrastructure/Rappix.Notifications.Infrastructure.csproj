@@ -14,7 +14,10 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="MassTransit.EntityFrameworkCore" />
-    <!-- SendGrid se anade en commit 9 cuando se implementa SendGridNotificationChannel. -->
+    <!-- SendGrid SDK aislado en Infrastructure: ni Domain ni Application lo conocen. Si en el
+         futuro se cambia de proveedor (Mailgun, SES), solo se reemplaza el adaptador SendGridNotificationChannel.
+         Misma version (9.29.3 vias CPM) que Rappix.Identity.Infrastructure usa para su IEmailSender. -->
+    <PackageReference Include="SendGrid" />
   </ItemGroup>
 
   <ItemGroup>
