@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Rappix.Notifications.Infrastructure</RootNamespace>
+    <AssemblyName>Rappix.Notifications.Infrastructure</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Permite a las pruebas instanciar repositorios, canales y consumers internos. -->
+    <InternalsVisibleTo Include="Rappix.Notifications.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="MassTransit.EntityFrameworkCore" />
+    <!-- SendGrid se anade en commit 9 cuando se implementa SendGridNotificationChannel. -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rappix.Notifications.Application\Rappix.Notifications.Application.csproj" />
+    <ProjectReference Include="..\Rappix.Notifications.Domain\Rappix.Notifications.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Contracts\Rappix.Contracts\Rappix.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Core\Rappix.BuildingBlocks.Core.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Messaging\Rappix.BuildingBlocks.Messaging.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <RootNamespace>Rappix.Notifications.Api</RootNamespace>
+    <AssemblyName>Rappix.Notifications.Api</AssemblyName>
+    <!-- El generador de comentarios XML de OpenAPI (.NET 10) usa interceptores de C#. -->
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);Microsoft.AspNetCore.OpenApi.Generated</InterceptorsNamespaces>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Asp.Versioning.Http" />
+    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" />
+    <PackageReference Include="Scalar.AspNetCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+    <!-- Sin Grpc.AspNetCore: Notifications no expone servicios gRPC (puro consumer + emisor de email).
+         Si en el futuro se reserva el puerto HTTP/2 cleartext, anadirlo entonces. -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rappix.Notifications.Application\Rappix.Notifications.Application.csproj" />
+    <ProjectReference Include="..\Rappix.Notifications.Infrastructure\Rappix.Notifications.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.WebApi\Rappix.BuildingBlocks.WebApi.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Observability\Rappix.BuildingBlocks.Observability.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Messaging\Rappix.BuildingBlocks.Messaging.csproj" />
+  </ItemGroup>
+
+</Project>
