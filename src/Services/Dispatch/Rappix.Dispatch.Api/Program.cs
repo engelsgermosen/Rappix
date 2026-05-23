@@ -12,6 +12,7 @@ using Rappix.Dispatch.Api.Authentication;
 using Rappix.Dispatch.Api.Endpoints;
 using Rappix.Dispatch.Api.OpenApi;
 using Rappix.Dispatch.Application;
+using Rappix.Dispatch.Application.Configuration;
 using Rappix.Dispatch.Infrastructure;
 using Scalar.AspNetCore;
 
@@ -30,6 +31,7 @@ builder.WebHost.ConfigureKestrel(kestrel =>
 
 // Opciones tipadas.
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.Configure<DispatchOptions>(builder.Configuration.GetSection(DispatchOptions.SectionName));
 
 // Enums por nombre en JSON (VehicleType, CourierStatus) para una API legible.
 builder.Services.ConfigureHttpJsonOptions(options =>

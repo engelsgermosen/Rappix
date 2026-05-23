@@ -19,10 +19,11 @@ internal sealed class CourierRepository(DispatchDbContext db) : ICourierReposito
     {
         // Filtro de seguridad post-GEOSEARCH: aunque Redis Geo solo deberia contener couriers Online,
         // una desincronizacion (p. ej. Redis flush sin rehidratar) podria devolver un courier ya Busy.
-        Guid[] guidIds = [.. ids.Select(id => id.Value)];
+        // Comparar CourierId con CourierId (no .Value) para que el converter EF lo traduzca a IN (...).
+        CourierId[] idArray = [.. ids];
         return await db.CourierProfiles
             .AsNoTracking()
-            .Where(courier => courier.Status == CourierStatus.Online && guidIds.Contains(courier.Id.Value))
+            .Where(courier => courier.Status == CourierStatus.Online && idArray.Contains(courier.Id))
             .ToListAsync(cancellationToken);
     }
 

@@ -25,12 +25,16 @@ internal sealed class RedisGeoIndex(IConnectionMultiplexer redis) : IRedisGeoInd
     public async Task<IReadOnlyList<NearbyCourier>> SearchNearbyAsync(
         double latitude, double longitude, double radiusMeters, int limit, CancellationToken cancellationToken)
     {
-        GeoRadiusResult[] results = await _database.GeoSearchAsync(
+        // GeoRadius (GEORADIUS) en lugar de GeoSearch (GEOSEARCH) por estabilidad en SE.Redis 2.8.22.
+        // Misma semantica funcional: dentro del radio en metros, ordenados ASC, con coords y distancia.
+        GeoRadiusResult[] results = await _database.GeoRadiusAsync(
             key: GeoKey,
             longitude: longitude,
             latitude: latitude,
-            shape: new GeoSearchCircle(radiusMeters, GeoUnit.Meters),
+            radius: radiusMeters,
+            unit: GeoUnit.Meters,
             count: limit,
+            order: Order.Ascending,
             options: GeoRadiusOptions.WithCoordinates | GeoRadiusOptions.WithDistance);
 
         var candidates = new List<NearbyCourier>(results.Length);

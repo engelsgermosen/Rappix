@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Rappix.BuildingBlocks.Core.Time;
 using Rappix.BuildingBlocks.Messaging.Extensions;
 using Rappix.Dispatch.Application.Abstractions;
+using Rappix.Dispatch.Application.Configuration;
 using Rappix.Dispatch.Infrastructure.Messaging;
 using Rappix.Dispatch.Infrastructure.Persistence;
 using Rappix.Dispatch.Infrastructure.Redis;
@@ -32,6 +33,11 @@ public static class DependencyInjection
         services.AddScoped<ICourierAssignmentRepository, CourierAssignmentRepository>();
 
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
+
+        // DispatchOptions se vincula desde Program.cs (la extension Configure<T>(IConfigurationSection)
+        // vive en Microsoft.Extensions.Options.ConfigurationExtensions, que Infrastructure no referencia).
+        // ICourierAssignmentStrategy se registra desde Rappix.Dispatch.Application.DependencyInjection
+        // (NearestAvailableStrategy es internal y Infrastructure no la ve directamente).
 
         AddDistributedCache(services, configuration);
         AddRedisGeo(services, configuration);
@@ -74,6 +80,10 @@ public static class DependencyInjection
         {
             // Choreography de Identity -> Dispatch (filtra UserType="Courier").
             bus.AddConsumer<UserRegisteredConsumer>();
+
+            // Consumer del corazon del servicio: atiende CourierRequested -> GEOSEARCH + claim atomico
+            // -> CourierAssigned / CourierUnavailable. Reemplaza al SimulatedCourierResponder de Orders.
+            bus.AddConsumer<CourierRequestedConsumer>();
 
             bus.AddEntityFrameworkOutbox<DispatchDbContext>(outbox =>
             {
