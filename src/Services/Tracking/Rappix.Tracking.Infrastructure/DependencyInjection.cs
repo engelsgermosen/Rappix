@@ -1,8 +1,11 @@
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Rappix.BuildingBlocks.Core.Time;
+using Rappix.BuildingBlocks.Messaging.Extensions;
 using Rappix.Tracking.Application.Abstractions;
+using Rappix.Tracking.Infrastructure.Messaging;
 using Rappix.Tracking.Infrastructure.Persistence;
 
 namespace Rappix.Tracking.Infrastructure;
@@ -11,10 +14,9 @@ namespace Rappix.Tracking.Infrastructure;
 public static class DependencyInjection
 {
     /// <summary>
-    /// Registra el DbContext, los repositorios (read + write) y el reloj. Sin Redis: Tracking no
-    /// usa <c>IdempotencyMiddleware</c> (solo GET REST + Hub SignalR), no usa Geo, sin SignalR
-    /// backplane en Fase 7. MassTransit + outbox + AddConfigureEndpointsCallback se anaden en el
-    /// commit 6 junto con los consumers.
+    /// Registra el DbContext, los repositorios (read + write), el reloj y MassTransit + outbox + el
+    /// AddConfigureEndpointsCallback. Sin Redis: Tracking no usa <c>IdempotencyMiddleware</c> (solo
+    /// GET REST + Hub SignalR), no usa Geo, sin SignalR backplane en Fase 7.
     /// </summary>
     public static IServiceCollection AddTrackingInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
@@ -30,6 +32,29 @@ public static class DependencyInjection
 
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
+        AddMessaging(services, configuration);
+
         return services;
     }
+
+    private static void AddMessaging(IServiceCollection services, IConfiguration configuration) =>
+        services.AddRappixMessaging(configuration, serviceName: "tracking", configure: bus =>
+        {
+            // Consumers de eventos de Orders (saga publica OrderSubmitted + OrderAccepted).
+            bus.AddConsumer<OrderSubmittedConsumer>();
+            bus.AddConsumer<OrderAcceptedConsumer>();
+            // Los consumers courier (Assigned + LocationUpdated) y terminales entran en commits 7-8.
+
+            bus.AddEntityFrameworkOutbox<TrackingDbContext>(outbox =>
+            {
+                outbox.UsePostgres();
+                outbox.UseBusOutbox();
+            });
+
+            // CRITICO (leccion de Orders aplicada desde el primer consumer): aplica el filtro de
+            // outbox EF a CADA endpoint — envuelve cada consume en transaccion + SaveChanges + dedup
+            // de inbox. Tracking no publica al bus en Fase 7, pero el inbox dedupica por MessageId,
+            // lo cual ES necesario.
+            bus.AddConfigureEndpointsCallback((context, _, cfg) => cfg.UseEntityFrameworkOutbox<TrackingDbContext>(context));
+        });
 }
