@@ -6,6 +6,7 @@ using Rappix.BuildingBlocks.Core.Time;
 using Rappix.BuildingBlocks.Messaging.Extensions;
 using Rappix.Payments.Application.Abstractions;
 using Rappix.Payments.Infrastructure.Gateways;
+using Rappix.Payments.Infrastructure.Messaging;
 using Rappix.Payments.Infrastructure.Persistence;
 
 namespace Rappix.Payments.Infrastructure;
@@ -65,9 +66,12 @@ public static class DependencyInjection
     private static void AddMessaging(IServiceCollection services, IConfiguration configuration) =>
         services.AddRappixMessaging(configuration, serviceName: "payments", configure: bus =>
         {
-            // Los 3 consumers concretos (PaymentRequested, OrderDeliveredCapture, OrderTerminalCompensation)
-            // llegan en commits 5/6/7. El cableado de outbox/inbox + callback ya esta para que el
-            // primer consumer entre con la red completa de idempotencia activa.
+            // Consumer del flujo principal: PaymentRequested (saga AwaitingPayment) -> autoriza hold y
+            // publica PaymentSucceeded/PaymentFailed.
+            bus.AddConsumer<PaymentRequestedConsumer>();
+
+            // OrderDeliveredCaptureConsumer (commit 6) y OrderTerminalCompensationConsumer (commit 7)
+            // llegan despues.
 
             bus.AddEntityFrameworkOutbox<PaymentsDbContext>(outbox =>
             {
