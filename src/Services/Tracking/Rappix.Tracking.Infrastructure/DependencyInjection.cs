@@ -43,7 +43,11 @@ public static class DependencyInjection
             // Consumers de eventos de Orders (saga publica OrderSubmitted + OrderAccepted).
             bus.AddConsumer<OrderSubmittedConsumer>();
             bus.AddConsumer<OrderAcceptedConsumer>();
-            // Los consumers courier (Assigned + LocationUpdated) y terminales entran en commits 7-8.
+
+            // Consumers de Dispatch: asignacion + stream de ubicaciones.
+            bus.AddConsumer<CourierAssignedConsumer>();
+            bus.AddConsumer<CourierLocationUpdatedConsumer>();
+            // Consumers terminales entran en commit 8.
 
             bus.AddEntityFrameworkOutbox<TrackingDbContext>(outbox =>
             {
