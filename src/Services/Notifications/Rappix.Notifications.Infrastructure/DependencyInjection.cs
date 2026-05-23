@@ -1,9 +1,12 @@
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Rappix.BuildingBlocks.Core.Time;
+using Rappix.BuildingBlocks.Messaging.Extensions;
 using Rappix.Notifications.Application.Abstractions;
 using Rappix.Notifications.Infrastructure.Channels;
+using Rappix.Notifications.Infrastructure.Messaging;
 using Rappix.Notifications.Infrastructure.Persistence;
 using Rappix.Notifications.Infrastructure.Persistence.Repositories;
 
@@ -35,8 +38,40 @@ public static class DependencyInjection
 
         RegisterNotificationChannel(services, configuration);
 
+        AddMessaging(services, configuration);
+
         return services;
     }
+
+    private static void AddMessaging(IServiceCollection services, IConfiguration configuration) =>
+        services.AddRappixMessaging(configuration, serviceName: "notifications", configure: bus =>
+        {
+            // Consumers de Identity: pueblan UserContact (la proyeccion userId -> email + rol).
+            bus.AddConsumer<UserRegisteredConsumer>();
+            bus.AddConsumer<UserEmailConfirmedConsumer>();
+
+            // Consumer multi-IConsumer de Merchants: puebla MerchantContact (merchantId -> ownerUserId)
+            // desde los 4 events de lifecycle. El primero (Approved) es el que ocurre antes que
+            // OrderSubmitted, asi que en condiciones normales el contact ya existe cuando llega el
+            // primer pedido. Cold-start gap documentado en ADR-0010.
+            bus.AddConsumer<MerchantLifecycleConsumer>();
+
+            // Commits 7-8 anaden los 5 consumers de eventos de pedido (OrderSubmitted, OrderAccepted,
+            // CourierAssigned, OrderTerminalEvents).
+
+            bus.AddEntityFrameworkOutbox<NotificationsDbContext>(outbox =>
+            {
+                outbox.UsePostgres();
+                outbox.UseBusOutbox();
+            });
+
+            // CRITICO (leccion de Orders Fase 5 aplicada desde el primer consumer): aplica el filtro
+            // de outbox EF a CADA endpoint — envuelve cada consume en transaccion + SaveChanges +
+            // INBOX DEDUP por MessageId. Notifications no publica al bus en Fase 9 (solo consume +
+            // envia emails), pero el INBOX SI es necesario — es el Nivel 1 de idempotencia que ataja
+            // las redelivers del broker antes incluso de llegar al consumer (ADR-0010 D4).
+            bus.AddConfigureEndpointsCallback((context, _, cfg) => cfg.UseEntityFrameworkOutbox<NotificationsDbContext>(context));
+        });
 
     private static void RegisterNotificationChannel(IServiceCollection services, IConfiguration configuration)
     {
