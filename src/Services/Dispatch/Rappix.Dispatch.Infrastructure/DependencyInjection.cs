@@ -85,6 +85,10 @@ public static class DependencyInjection
             // -> CourierAssigned / CourierUnavailable. Reemplaza al SimulatedCourierResponder de Orders.
             bus.AddConsumer<CourierRequestedConsumer>();
 
+            // Libera al courier al alcanzar estado terminal (entrega normal / cancelacion tras asignar /
+            // fallo tras asignar). Multi-IConsumer sobre los 3 eventos terminales de Orders/Dispatch.
+            bus.AddConsumer<OrderTerminalEventsConsumer>();
+
             bus.AddEntityFrameworkOutbox<DispatchDbContext>(outbox =>
             {
                 outbox.UsePostgres();
