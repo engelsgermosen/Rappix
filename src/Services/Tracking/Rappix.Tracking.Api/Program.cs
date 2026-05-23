@@ -115,9 +115,14 @@ builder.Services.AddOpenApi("v1", options =>
 
 WebApplication app = builder.Build();
 
-// Migrate-on-startup: el DbContext + migration se anaden en commit 3. Mientras tanto el bloque queda
-// preparado siguiendo el patron del resto de servicios (skipped en entorno "Testing").
-// (sin DbContext registrado todavia: el bloque real entra en commit 3)
+// Aplica las migraciones EF Core al arrancar, antes de cualquier hosted service. Se omite en pruebas:
+// los WebApplicationFactory migran explicitamente en su InitializeAsync (entorno "Testing").
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    await using var migrationScope = app.Services.CreateAsyncScope();
+    await Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.MigrateAsync(
+        migrationScope.ServiceProvider.GetRequiredService<Rappix.Tracking.Infrastructure.Persistence.TrackingDbContext>().Database);
+}
 
 app.UseExceptionHandler();
 app.UseCorrelationId();
