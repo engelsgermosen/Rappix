@@ -28,7 +28,7 @@ namespace Rappix.Dispatch.Infrastructure.Messaging;
 /// Status='Online' RETURNING). El predicado ES el concurrency token: dos consumers compitiendo por
 /// el mismo courier, solo uno actualiza la fila; el otro recibe false y prueba con el siguiente.</item>
 /// <item><b>Persistir asignacion</b>: <c>CourierAssignment.Create</c> + Add. Los 2 unique partial
-/// indexes en BD (released_at_utc IS NULL sobre courier_id y order_id) son la red de seguridad ante
+/// indexes en BD (ReleasedAtUtc IS NULL sobre CourierId y OrderId) son la red de seguridad ante
 /// carreras imposibles desde codigo.</item>
 /// <item><b>ZREM</b> de Redis Geo (el courier ya esta Busy, no aparece en futuras busquedas).</item>
 /// <item><b>Publish CourierAssigned</b> o <b>CourierUnavailable</b>. AddConfigureEndpointsCallback

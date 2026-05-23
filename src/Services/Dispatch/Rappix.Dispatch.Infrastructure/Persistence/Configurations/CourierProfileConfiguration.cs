@@ -17,7 +17,7 @@ internal sealed class CourierProfileConfiguration : IEntityTypeConfiguration<Cou
 
         builder.HasKey(courier => courier.Id);
         // CourierId = UserId de Identity; no se genera en BD.
-        builder.Property(courier => courier.Id).HasColumnName("id").ValueGeneratedNever();
+        builder.Property(courier => courier.Id).ValueGeneratedNever();
 
         builder.Property(courier => courier.FirstName).HasMaxLength(100).IsRequired();
 

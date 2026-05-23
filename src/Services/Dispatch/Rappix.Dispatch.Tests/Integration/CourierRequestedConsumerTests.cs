@@ -131,7 +131,7 @@ public sealed class CourierRequestedConsumerTests : IAsyncLifetime
         await WaitForConsumedAsync(orderB);
 
         // Asignaciones activas para estos 2 pedidos: exactamente 1 (un courier solo puede tener una;
-        // la unique partial index en (courier_id) WHERE released_at_utc IS NULL es la red de seguridad).
+        // la unique partial index en (CourierId) WHERE ReleasedAtUtc IS NULL es la red de seguridad).
         (await CountActiveAssignmentsForOrdersAsync(orderA, orderB)).Should().Be(1);
 
         // Exactamente 1 CourierAssigned y 1 CourierUnavailable entre los 2 pedidos.

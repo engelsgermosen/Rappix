@@ -17,27 +17,27 @@ internal sealed class CourierAssignmentConfiguration : IEntityTypeConfiguration<
         builder.ToTable("courier_assignments");
 
         builder.HasKey(assignment => assignment.Id);
-        builder.Property(assignment => assignment.Id).HasColumnName("id").ValueGeneratedNever();
+        builder.Property(assignment => assignment.Id).ValueGeneratedNever();
 
         // FK logico al aggregate CourierProfile (sin restriccion para evitar acoplar el delete del
         // profile a su historial). El converter de CourierId se aplica por convencion.
-        builder.Property(assignment => assignment.CourierId).HasColumnName("courier_id").IsRequired();
+        builder.Property(assignment => assignment.CourierId).IsRequired();
 
         // OrderId vive en otro servicio: sin FK.
-        builder.Property(assignment => assignment.OrderId).HasColumnName("order_id").IsRequired();
+        builder.Property(assignment => assignment.OrderId).IsRequired();
 
-        builder.Property(assignment => assignment.AssignedAtUtc).HasColumnName("assigned_at_utc").IsRequired();
-        builder.Property(assignment => assignment.ReleasedAtUtc).HasColumnName("released_at_utc");
-        builder.Property(assignment => assignment.ReleaseReason).HasColumnName("release_reason").HasMaxLength(50);
+        builder.Property(assignment => assignment.AssignedAtUtc).IsRequired();
+        builder.Property(assignment => assignment.ReleasedAtUtc);
+        builder.Property(assignment => assignment.ReleaseReason).HasMaxLength(50);
 
         // Unique partial indexes — la red de seguridad ante carreras del claim.
         builder.HasIndex(assignment => assignment.CourierId)
-            .HasFilter("\"released_at_utc\" IS NULL")
+            .HasFilter("\"ReleasedAtUtc\" IS NULL")
             .IsUnique()
             .HasDatabaseName("ux_courier_assignments_active_courier");
 
         builder.HasIndex(assignment => assignment.OrderId)
-            .HasFilter("\"released_at_utc\" IS NULL")
+            .HasFilter("\"ReleasedAtUtc\" IS NULL")
             .IsUnique()
             .HasDatabaseName("ux_courier_assignments_active_order");
 
