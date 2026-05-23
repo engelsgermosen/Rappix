@@ -7,6 +7,8 @@ using Rappix.BuildingBlocks.Messaging.Extensions;
 using Rappix.Dispatch.Application.Abstractions;
 using Rappix.Dispatch.Infrastructure.Messaging;
 using Rappix.Dispatch.Infrastructure.Persistence;
+using Rappix.Dispatch.Infrastructure.Redis;
+using StackExchange.Redis;
 
 namespace Rappix.Dispatch.Infrastructure;
 
@@ -32,9 +34,21 @@ public static class DependencyInjection
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
         AddDistributedCache(services, configuration);
+        AddRedisGeo(services, configuration);
         AddMessaging(services, configuration);
 
         return services;
+    }
+
+    private static void AddRedisGeo(IServiceCollection services, IConfiguration configuration)
+    {
+        // IConnectionMultiplexer es thread-safe; un singleton para toda la app. Sin Redis configurado
+        // el servicio no puede arrancar (el matching geo es central a Dispatch).
+        string redisConnection = configuration.GetConnectionString("Redis")
+            ?? throw new InvalidOperationException("Falta la cadena de conexion 'Redis' (Dispatch usa Redis Geo para matching).");
+
+        services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConnection));
+        services.AddScoped<IRedisGeoIndex, RedisGeoIndex>();
     }
 
     private static void AddDistributedCache(IServiceCollection services, IConfiguration configuration)

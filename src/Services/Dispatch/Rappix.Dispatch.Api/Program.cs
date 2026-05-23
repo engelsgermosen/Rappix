@@ -9,6 +9,7 @@ using Rappix.BuildingBlocks.Observability.Extensions;
 using Rappix.BuildingBlocks.WebApi.Errors;
 using Rappix.BuildingBlocks.WebApi.Middleware;
 using Rappix.Dispatch.Api.Authentication;
+using Rappix.Dispatch.Api.Endpoints;
 using Rappix.Dispatch.Api.OpenApi;
 using Rappix.Dispatch.Application;
 using Rappix.Dispatch.Infrastructure;
@@ -144,7 +145,7 @@ ApiVersionSet versionSet = app.NewApiVersionSet()
     .Build();
 
 RouteGroupBuilder apiV1 = app.MapGroup("/api/v{version:apiVersion}").WithApiVersionSet(versionSet);
-// Endpoints REST de courier self-service: se anaden en commit 9.
+apiV1.MapCourierEndpoints();
 
 app.MapGet("/health", () => Results.Ok(new { service = "dispatch", status = "ok" }));
 
