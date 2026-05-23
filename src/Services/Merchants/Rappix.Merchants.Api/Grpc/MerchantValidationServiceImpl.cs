@@ -48,6 +48,9 @@ internal sealed class MerchantValidationServiceImpl(ISender sender)
             Slug = info.Slug,
             VerticalType = info.VerticalType,
             OwnerUserId = info.OwnerUserId,
+            PickupLatitude = info.PickupLatitude,
+            PickupLongitude = info.PickupLongitude,
+            HasPickupLocation = info.HasPickupLocation,
         };
     }
 }

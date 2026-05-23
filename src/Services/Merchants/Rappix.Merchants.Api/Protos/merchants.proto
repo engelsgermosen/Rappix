@@ -30,4 +30,10 @@ message MerchantBasicInfoResponse {
   string vertical_type = 5;
   // Usuario (Identity) propietario del comercio. Lo consume Orders para autorizar accept/reject del dueño.
   string owner_user_id = 6;
+  // Ubicacion fisica del comercio (de donde recoge el courier). Lo consume Orders para incluirlo en
+  // CourierRequestedIntegrationEvent y que Dispatch (Fase 6) haga matching geo de couriers.
+  // has_pickup_location=false significa que el owner aun no la fijo (PUT /merchants/me/pickup-location).
+  double pickup_latitude = 7;
+  double pickup_longitude = 8;
+  bool has_pickup_location = 9;
 }

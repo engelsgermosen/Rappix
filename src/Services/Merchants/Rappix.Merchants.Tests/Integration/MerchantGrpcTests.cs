@@ -47,6 +47,9 @@ public sealed class MerchantGrpcTests(MerchantsApiFactory factory)
         response.Found.Should().BeTrue();
         response.IsActive.Should().BeTrue();
         response.VerticalType.Should().Be("Food");
+        response.HasPickupLocation.Should().BeTrue();
+        response.PickupLatitude.Should().BeApproximately(18.4861, 0.0001);
+        response.PickupLongitude.Should().BeApproximately(-69.9312, 0.0001);
     }
 
     private MerchantValidationService.MerchantValidationServiceClient CreateClient()
