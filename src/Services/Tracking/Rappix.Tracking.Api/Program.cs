@@ -9,6 +9,7 @@ using Rappix.BuildingBlocks.Observability.Extensions;
 using Rappix.BuildingBlocks.WebApi.Errors;
 using Rappix.BuildingBlocks.WebApi.Middleware;
 using Rappix.Tracking.Api.Authentication;
+using Rappix.Tracking.Api.Endpoints;
 using Rappix.Tracking.Api.Hubs;
 using Rappix.Tracking.Api.OpenApi;
 using Rappix.Tracking.Application;
@@ -175,9 +176,9 @@ ApiVersionSet versionSet = app.NewApiVersionSet()
     .ReportApiVersions()
     .Build();
 
-// Grupo /api/v1 para los endpoints REST. El primer endpoint (GET tracking snapshot) entra en commit 5.
+// Grupo /api/v1 para los endpoints REST.
 RouteGroupBuilder apiV1 = app.MapGroup("/api/v{version:apiVersion}").WithApiVersionSet(versionSet);
-_ = apiV1; // marcador para los commits siguientes.
+apiV1.MapTrackingEndpoints();
 
 // Hub SignalR /hubs/tracking. El [Authorize] del hub rechaza el handshake sin JWT valido (401).
 // Subscribe(orderId) hace el check de ownership: JWT.sub == OrderTracking.CustomerUserId; mismo
