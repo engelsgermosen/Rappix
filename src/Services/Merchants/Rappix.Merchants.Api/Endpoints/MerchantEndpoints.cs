@@ -6,6 +6,7 @@ using Rappix.Merchants.Api.Contracts;
 using Rappix.Merchants.Application.Merchants.AddServiceArea;
 using Rappix.Merchants.Application.Merchants.GetMy;
 using Rappix.Merchants.Application.Merchants.RemoveServiceArea;
+using Rappix.Merchants.Application.Merchants.SetPickupLocation;
 using Rappix.Merchants.Application.Merchants.SubmitForApproval;
 using Rappix.Merchants.Application.Merchants.UpdateOperatingHours;
 using Rappix.Merchants.Application.Merchants.UpdateProfile;
@@ -77,6 +78,18 @@ internal static class MerchantEndpoints
             return userId is null
                 ? Results.Unauthorized()
                 : (await sender.Send(new RemoveServiceAreaCommand(userId.Value, areaId), cancellationToken)).ToHttpResult();
+        });
+
+        owner.MapPut("/me/pickup-location", async (SetPickupLocationRequest request, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken) =>
+        {
+            Guid? userId = principal.GetUserId();
+            if (userId is null)
+            {
+                return Results.Unauthorized();
+            }
+
+            var command = new SetPickupLocationCommand(userId.Value, request.Latitude, request.Longitude);
+            return (await sender.Send(command, cancellationToken)).ToHttpResult();
         });
 
         owner.MapPost("/me/logo", async (IFormFile file, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken) =>

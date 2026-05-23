@@ -45,6 +45,47 @@ public sealed class MerchantAggregateTests
     }
 
     [Fact]
+    public void SubmitForApproval_WithoutPickupLocation_Fails()
+    {
+        // CreateComplete sin SetPickupLocation: aunque tenga Rnc + ServiceArea + horarios, debe fallar.
+        Merchant merchant = CreateDraft();
+        merchant.UpdateProfile("Tienda Lulu", Slug.FromTrusted("tienda-lulu"), Rnc.Create("131246803").Value, "Descripcion", VerticalType.Food, Now);
+        merchant.AddCircleServiceArea(GeoFactory.CreatePoint(18.4861, -69.9312), 2000, Now);
+        merchant.ReplaceOperatingHours([new OperatingHoursRange(DayOfWeek.Monday, new TimeOnly(8, 0), new TimeOnly(18, 0))], Now);
+        // Falta SetPickupLocation a proposito.
+
+        Result result = merchant.SubmitForApproval(Now);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Merchants.Merchant.IncompleteForSubmission");
+        merchant.Status.Should().Be(MerchantStatus.Draft);
+    }
+
+    [Fact]
+    public void SetPickupLocation_WithValidPoint_Persists()
+    {
+        Merchant merchant = CreateDraft();
+
+        Result result = merchant.SetPickupLocation(GeoFactory.CreatePoint(18.4861, -69.9312), Now);
+
+        result.IsSuccess.Should().BeTrue();
+        merchant.PickupLocation.Should().NotBeNull();
+        merchant.PickupLocation!.Y.Should().BeApproximately(18.4861, 0.0001);  // lat = Y
+        merchant.PickupLocation!.X.Should().BeApproximately(-69.9312, 0.0001); // lng = X
+    }
+
+    [Fact]
+    public void SetPickupLocation_WhenSuspended_Fails()
+    {
+        Merchant merchant = Approved();
+        merchant.Suspend("Abuso", Now);
+
+        Result result = merchant.SetPickupLocation(GeoFactory.CreatePoint(18.4861, -69.9312), Now);
+
+        result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
     public void Approve_FromPending_ActivatesAndRaisesEvent()
     {
         Merchant merchant = CreateComplete();
@@ -134,6 +175,7 @@ public sealed class MerchantAggregateTests
         merchant.UpdateProfile("Tienda Lulu", Slug.FromTrusted("tienda-lulu"), Rnc.Create("131246803").Value, "Descripcion", VerticalType.Food, Now);
         merchant.AddCircleServiceArea(GeoFactory.CreatePoint(18.4861, -69.9312), 2000, Now);
         merchant.ReplaceOperatingHours([new OperatingHoursRange(DayOfWeek.Monday, new TimeOnly(8, 0), new TimeOnly(18, 0))], Now);
+        merchant.SetPickupLocation(GeoFactory.CreatePoint(18.4861, -69.9312), Now);
         return merchant;
     }
 

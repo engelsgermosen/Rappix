@@ -73,6 +73,7 @@ public sealed class GeoSearchTests(MerchantsApiFactory factory)
         merchant.UpdateProfile("Geo Shop", merchant.Slug, Rnc.Create(TestData.UniqueRnc()).Value, null, VerticalType.Food, now);
         addServiceArea(merchant);
         merchant.ReplaceOperatingHours([new OperatingHoursRange(DayOfWeek.Monday, new TimeOnly(0, 0), new TimeOnly(23, 59))], now);
+        merchant.SetPickupLocation(GeoFactory.CreatePoint(18.4861, -69.9312), now);
         merchant.SubmitForApproval(now);
         merchant.Approve(now);
         db.Merchants.Add(merchant);

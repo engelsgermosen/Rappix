@@ -69,6 +69,7 @@ public sealed class MerchantGrpcTests(MerchantsApiFactory factory)
             merchant.UpdateProfile("Grpc Shop", merchant.Slug, Rnc.Create(TestData.UniqueRnc()).Value, null, VerticalType.Food, now);
             merchant.AddCircleServiceArea(GeoFactory.CreatePoint(18.4861, -69.9312), 2000, now);
             merchant.ReplaceOperatingHours([new OperatingHoursRange(DayOfWeek.Monday, new TimeOnly(8, 0), new TimeOnly(18, 0))], now);
+            merchant.SetPickupLocation(GeoFactory.CreatePoint(18.4861, -69.9312), now);
             merchant.SubmitForApproval(now);
             merchant.Approve(now);
             db.Merchants.Add(merchant);

@@ -53,6 +53,14 @@ public sealed class MerchantLifecycleTests(MerchantsApiFactory factory)
         });
         hours.StatusCode.Should().Be(HttpStatusCode.OK);
 
+        // Pickup obligatorio (Fase 6: Dispatch usa esta coord para matching geo de couriers).
+        HttpResponseMessage pickup = await client.PutAsJsonAsync("/api/v1/merchants/me/pickup-location", new
+        {
+            latitude = 18.4861,
+            longitude = -69.9312,
+        });
+        pickup.StatusCode.Should().Be(HttpStatusCode.OK);
+
         HttpResponseMessage submit = await client.PostAsync("/api/v1/merchants/me/submit-for-approval", content: null);
         submit.StatusCode.Should().Be(HttpStatusCode.NoContent);
 

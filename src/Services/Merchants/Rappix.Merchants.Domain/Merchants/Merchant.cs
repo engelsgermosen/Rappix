@@ -78,6 +78,13 @@ public sealed class Merchant : AggregateRoot<MerchantId>, IHasDomainEvents
     /// <summary>Razon de la suspension, si aplica.</summary>
     public string? SuspensionReason { get; private set; }
 
+    /// <summary>
+    /// Ubicacion fisica del comercio (de donde recoge el courier). Columna geography(Point,4326).
+    /// Es obligatoria para enviar a aprobacion: Dispatch (Fase 6) necesita las coords de pickup
+    /// para hacer matching geo de couriers. Se rellena via PUT /api/v1/merchants/me/pickup-location.
+    /// </summary>
+    public Point? PickupLocation { get; private set; }
+
     /// <summary>Borrado logico.</summary>
     public bool IsDeleted { get; private set; }
 
@@ -218,6 +225,34 @@ public sealed class Merchant : AggregateRoot<MerchantId>, IHasDomainEvents
         UpdatedAtUtc = utcNow;
     }
 
+    /// <summary>
+    /// Fija la ubicacion fisica del comercio (pickup point). El Point se construye en la capa de aplicacion
+    /// via GeoFactory.CreatePoint (axis order X=lng, Y=lat) con SRID 4326. Valida que la geometria no este vacia
+    /// y use el SRID correcto.
+    /// </summary>
+    public Result SetPickupLocation(Point pickupLocation, DateTime utcNow)
+    {
+        Result editable = EnsureEditable("editar");
+        if (editable.IsFailure)
+        {
+            return editable;
+        }
+
+        if (pickupLocation.IsEmpty)
+        {
+            return Result.Failure(MerchantErrors.InvalidPickupLocation);
+        }
+
+        if (pickupLocation.SRID != ServiceArea.Srid)
+        {
+            return Result.Failure(ServiceAreaErrors.WrongSrid);
+        }
+
+        PickupLocation = pickupLocation;
+        UpdatedAtUtc = utcNow;
+        return Result.Success();
+    }
+
     /// <summary>Envia a aprobacion (Draft -> Pending). Valida completitud.</summary>
     public Result SubmitForApproval(DateTime utcNow)
     {
@@ -226,7 +261,7 @@ public sealed class Merchant : AggregateRoot<MerchantId>, IHasDomainEvents
             return Result.Failure(MerchantErrors.InvalidTransition(Status, "enviar a aprobacion"));
         }
 
-        if (Rnc is null || _serviceAreas.Count == 0 || _operatingHours.Count == 0)
+        if (Rnc is null || _serviceAreas.Count == 0 || _operatingHours.Count == 0 || PickupLocation is null)
         {
             return Result.Failure(MerchantErrors.IncompleteForSubmission);
         }

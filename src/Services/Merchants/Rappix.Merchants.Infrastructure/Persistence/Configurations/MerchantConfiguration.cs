@@ -62,6 +62,11 @@ internal sealed class MerchantConfiguration : IEntityTypeConfiguration<Merchant>
         builder.Property(merchant => merchant.IsDeleted).IsRequired();
         builder.Property(merchant => merchant.CreatedAtUtc).IsRequired();
 
+        // Ubicacion fisica del comercio (pickup). geography(Point,4326) — mismo tipo que ServiceArea.Center
+        // para que las consultas espaciales sean uniformes. GiST acelera las busquedas futuras.
+        builder.Property(merchant => merchant.PickupLocation).HasColumnType("geography(Point,4326)");
+        builder.HasIndex(merchant => merchant.PickupLocation).HasMethod("gist");
+
         builder.HasMany(merchant => merchant.ServiceAreas)
             .WithOne()
             .HasForeignKey(area => area.MerchantId)

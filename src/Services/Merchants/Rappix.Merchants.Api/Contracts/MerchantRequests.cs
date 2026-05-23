@@ -25,6 +25,9 @@ public sealed record AddServiceAreaRequest(
     double? CenterLongitude,
     int? RadiusMeters);
 
+/// <summary>Cuerpo para fijar la ubicacion fisica del comercio (pickup point).</summary>
+public sealed record SetPickupLocationRequest(double Latitude, double Longitude);
+
 /// <summary>Cuerpo del rechazo de un merchant (admin).</summary>
 public sealed record RejectMerchantRequest(string Reason);
 

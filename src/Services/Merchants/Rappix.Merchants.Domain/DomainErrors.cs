@@ -13,7 +13,10 @@ public static class MerchantErrors
         Error.Conflict("Merchants.Merchant.AlreadyExistsForOwner", "El usuario ya tiene un comercio.");
 
     public static readonly Error IncompleteForSubmission =
-        Error.Validation("Merchants.Merchant.IncompleteForSubmission", "Faltan datos para enviar a aprobacion: RNC, al menos una zona de cobertura y horarios.");
+        Error.Validation("Merchants.Merchant.IncompleteForSubmission", "Faltan datos para enviar a aprobacion: RNC, al menos una zona de cobertura, horarios y ubicacion de pickup.");
+
+    public static readonly Error InvalidPickupLocation =
+        Error.Validation("Merchants.Merchant.InvalidPickupLocation", "La ubicacion de pickup no es valida.");
 
     public static readonly Error ServiceAreaNotFound =
         Error.NotFound("Merchants.Merchant.ServiceAreaNotFound", "Zona de cobertura no encontrada.");

@@ -66,6 +66,7 @@ public sealed class AdminWorkflowTests(MerchantsApiFactory factory)
             merchant.UpdateProfile("Pendiente", merchant.Slug, Rnc.Create(TestData.UniqueRnc()).Value, null, VerticalType.Pharmacy, now);
             merchant.AddCircleServiceArea(GeoFactory.CreatePoint(18.4861, -69.9312), 2000, now);
             merchant.ReplaceOperatingHours([new OperatingHoursRange(DayOfWeek.Monday, new TimeOnly(8, 0), new TimeOnly(18, 0))], now);
+            merchant.SetPickupLocation(GeoFactory.CreatePoint(18.4861, -69.9312), now);
             merchant.SubmitForApproval(now);
             db.Merchants.Add(merchant);
             merchantId = merchant.Id.Value;
