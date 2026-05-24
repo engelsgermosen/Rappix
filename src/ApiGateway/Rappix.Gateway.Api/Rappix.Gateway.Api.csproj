@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <RootNamespace>Rappix.Gateway.Api</RootNamespace>
+    <AssemblyName>Rappix.Gateway.Api</AssemblyName>
+    <!-- El gateway no expone OpenAPI propia ni endpoints con comentarios XML; solo proxy. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reverse proxy: rutea /api/v1/* y /hubs/tracking a los 9 servicios. -->
+    <PackageReference Include="Yarp.ReverseProxy" />
+    <!-- JWT Bearer: misma config que los 9 servicios (defensa en profundidad, ver ADR-0011). -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <!-- Health checks: aggregator HTTP de los 9 /health downstream. -->
+    <PackageReference Include="AspNetCore.HealthChecks.Uris" />
+    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" />
+    <!-- ASP.NET Core RateLimiter y CORS vienen en el shared framework: no requieren PackageReference. -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\BuildingBlocks\Rappix.BuildingBlocks.WebApi\Rappix.BuildingBlocks.WebApi.csproj" />
+    <ProjectReference Include="..\..\BuildingBlocks\Rappix.BuildingBlocks.Observability\Rappix.BuildingBlocks.Observability.csproj" />
+  </ItemGroup>
+
+</Project>

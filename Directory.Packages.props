@@ -72,10 +72,14 @@
     <PackageVersion Include="Serilog.Sinks.Seq" Version="9.0.0" />
     <PackageVersion Include="Serilog.Enrichers.Environment" Version="3.0.1" />
     <PackageVersion Include="Serilog.Enrichers.CorrelationId" Version="3.0.1" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.10.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.10.1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.10.0" />
-    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.10.0" />
+    <!-- OpenTelemetry 1.15.3+: resuelve CVE-2025-27513 (OpenTelemetry.Api <1.11.2) y
+         CVE-2026-42191 (OpenTelemetry.Exporter.OpenTelemetryProtocol <1.15.3). Versiones
+         exigidas tambien por la dependencia transitiva WireMock.Net 2.6.0 (Fase 10). -->
+    <PackageVersion Include="OpenTelemetry.Api" Version="1.15.3" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.3" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
   </ItemGroup>
 
   <ItemGroup Label="Real-time / gRPC">
@@ -120,6 +124,12 @@
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
   </ItemGroup>
 
+  <ItemGroup Label="Health Checks (gateway aggregator, Fase 10)">
+    <!-- AspNetCore.HealthChecks.* 9.0.0: target net8.0, compatible con net10.0 via roll-forward del runtime. -->
+    <PackageVersion Include="AspNetCore.HealthChecks.Uris" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
+  </ItemGroup>
+
   <ItemGroup Label="HTTP / Resilience">
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="9.0.0" />
     <PackageVersion Include="Polly" Version="8.5.0" />
@@ -136,6 +146,8 @@
     <PackageVersion Include="Testcontainers.RabbitMq" Version="4.1.0" />
     <PackageVersion Include="Testcontainers.Redis" Version="4.1.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0" />
+    <!-- WireMock.Net 2.6.0 (target net8.0): mock de los downstreams en los tests de integracion del gateway (Fase 10). -->
+    <PackageVersion Include="WireMock.Net" Version="2.6.0" />
   </ItemGroup>
 
   <ItemGroup Label="Utilidades">

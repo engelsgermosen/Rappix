@@ -527,6 +527,44 @@ services:
     networks:
       - rappix-net
 
+  # ──────────────────────────────────────────────────────────────
+  # Fase 10 — API Gateway con YARP. Punto unico de entrada en :5000.
+  # Replica la misma JWT config que los 9 servicios (defensa en profundidad).
+  # Rate limit, CORS y health aggregator viven aqui. WebSocket passthrough al hub de Tracking.
+  # Ver ADR-0011. Sin Redis/Postgres/RabbitMQ: el gateway no persiste ni consume eventos.
+  # ──────────────────────────────────────────────────────────────
+  gateway-api:
+    build:
+      context: .
+      dockerfile: src/ApiGateway/Rappix.Gateway.Api/Dockerfile
+    container_name: rappix-gateway
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker   # carga appsettings.Docker.json con destinos *-api:8080
+      ASPNETCORE_URLS: "http://+:8080"
+      Seq__ServerUrl: "http://seq:80"
+      Jwt__Issuer: "https://localhost:5001"
+      Jwt__Audience: rappix
+      # Misma clave que Identity y los otros 8 servicios — para validar tokens en el gateway.
+      Jwt__SigningKey: "${IDENTITY_JWT_SIGNINGKEY:?Define IDENTITY_JWT_SIGNINGKEY en .env}"
+      # Origenes permitidos para CORS en produccion (dev frontend Next.js). Subir mas si hace falta.
+      Cors__AllowedOrigins__0: "http://localhost:3000"
+    ports:
+      - "5000:8080"   # entry point publico (REST + WebSocket upgrade /hubs/tracking)
+    depends_on:
+      identity-api:      { condition: service_started }
+      merchants-api:     { condition: service_started }
+      catalog-api:       { condition: service_started }
+      pricing-api:       { condition: service_started }
+      orders-api:        { condition: service_started }
+      dispatch-api:      { condition: service_started }
+      tracking-api:      { condition: service_started }
+      payments-api:      { condition: service_started }
+      notifications-api: { condition: service_started }
+      seq:               { condition: service_started }
+    networks:
+      - rappix-net
+
 volumes:
   postgres_data:
   redis_data:

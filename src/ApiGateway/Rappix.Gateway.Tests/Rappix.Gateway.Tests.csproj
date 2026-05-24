@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Rappix.Gateway.Tests</RootNamespace>
+    <AssemblyName>Rappix.Gateway.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- Convenciones de prueba: nombres con guion bajo y helpers de instancia (mismo NoWarn que los 9 servicios). -->
+    <NoWarn>$(NoWarn);CA1707;CA1822</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="FluentAssertions" />
+    <!-- WireMock.Net: mock de los 9 downstreams (un puerto efimero por cluster YARP). -->
+    <PackageReference Include="WireMock.Net" />
+    <!-- JsonWebTokenHandler + SecurityTokenDescriptor para emitir JWTs en los AuthTests. -->
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
+    <!-- SignalR client para el WebSocketsTests [SkippableFact] del Paso 9. -->
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
+    <!-- Skip opt-in: el test del hub via TestServer no funciona out-of-the-box (TestServer no
+         soporta WS nativo). Corre solo si GATEWAY_E2E_WS esta seteada. -->
+    <PackageReference Include="Xunit.SkippableFact" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rappix.Gateway.Api\Rappix.Gateway.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

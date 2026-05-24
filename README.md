@@ -144,6 +144,34 @@ E2E: [docs/setup-payments.md](docs/setup-payments.md).
 | Webhook Stripe (firma `Stripe-Signature`) | `POST /api/v1/payments/webhooks/stripe` |
 | Consumers (bus) | `PaymentRequestedIntegrationEvent` (autoriza hold) · `OrderDeliveredIntegrationEvent` (captura) · `OrderCancelled`/`OrderFailed` (void o NeedsReview) · `RefundRequestedIntegrationEvent` (refund explícito) |
 
+### Gateway (Fase 10) · YARP 5000
+Punto de entrada único delante de los 9 microservicios. **Defensa en profundidad de auth**:
+el gateway valida JWT con la misma config que los 9 servicios (`AddJwtBearer` idéntico,
+`FallbackPolicy = RequireAuthenticatedUser`); los downstream siguen validando JWT y aplicando
+sus role policies (`RequireAdmin`/`RequireCustomer`/`RequireCourier`) — el gateway nunca enforca
+roles. Rutas públicas marcadas `AuthorizationPolicy: "Anonymous"` por config YARP
+(login/register/refresh/Google, public GETs de Merchants/Catalog, webhook Stripe, hub SignalR).
+**Rate limiting** global con 2 políticas + 1 exención: anónimos por IP (fixed window 100 req/min),
+autenticados por `sub` claim (sliding window 300 req/min); webhook Stripe sin límite (firma
+valida la llamada, no rate). **CORS** configurable (`Cors:AllowedOrigins`) con DevelopmentCors
+(any origin) en `dotnet run` y ProductionCors (fail-closed) en el resto. **Health aggregator**
+`/health` agrega los 9 `/health` con `failureStatus: Degraded` — el gateway responde 200 incluso
+si un downstream cae (`/health/live` independiente para el healthcheck Docker). **WebSocket
+passthrough** para `/hubs/tracking` (`UseWebSockets()` + cluster `tracking` con `Version=1.1 /
+VersionPolicy=RequestVersionExact`); el handshake llega con `?access_token=...` y la ruta es
+Anonymous en YARP — Tracking valida el JWT en su `OnMessageReceived` (defensa en profundidad).
+33 tests verdes (1 smoke + 16 routing + 6 auth + 3 rate-limit + 3 CORS + 1 hub sanity + 3 health
++ 1 SkippableFact E2E SignalR). Diseño: [ADR-0011](docs/adr/0011-api-gateway-design.md).
+
+| Superficie | Endpoint |
+|---|---|
+| Landing | `GET /` &mdash; HTML con links a los 9 Scalar UIs por puerto host |
+| Health aggregator (JSON) | `GET /health` &mdash; 200 (Healthy/Degraded) con array de 9 entries |
+| Liveness propio | `GET /health/live` &mdash; 200 sin tocar downstreams |
+| Hub SignalR (passthrough) | `WS /hubs/tracking?access_token=...` |
+| Cualquier `/api/v1/...` | rutado al cluster apropiado según prefijo |
+| Webhook Stripe (anonymous + sin rate-limit) | `POST /payments/webhooks/stripe` |
+
 ### Notifications (Fase 9) · REST 5009
 Notifica a los **3 actores** del pedido (cliente, merchant, courier) por **email** vía canal conmutable
 (**Fake** por defecto — log-only en Seq, smoke E2E sin SendGrid — o **SendGrid** opt-in con la misma
@@ -232,7 +260,8 @@ Requisitos: PowerShell 5+, el contenedor postgres `rappix-postgres` y los 5 serv
 - [x] Fase 7 — Tracking (push en vivo)
 - [x] Fase 8 — Payments (Stripe hold+capture)
 - [x] Fase 9 — Notifications (email Fake/SendGrid + 3 proyecciones locales + dedup por clave de negocio)
-- [ ] Fase 10 — Observability + Ratings + Back-office + pulido final
+- [x] Fase 10 — API Gateway con YARP (defensa en profundidad de auth, rate limit, CORS, health aggregator, WebSocket passthrough)
+- [ ] Fase 11 — Observability + Ratings + Back-office + pulido final
 
 ## Licencia
 
