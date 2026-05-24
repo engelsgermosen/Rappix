@@ -12,5 +12,9 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Serilog" />
+    <!-- Necesarios para Persistence/MigrationExtensions: Database.MigrateAsync() y la tipificacion
+         de PostgresException / SocketException en el clasificador estrecho de retry. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
 </Project>
