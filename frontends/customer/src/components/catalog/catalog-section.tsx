@@ -57,7 +57,7 @@ export function CatalogSection({
   const tabs = [popularLabel, ...labels.sections];
 
   return (
-    <Tabs defaultValue={popularLabel} className="container mt-6">
+    <Tabs defaultValue={popularLabel} className="container mt-10 md:mt-12">
       <TabsList className="overflow-x-auto no-scrollbar">
         {tabs.map((t) => (
           <TabsTrigger key={t} value={t}>
@@ -68,13 +68,13 @@ export function CatalogSection({
       {tabs.map((t) => {
         const bucket = buckets[t] ?? [];
         return (
-          <TabsContent key={t} value={t}>
+          <TabsContent key={t} value={t} className="mt-8">
             {bucket.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border bg-white py-16 text-center text-muted-foreground">
                 Aún no hay productos en esta sección.
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                 {bucket.map((item, idx) => (
                   <ItemCard
                     key={item.id}

@@ -35,6 +35,7 @@ function OrderDetail({ params }: { params: Promise<{ id: string }> }) {
   const qc = useQueryClient();
   const [liveStatus, setLiveStatus] = useState<TrackingStatus | null>(null);
   const [hubError, setHubError] = useState<string | null>(null);
+  const [hubConnected, setHubConnected] = useState(false);
 
   const orderQ = useQuery({
     queryKey: ["orders", "by-id", id],
@@ -63,6 +64,11 @@ function OrderDetail({ params }: { params: Promise<{ id: string }> }) {
     if (isOrderTerminal(orderQ.data.status)) return;
 
     const dispose = startTracking(id, {
+      onConnected: () => {
+        setHubConnected(true);
+        setHubError(null);
+      },
+      onDisconnected: () => setHubConnected(false),
       onLocation: (p) => {
         qc.setQueryData<OrderTrackingResponse | undefined>(["tracking", "snapshot", id], (prev) => {
           if (!prev) return prev;
@@ -83,7 +89,10 @@ function OrderDetail({ params }: { params: Promise<{ id: string }> }) {
           qc.invalidateQueries({ queryKey: ["orders", "by-id", id] });
         }
       },
-      onError: (err) => setHubError(err.message),
+      onError: (err) => {
+        setHubConnected(false);
+        setHubError(err.message);
+      },
     });
     return dispose;
   }, [id, orderQ.data, qc]);
@@ -129,21 +138,34 @@ function OrderDetail({ params }: { params: Promise<{ id: string }> }) {
         <ArrowLeft className="h-4 w-4" /> Volver
       </Link>
 
-      <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+      <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             Pedido {shortId(order.orderId, "#RPX-")}
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight mt-0.5">
             {isOrderTerminal(order.status)
               ? ORDER_STATUS_LABEL[order.status]
               : `Llega en ~${eta} min`}
           </h1>
-          <div className="text-sm text-muted-foreground mt-1">
-            {order.lines.length} producto{order.lines.length === 1 ? "" : "s"} · {order.vertical}
+          <div className="text-sm text-muted-foreground mt-1.5 flex items-center gap-2 flex-wrap">
+            <span>{order.lines.length} producto{order.lines.length === 1 ? "" : "s"} · {order.vertical}</span>
+            {!isOrderTerminal(order.status) && (
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                  hubConnected
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-amber-50 text-amber-700"
+                }`}
+                title={hubConnected ? "WebSocket conectado al hub de tracking" : "Conexión en vivo no disponible — usando polling"}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${hubConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
+                {hubConnected ? "En vivo" : "Polling"}
+              </span>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <OrderStatusBadge status={order.status} />
           <Button variant="outline" size="sm" className="gap-1.5">
             <Share2 className="h-4 w-4" /> Compartir
@@ -156,7 +178,7 @@ function OrderDetail({ params }: { params: Promise<{ id: string }> }) {
         </div>
       </div>
 
-      <div className="mt-6 grid lg:grid-cols-[1fr_360px] gap-6">
+      <div className="mt-6 grid lg:grid-cols-[1fr_380px] gap-6 lg:gap-8">
         <div className="space-y-4">
           {trackingQ.data ? (
             <TrackingMap tracking={trackingQ.data} />
@@ -168,7 +190,7 @@ function OrderDetail({ params }: { params: Promise<{ id: string }> }) {
             </div>
           )}
           {trackingQ.data && <CourierCard tracking={trackingQ.data} />}
-          {hubError && (
+          {hubError && !hubConnected && (
             <div className="rounded-lg bg-amber-50 text-amber-800 text-xs p-3">
               Conexión en vivo intermitente: {hubError}. Seguimos actualizando con polling.
             </div>

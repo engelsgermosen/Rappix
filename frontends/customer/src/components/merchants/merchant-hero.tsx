@@ -47,11 +47,11 @@ export function MerchantHero({ merchant }: { merchant: PublicMerchant }) {
         </div>
       </div>
 
-      <div className="container -mt-6 md:-mt-8">
-        <div className="rounded-2xl bg-white border border-border shadow-sm p-5 md:p-6 grid md:grid-cols-[1fr_auto] gap-5 md:gap-8 items-start">
+      <div className="container -mt-8 md:-mt-10">
+        <div className="rounded-2xl bg-white border border-border shadow-sm p-6 md:p-8 grid md:grid-cols-[1fr_auto] gap-6 md:gap-10 items-start">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{merchant.name}</h1>
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
               <span className="inline-flex items-center gap-1 font-semibold text-foreground">
                 <Star className="h-4 w-4 fill-accent text-accent" />
                 {rating.toFixed(1)}
@@ -63,17 +63,17 @@ export function MerchantHero({ merchant }: { merchant: PublicMerchant }) {
               <span className="text-muted-foreground">{distanceKm.toFixed(1)} km</span>
             </div>
             {merchant.description && (
-              <p className="mt-3 text-sm md:text-base text-foreground/80 max-w-xl">{merchant.description}</p>
+              <p className="mt-4 text-sm md:text-base text-foreground/80 max-w-xl leading-relaxed">{merchant.description}</p>
             )}
           </div>
           <div className="grid grid-cols-2 gap-3 md:flex md:gap-0 md:divide-x md:divide-border">
-            <div className="rounded-lg border border-border md:border-0 md:rounded-none md:px-6 px-4 py-3 text-center md:text-right">
+            <div className="rounded-lg border border-border md:border-0 md:rounded-none md:px-7 px-4 py-3.5 text-center md:text-right">
               <div className="text-[10px] tracking-widest uppercase text-muted-foreground">Envío</div>
-              <div className="font-bold text-lg">{formatMoney(deliveryFee)}</div>
+              <div className="font-bold text-lg mt-0.5">{formatMoney(deliveryFee)}</div>
             </div>
-            <div className="rounded-lg border border-border md:border-0 md:rounded-none md:pl-6 px-4 py-3 text-center md:text-left">
+            <div className="rounded-lg border border-border md:border-0 md:rounded-none md:pl-7 px-4 py-3.5 text-center md:text-left">
               <div className="text-[10px] tracking-widest uppercase text-muted-foreground">Llegará en</div>
-              <div className="font-bold text-lg flex items-center md:justify-start justify-center gap-1">
+              <div className="font-bold text-lg mt-0.5 flex items-center md:justify-start justify-center gap-1">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 {eta} min
               </div>

@@ -57,18 +57,18 @@ export default function MerchantBySlugPage({ params }: { params: Promise<{ slug:
   const items = itemsQ.data?.items ?? [];
 
   return (
-    <div className="animate-fade-in pb-32">
+    <div className="animate-fade-in pb-40">
       <MerchantHero merchant={merchant} />
 
       {itemsQ.isLoading ? (
-        <div className="container mt-8 space-y-3">
+        <div className="container mt-10 md:mt-12 space-y-4">
           <Skeleton className="h-10 w-1/2" />
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
         </div>
       ) : items.length === 0 ? (
-        <div className="container mt-8">
-          <div className="rounded-xl border border-dashed border-border bg-white py-16 text-center text-muted-foreground">
+        <div className="container mt-10 md:mt-12">
+          <div className="rounded-xl border border-dashed border-border bg-white py-20 text-center text-muted-foreground">
             Este comercio aún no tiene productos publicados.
           </div>
         </div>
