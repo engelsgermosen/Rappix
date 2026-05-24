@@ -23,6 +23,15 @@ export function buildTrackingConnection(): HubConnection {
       // path starts with /hubs/tracking. WebSocket handshakes can't carry
       // custom headers.
       accessTokenFactory: () => tokenStore.getAccessToken() ?? "",
+      // CORS: the gateway's DevelopmentCors uses AllowAnyOrigin (wildcard
+      // `*`). @microsoft/signalr defaults `withCredentials: true`, and the
+      // browser refuses `Access-Control-Allow-Origin: *` together with
+      // credentials — that's the "Failed to fetch" we were seeing on the
+      // negotiate POST. We don't use cookies anyway (JWT travels in
+      // Authorization header for HTTP transports and in ?access_token=
+      // for the WS upgrade), so disabling credentials is the right move
+      // for BOTH dev (wildcard origin) and prod (specific origin).
+      withCredentials: false,
       // Let SignalR negotiate (WebSockets first, fallback to SSE/LongPolling).
       transport:
         HttpTransportType.WebSockets |
