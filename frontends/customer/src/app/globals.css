@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  /* Diagonal stripe pattern used by hero cards (Cocina Criolla, El Asador...) */
+  .stripes {
+    background-image: repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.18) 0 18px,
+      rgba(255, 255, 255, 0) 18px 38px
+    );
+  }
+
+  /* Vertical-tinted hero gradients used in the cards */
+  .hero-food      { background: linear-gradient(135deg, #E58270 0%, #C95E48 100%); }
+  .hero-pharmacy  { background: linear-gradient(135deg, #4FB5B0 0%, #2F8C87 100%); }
+  .hero-grocery   { background: linear-gradient(135deg, #92C088 0%, #62995D 100%); }
+  .hero-parcel    { background: linear-gradient(135deg, #6EA6E8 0%, #4C7DC0 100%); }
+  .hero-closed    { background: linear-gradient(135deg, #BCB1A8 0%, #8C8378 100%); }
+  .hero-brand     { background: linear-gradient(120deg, #534AB7 0%, #7A3FA5 50%, #C04A8E 100%); }
+
+  /* Leaflet z-index dance: keep map below sticky header */
+  .leaflet-container { z-index: 0 !important; }
+  .leaflet-pane, .leaflet-top, .leaflet-bottom { z-index: 1 !important; }
+}
+
+@layer utilities {
+  /* Hide scrollbar but keep scroll */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .skeleton {
+    @apply animate-pulse bg-muted/80 rounded-md;
+  }
+}
