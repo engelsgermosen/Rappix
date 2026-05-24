@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 import { RequireAuth } from "@/components/auth/require-auth";
 import { AddressCard, AddressMapPlaceholder } from "@/components/checkout/address-card";
+import { AddressPicker } from "@/components/checkout/address-picker";
 import { PaymentPicker, type PaymentMethodId } from "@/components/checkout/payment-picker";
 import { QuoteCountdown } from "@/components/checkout/quote-countdown";
 import { TipPicker } from "@/components/checkout/tip-picker";
@@ -18,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/api/errors";
 import { ordersApi } from "@/lib/api/orders";
 import { pricingApi } from "@/lib/api/pricing";
+import { toOrderAddress, useAddressStore } from "@/lib/addresses";
 import { useCheckoutStore } from "@/lib/cart/checkout-store";
 import { useCartStore } from "@/lib/cart/store";
 import { env } from "@/lib/env";
@@ -44,14 +46,31 @@ function CheckoutContent() {
   const quote = useCheckoutStore((s) => s.quote);
   const tip = useCheckoutStore((s) => s.tip);
   const setTip = useCheckoutStore((s) => s.setTip);
-  const address = useCheckoutStore((s) => s.address);
+
+  // Address resolution: explicit selection > default > none.
+  const addresses = useAddressStore((s) => s.addresses);
+  const defaultAddress = useAddressStore((s) => s.defaultAddress);
+  const selectedAddressId = useCheckoutStore((s) => s.selectedAddressId);
+  const setSelectedAddressId = useCheckoutStore((s) => s.setSelectedAddressId);
+  const activeAddress = useMemo(() => {
+    if (selectedAddressId) {
+      return addresses.find((a) => a.id === selectedAddressId) ?? defaultAddress;
+    }
+    return defaultAddress;
+  }, [selectedAddressId, addresses, defaultAddress]);
+  // First mount: snap explicit selection to the default so the picker reflects it.
+  useEffect(() => {
+    if (!selectedAddressId && defaultAddress) {
+      setSelectedAddressId(defaultAddress.id);
+    }
+  }, [defaultAddress, selectedAddressId, setSelectedAddressId]);
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodId>("card-visa");
   const [idempotencyKey, setIdempotencyKey] = useState<string>(() => newIdempotencyKey());
+  const [editingAddress, setEditingAddress] = useState(false);
 
   const canQuote = !!merchantId && !!merchantVertical && lines.length > 0;
 
-  // Re-quote when tip or cart changes (TanStack handles dedup + retries).
   const quoteQ = useQuery({
     enabled: canQuote,
     queryKey: ["pricing", "quote", merchantId, tip, lines.map((l) => `${l.itemId}:${l.quantity}:${l.modifierTotal}`).join(",")],
@@ -76,14 +95,12 @@ function CheckoutContent() {
     mutationFn: () => {
       const active = quoteQ.data ?? quote;
       if (!active) throw new Error("No hay cotización activa");
+      if (!activeAddress) throw new Error("Elige una dirección de entrega antes de confirmar");
+      // Strip FE-only fields (label, isDefault, id) — the backend only takes
+      // street/reference/lat/lng on the order body.
+      const deliveryAddress = toOrderAddress(activeAddress);
       return ordersApi.place(
-        {
-          quoteId: active.quoteId,
-          street: address.street,
-          reference: address.reference,
-          latitude: address.latitude,
-          longitude: address.longitude,
-        },
+        { quoteId: active.quoteId, ...deliveryAddress },
         idempotencyKey,
       );
     },
@@ -107,13 +124,14 @@ function CheckoutContent() {
           return;
         }
         toast.error(err.display());
+      } else if (err instanceof Error) {
+        toast.error(err.message);
       } else {
         toast.error("No pudimos confirmar el pedido");
       }
     },
   });
 
-  // Empty cart guard (post-clear).
   const empty = lines.length === 0;
 
   const totals = useMemo(() => {
@@ -144,8 +162,10 @@ function CheckoutContent() {
     );
   }
 
+  const canPlaceOrder = !!activeAddress && !!quoteQ.data && !placeOrder.isPending && !quoteQ.isFetching;
+
   return (
-    <div className="container py-6 md:py-8 animate-fade-in">
+    <div className="container py-8 md:py-10 animate-fade-in">
       <Link
         href={merchantSlug ? `/comercios/${merchantSlug}` : "/carrito"}
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
@@ -154,22 +174,43 @@ function CheckoutContent() {
       </Link>
       <h1 className="mt-2 text-2xl md:text-3xl font-bold tracking-tight">Confirma tu pedido</h1>
 
-      <div className="mt-6 grid lg:grid-cols-[1fr_360px] gap-6">
-        <div className="space-y-5">
+      <div className="mt-6 grid lg:grid-cols-[1fr_380px] gap-6 lg:gap-8">
+        <div className="space-y-6">
           {/* Address */}
-          <section className="rounded-xl border border-border bg-white p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold">Entrega a domicilio</h2>
-              <button className="text-sm text-brand font-medium hover:underline">Editar</button>
+          <section className="rounded-xl border border-border bg-white p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-lg">Entrega a domicilio</h2>
+              {activeAddress && (
+                <button
+                  className="text-sm text-brand font-medium hover:underline"
+                  type="button"
+                  onClick={() => setEditingAddress((v) => !v)}
+                >
+                  {editingAddress ? "Cerrar" : "Cambiar"}
+                </button>
+              )}
             </div>
-            <AddressCard address={address} />
-            <AddressMapPlaceholder />
+
+            {!editingAddress && activeAddress ? (
+              <>
+                <AddressCard address={activeAddress} />
+                <AddressMapPlaceholder />
+              </>
+            ) : (
+              <AddressPicker
+                selectedId={selectedAddressId ?? activeAddress?.id ?? null}
+                onSelect={(id) => {
+                  setSelectedAddressId(id);
+                  setEditingAddress(false);
+                }}
+              />
+            )}
           </section>
 
           {/* Payment */}
-          <section className="rounded-xl border border-border bg-white p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold">Método de pago</h2>
+          <section className="rounded-xl border border-border bg-white p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-lg">Método de pago</h2>
               <button className="text-sm text-brand font-medium hover:underline">Cambiar</button>
             </div>
             <PaymentPicker value={paymentMethod} onChange={setPaymentMethod} />
@@ -180,9 +221,9 @@ function CheckoutContent() {
           </section>
 
           {/* Order summary */}
-          <section className="rounded-xl border border-border bg-white p-5">
-            <div className="flex items-start justify-between mb-3">
-              <h2 className="font-semibold">Tu pedido</h2>
+          <section className="rounded-xl border border-border bg-white p-6">
+            <div className="flex items-start justify-between mb-4">
+              <h2 className="font-semibold text-lg">Tu pedido</h2>
               <div className="text-sm text-muted-foreground">{merchantName}</div>
             </div>
             <div className="divide-y divide-border">
@@ -206,17 +247,17 @@ function CheckoutContent() {
           </section>
 
           {/* Tip */}
-          <section className="rounded-xl border border-border bg-white p-5">
-            <div className="font-semibold">Propina para el repartidor</div>
-            <p className="text-sm text-muted-foreground mb-3">El 100% va al repartidor.</p>
+          <section className="rounded-xl border border-border bg-white p-6">
+            <div className="font-semibold text-lg">Propina para el repartidor</div>
+            <p className="text-sm text-muted-foreground mb-4">El 100% va al repartidor.</p>
             <TipPicker value={tip} onChange={setTip} />
           </section>
         </div>
 
         {/* Right column — summary */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          <div className="rounded-xl border border-border bg-white p-5">
-            <h2 className="font-semibold mb-3">Resumen</h2>
+          <div className="rounded-xl border border-border bg-white p-6">
+            <h2 className="font-semibold text-lg mb-3">Resumen</h2>
             {quoteQ.isLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-4 w-full" />
@@ -257,11 +298,16 @@ function CheckoutContent() {
                       onExpire={() => quoteQ.refetch()}
                     />
                   </div>
+                  {!activeAddress && (
+                    <p className="mt-3 text-xs text-amber-700 bg-amber-50 rounded-md px-2.5 py-2">
+                      Necesitamos una dirección de entrega antes de continuar.
+                    </p>
+                  )}
                   <Button
                     size="lg"
                     className="w-full mt-4"
                     onClick={() => placeOrder.mutate()}
-                    disabled={placeOrder.isPending || quoteQ.isFetching}
+                    disabled={!canPlaceOrder}
                   >
                     {placeOrder.isPending ? "Confirmando…" : "Pagar y pedir"}
                   </Button>

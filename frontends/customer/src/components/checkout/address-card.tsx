@@ -3,9 +3,9 @@
 import { MapPin } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import type { CheckoutAddress } from "@/lib/cart/checkout-store";
+import type { SavedAddress } from "@/lib/addresses";
 
-export function AddressCard({ address }: { address: CheckoutAddress }) {
+export function AddressCard({ address }: { address: SavedAddress }) {
   return (
     <div className="flex items-start gap-4">
       <div className="h-11 w-11 rounded-xl bg-brand-100/70 text-brand-700 inline-flex items-center justify-center flex-shrink-0">
@@ -13,8 +13,8 @@ export function AddressCard({ address }: { address: CheckoutAddress }) {
       </div>
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <div className="font-semibold">{address.label}</div>
-          <Badge variant="default">Predeterminada</Badge>
+          <div className="font-semibold">{address.label || "Mi dirección"}</div>
+          {address.isDefault && <Badge variant="default">Predeterminada</Badge>}
         </div>
         <div className="text-sm text-foreground/80 mt-0.5">{address.street}</div>
         {address.reference && (
