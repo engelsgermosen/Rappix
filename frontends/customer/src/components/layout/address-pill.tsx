@@ -14,26 +14,35 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAddressStore } from "@/lib/addresses";
+import { useAuthStore } from "@/lib/auth/store";
 
 /**
- * Header pill — reads the default address from the local store. Shows
- * "Elige tu dirección" when there are none (NO hardcoded fallback).
+ * Header pill — appears ONLY when a Customer is logged in. Reads from
+ * the per-user address store (each Customer has their own address book
+ * keyed by userId).
  *
- * Clicking opens a dropdown with the saved list + actions to switch
- * default, add a new one (inline dialog), or manage all (→ /direcciones).
+ * Render contract:
+ *   - Not hydrated yet OR no user        → renders nothing (null)
+ *   - Logged in, no saved addresses      → "Elige tu dirección"
+ *   - Logged in, has default address     → shows it + dropdown
  */
 export function AddressPill() {
+  const user = useAuthStore((s) => s.user);
+  const authHydrated = useAuthStore((s) => s.hydrated);
+  const addressesHydrated = useAddressStore((s) => s.hydrated);
   const addresses = useAddressStore((s) => s.addresses);
   const defaultAddress = useAddressStore((s) => s.defaultAddress);
   const setDefault = useAddressStore((s) => s.setDefault);
-  const hydrated = useAddressStore((s) => s.hydrated);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Until hydration completes (first client tick) show a stable placeholder
-  // so SSR + first paint don't diverge.
-  const label = !hydrated
-    ? "Cargando…"
-    : defaultAddress
+  // SSR + first paint stability: don't render anything until both stores
+  // have hydrated, so we never flash a logged-in pill on the public
+  // routes that someone might bookmark.
+  if (!authHydrated || !addressesHydrated) return null;
+  // Anonymous browsing → no address pill at all.
+  if (!user) return null;
+
+  const label = defaultAddress
     ? defaultAddress.label || defaultAddress.street
     : "Elige tu dirección";
 
