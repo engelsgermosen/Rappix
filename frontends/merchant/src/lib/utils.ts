@@ -73,3 +73,8 @@ export const DAY_LABEL: Record<string, string> = {
 };
 
 export const DAYS_ORDERED = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
+
+/** Format kilometers in es-DO with one decimal — e.g. 2.4 km. */
+export function formatDistanceKm(km: number): string {
+  return `${km.toLocaleString("es-DO", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`;
+}
