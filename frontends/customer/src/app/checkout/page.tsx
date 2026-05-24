@@ -67,7 +67,6 @@ function CheckoutContent() {
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodId>("card-visa");
   const [idempotencyKey, setIdempotencyKey] = useState<string>(() => newIdempotencyKey());
-  const [editingAddress, setEditingAddress] = useState(false);
 
   const canQuote = !!merchantId && !!merchantVertical && lines.length > 0;
 
@@ -176,33 +175,36 @@ function CheckoutContent() {
 
       <div className="mt-6 grid lg:grid-cols-[1fr_380px] gap-6 lg:gap-8">
         <div className="space-y-6">
-          {/* Address */}
+          {/* Address — always-visible picker (default pre-selected). When
+              there's only one address we show the card + map preview;
+              when there are 2+ we lay out the selectable list so the user
+              can switch in one click. "Añadir nueva" is always available. */}
           <section className="rounded-xl border border-border bg-white p-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
               <h2 className="font-semibold text-lg">Entrega a domicilio</h2>
-              {activeAddress && (
-                <button
-                  className="text-sm text-brand font-medium hover:underline"
-                  type="button"
-                  onClick={() => setEditingAddress((v) => !v)}
-                >
-                  {editingAddress ? "Cerrar" : "Cambiar"}
-                </button>
+              {addresses.length > 1 && (
+                <span className="text-xs text-muted-foreground">
+                  {addresses.length} direcciones guardadas
+                </span>
               )}
             </div>
 
-            {!editingAddress && activeAddress ? (
+            {addresses.length <= 1 && activeAddress ? (
               <>
                 <AddressCard address={activeAddress} />
                 <AddressMapPlaceholder />
+                <div className="mt-4">
+                  <AddressPicker
+                    selectedId={selectedAddressId ?? activeAddress.id}
+                    onSelect={(id) => setSelectedAddressId(id)}
+                    hideList
+                  />
+                </div>
               </>
             ) : (
               <AddressPicker
                 selectedId={selectedAddressId ?? activeAddress?.id ?? null}
-                onSelect={(id) => {
-                  setSelectedAddressId(id);
-                  setEditingAddress(false);
-                }}
+                onSelect={(id) => setSelectedAddressId(id)}
               />
             )}
           </section>
