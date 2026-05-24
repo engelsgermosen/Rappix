@@ -161,6 +161,8 @@ RouteGroupBuilder apiV1 = app.MapGroup("/api/v{version:apiVersion}").WithApiVers
 apiV1.MapAuthEndpoints();
 apiV1.MapUserEndpoints();
 
+app.MapGet("/health", () => Results.Ok(new { service = "identity", status = "ok" }));
+
 app.Run();
 
 /// <summary>Punto de entrada expuesto como partial para WebApplicationFactory en pruebas.</summary>

@@ -144,6 +144,8 @@ apiV1.MapOrderEndpoints();
 apiV1.MapMerchantOrderEndpoints();
 apiV1.MapOrderSeamEndpoints();
 
+app.MapGet("/health", () => Results.Ok(new { service = "orders", status = "ok" }));
+
 app.Run();
 
 /// <summary>Punto de entrada expuesto como partial para WebApplicationFactory en pruebas.</summary>

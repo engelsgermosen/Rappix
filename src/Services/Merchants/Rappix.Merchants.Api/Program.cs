@@ -154,6 +154,8 @@ apiV1.MapMerchantEndpoints();
 apiV1.MapPublicMerchantEndpoints();
 apiV1.MapAdminMerchantEndpoints();
 
+app.MapGet("/health", () => Results.Ok(new { service = "merchants", status = "ok" }));
+
 app.Run();
 
 /// <summary>Punto de entrada expuesto como partial para WebApplicationFactory en pruebas.</summary>
