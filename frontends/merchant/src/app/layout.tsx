@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
+import { AuthProvider } from "@/components/providers/auth-provider";
+import { QueryProvider } from "@/components/providers/query-provider";
+import { ToastProvider } from "@/components/providers/toast-provider";
+
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
 
@@ -21,7 +25,14 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="min-h-screen flex flex-col">{children}</body>
+      <body className="min-h-screen flex flex-col">
+        <QueryProvider>
+          <AuthProvider>
+            {children}
+            <ToastProvider />
+          </AuthProvider>
+        </QueryProvider>
+      </body>
     </html>
   );
 }
