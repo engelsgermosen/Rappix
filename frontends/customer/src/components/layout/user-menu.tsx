@@ -62,7 +62,7 @@ export function UserMenu() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/cuenta" className="cursor-pointer">
+          <Link href="/direcciones" className="cursor-pointer">
             <MapPin className="h-4 w-4" />
             Direcciones
           </Link>

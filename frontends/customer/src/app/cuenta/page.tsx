@@ -1,7 +1,8 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CheckCircle2, Mail, Phone, ShieldCheck, User as UserIcon } from "lucide-react";
+import { CheckCircle2, ChevronRight, Mail, MapPin, Phone, ShieldCheck, User as UserIcon } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -11,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAddressStore } from "@/lib/addresses";
 import { apiFetch } from "@/lib/api/client";
 import { ApiError } from "@/lib/api/errors";
 import type { UserResponse } from "@/lib/api/types";
@@ -27,6 +29,8 @@ export default function AccountPage() {
 
 function AccountContent() {
   const updateProfile = useAuthStore((s) => s.updateProfile);
+  const addressesCount = useAddressStore((s) => s.addresses.length);
+  const defaultAddress = useAddressStore((s) => s.defaultAddress);
 
   const meQ = useQuery({
     queryKey: ["auth", "me"],
@@ -143,6 +147,29 @@ function AccountContent() {
           </Button>
         </form>
       </section>
+
+      {/* Addresses tile */}
+      <Link
+        href="/direcciones"
+        className="block rounded-2xl border border-border bg-white p-5 hover:border-brand/30 hover:shadow-sm transition-all"
+      >
+        <div className="flex items-center gap-3">
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-brand-700 flex-shrink-0">
+            <MapPin className="h-5 w-5" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-bold">Mis direcciones</h2>
+            <p className="text-sm text-muted-foreground truncate">
+              {addressesCount === 0
+                ? "Aún no has guardado direcciones — añade la primera"
+                : defaultAddress
+                ? `Predeterminada: ${defaultAddress.label || defaultAddress.street}`
+                : `${addressesCount} dirección${addressesCount === 1 ? "" : "es"} guardada${addressesCount === 1 ? "" : "s"}`}
+            </p>
+          </div>
+          <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+        </div>
+      </Link>
 
       {/* Security card placeholder */}
       <section className="rounded-2xl border border-border bg-white p-5">
