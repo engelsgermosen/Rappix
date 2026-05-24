@@ -4,6 +4,7 @@ import { create } from "zustand";
 
 import { apiFetch } from "@/lib/api/client";
 import type {
+  AccountType,
   AuthResponse,
   LoginRequest,
   RegisterRequest,
@@ -24,6 +25,40 @@ type AuthState = {
   updateProfile: (req: UpdateProfileRequest) => Promise<UserResponse>;
 };
 
+/**
+ * This portal is for CUSTOMERS only. Any other `userType` (Merchant,
+ * Courier, Admin) is rejected at:
+ *  - login time (no token gets stored, the user sees a clear message)
+ *  - session restore (hydrate clears whatever was in localStorage)
+ *
+ * Throwing this specific error class lets the /login form distinguish
+ * "wrong portal" from a generic API failure and surface a tailored toast.
+ */
+export class WrongPortalError extends Error {
+  readonly userType: AccountType;
+  constructor(userType: AccountType) {
+    super(WrongPortalError.messageFor(userType));
+    this.name = "WrongPortalError";
+    this.userType = userType;
+  }
+  static messageFor(userType: AccountType): string {
+    switch (userType) {
+      case "Merchant":
+        return "Esta cuenta es de comercio. Usa el portal de comercios para entrar.";
+      case "Courier":
+        return "Esta cuenta es de repartidor. Usa la app de repartidores para entrar.";
+      case "Admin":
+        return "Esta cuenta es administrativa. Usa el portal interno para entrar.";
+      default:
+        return "Esta cuenta no es de cliente. Si eres comercio, repartidor o admin, usa el portal correspondiente.";
+    }
+  }
+}
+
+function isCustomer(user: { userType: AccountType }): boolean {
+  return user.userType === "Customer";
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   hydrated: false,
@@ -31,13 +66,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   hydrate: () => {
     if (get().hydrated) return;
     const stored = tokenStore.get();
-    set({ user: stored?.user ?? null, hydrated: true });
+    // SECURITY: if a non-Customer token is in localStorage (maybe leftover
+    // from another portal sharing the same domain), purge it on hydrate so
+    // the rest of the app never sees a non-Customer session.
+    if (stored && !isCustomer(stored.user)) {
+      tokenStore.clear();
+      set({ user: null, hydrated: true });
+    } else {
+      set({ user: stored?.user ?? null, hydrated: true });
+    }
 
-    // React to cross-component token changes (login / logout / refresh).
     if (typeof window !== "undefined") {
       window.addEventListener("rappix:auth:changed", () => {
         const next = tokenStore.get();
-        set({ user: next?.user ?? null });
+        // Same guard on cross-component token writes.
+        if (next && !isCustomer(next.user)) {
+          tokenStore.clear();
+          set({ user: null });
+        } else {
+          set({ user: next?.user ?? null });
+        }
       });
     }
   },
@@ -48,13 +96,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       anonymous: true,
       json: req,
     });
+    if (!isCustomer(auth.user)) {
+      // Do NOT persist the token. Do NOT update the UI session. The form
+      // will catch this and surface the message.
+      throw new WrongPortalError(auth.user.userType);
+    }
     tokenStore.set(auth);
     set({ user: auth.user });
     return auth.user;
   },
 
   async register(req) {
-    // Identity returns UserResponse on register (no JWT). We auto-login afterwards.
+    // We always send accountType: Customer to /register from this portal.
     await apiFetch<UserResponse>("/api/v1/auth/register", {
       method: "POST",
       anonymous: true,
@@ -84,6 +137,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!tokenStore.getAccessToken()) return null;
     try {
       const user = await apiFetch<UserResponse>("/api/v1/auth/me");
+      if (!isCustomer(user)) {
+        // Token still valid but role changed (or wrong portal). Clear.
+        tokenStore.clear();
+        set({ user: null });
+        return null;
+      }
       const stored = tokenStore.get();
       if (stored) tokenStore.set({ ...stored, user });
       set({ user });
