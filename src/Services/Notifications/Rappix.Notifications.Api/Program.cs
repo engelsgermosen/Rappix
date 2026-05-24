@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using Rappix.BuildingBlocks.Observability.Extensions;
 using Rappix.BuildingBlocks.WebApi.Errors;
 using Rappix.BuildingBlocks.WebApi.Middleware;
+using Rappix.BuildingBlocks.WebApi.Persistence;
 using Rappix.Notifications.Api.Authentication;
 using Rappix.Notifications.Api.OpenApi;
 using Rappix.Notifications.Application;
@@ -112,14 +113,11 @@ WebApplication app = builder.Build();
 
 // Aplica las migraciones EF Core al arrancar (crea schema notifications + las 7 tablas + el unique
 // partial index UX_Notification_BusinessKey), antes de cualquier hosted service (importante: MassTransit
-// + el outbox EF necesitan las tablas InboxState/OutboxState/OutboxMessage al primer Start). Se omite
-// en pruebas: los WebApplicationFactory migran explicitamente en su InitializeAsync (entorno "Testing").
-if (!app.Environment.IsEnvironment("Testing"))
-{
-    await using var migrationScope = app.Services.CreateAsyncScope();
-    await Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.MigrateAsync(
-        migrationScope.ServiceProvider.GetRequiredService<Rappix.Notifications.Infrastructure.Persistence.NotificationsDbContext>().Database);
-}
+// + el outbox EF necesitan las tablas InboxState/OutboxState/OutboxMessage al primer Start). Con
+// retry+backoff (1-2-4-8-16-32s, ~63s totales) por si Postgres aun esta inicializando: distingue
+// 57P03/SocketException (reintenta) de errores reales de migracion (propaga sin reintento). No-op en
+// entorno "Testing" — los WebApplicationFactory migran explicitamente en su InitializeAsync.
+await app.MigrateDbContextWithRetryAsync<Rappix.Notifications.Infrastructure.Persistence.NotificationsDbContext>();
 
 app.UseExceptionHandler();
 app.UseCorrelationId();

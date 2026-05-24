@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using Rappix.BuildingBlocks.Observability.Extensions;
 using Rappix.BuildingBlocks.WebApi.Errors;
 using Rappix.BuildingBlocks.WebApi.Middleware;
+using Rappix.BuildingBlocks.WebApi.Persistence;
 using Rappix.Tracking.Api.Authentication;
 using Rappix.Tracking.Api.Endpoints;
 using Rappix.Tracking.Api.Hubs;
@@ -145,14 +146,11 @@ builder.Services.AddOpenApi("v1", options =>
 
 WebApplication app = builder.Build();
 
-// Aplica las migraciones EF Core al arrancar, antes de cualquier hosted service. Se omite en pruebas:
-// los WebApplicationFactory migran explicitamente en su InitializeAsync (entorno "Testing").
-if (!app.Environment.IsEnvironment("Testing"))
-{
-    await using var migrationScope = app.Services.CreateAsyncScope();
-    await Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.MigrateAsync(
-        migrationScope.ServiceProvider.GetRequiredService<Rappix.Tracking.Infrastructure.Persistence.TrackingDbContext>().Database);
-}
+// Aplica las migraciones EF Core al arrancar, antes de cualquier hosted service. Con retry+backoff
+// (1-2-4-8-16-32s, ~63s totales) por si Postgres aun esta inicializando: distingue 57P03/SocketException
+// (reintenta) de errores reales de migracion (propaga sin reintento). No-op en entorno "Testing" — los
+// WebApplicationFactory migran explicitamente en su InitializeAsync.
+await app.MigrateDbContextWithRetryAsync<Rappix.Tracking.Infrastructure.Persistence.TrackingDbContext>();
 
 app.UseExceptionHandler();
 app.UseCorrelationId();
