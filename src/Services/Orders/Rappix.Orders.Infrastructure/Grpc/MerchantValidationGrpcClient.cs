@@ -28,6 +28,9 @@ internal sealed partial class MerchantValidationGrpcClient(
                 Found: response.Found,
                 IsActive: response.IsActive,
                 OwnerUserId: ownerUserId,
+                // El .proto ya devuelve Name (campo 3); antes de Fase 13.6 lo descartabamos. Ahora viaja
+                // al snapshot del CourierAssignment para que el courier vea "Recoger en {merchantName}".
+                Name: response.Name ?? string.Empty,
                 PickupLatitude: response.PickupLatitude,
                 PickupLongitude: response.PickupLongitude,
                 HasPickupLocation: response.HasPickupLocation);
