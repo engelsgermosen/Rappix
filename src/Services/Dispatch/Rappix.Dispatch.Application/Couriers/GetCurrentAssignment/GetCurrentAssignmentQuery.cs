@@ -26,9 +26,24 @@ internal sealed class GetCurrentAssignmentQueryHandler(ICourierAssignmentReposit
             return Result.Success<CurrentAssignmentResponse?>(null);
         }
 
+        // Fase 13.6: proyectar el snapshot persistido (Snapshot.Empty cubre filas pre-13.6 sin reventar).
+        AssignmentSnapshot snap = assignment.Snapshot;
         return Result.Success<CurrentAssignmentResponse?>(new CurrentAssignmentResponse(
             AssignmentId: assignment.Id,
             OrderId: assignment.OrderId,
-            AssignedAtUtc: assignment.AssignedAtUtc));
+            AssignedAtUtc: assignment.AssignedAtUtc,
+            CustomerUserId: snap.CustomerUserId,
+            Pickup: new PickupSnapshotResponse(
+                MerchantName: snap.MerchantName,
+                Latitude: snap.PickupLatitude,
+                Longitude: snap.PickupLongitude),
+            Delivery: new DeliverySnapshotResponse(
+                Street: snap.DeliveryStreet,
+                Reference: snap.DeliveryReference,
+                Latitude: snap.DeliveryLatitude,
+                Longitude: snap.DeliveryLongitude),
+            OrderTotal: snap.OrderTotal,
+            OrderCurrency: snap.OrderCurrency,
+            Lines: [.. snap.Lines.Select(line => new OrderLineSnapshotResponse(line.ItemName, line.Quantity))]));
     }
 }
