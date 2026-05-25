@@ -8,6 +8,7 @@ using Rappix.Dispatch.Application.Couriers.Get;
 using Rappix.Dispatch.Application.Couriers.GetCurrentAssignment;
 using Rappix.Dispatch.Application.Couriers.GoOffline;
 using Rappix.Dispatch.Application.Couriers.GoOnline;
+using Rappix.Dispatch.Application.Couriers.MarkAssignmentDelivered;
 using Rappix.Dispatch.Application.Couriers.ReportLocation;
 using Rappix.Dispatch.Application.Couriers.UpdateVehicle;
 using Rappix.Dispatch.Application.Responses;
@@ -87,6 +88,17 @@ internal static class CourierEndpoints
 
             // 204 No Content si no hay asignacion activa.
             return result.Value is null ? Results.NoContent() : Results.Ok(result.Value);
+        });
+
+        // Fase 13.6: el courier marca su asignacion activa como entregada (publica OrderDelivered;
+        // los consumers terminales liberan al courier y avanzan la saga). Sin body — ownership por
+        // claim (resuelve la asignacion del JWT.sub, evita que el courier marque pedidos ajenos).
+        couriers.MapPost("/me/current-assignment/delivered", async (ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken) =>
+        {
+            Guid? userId = principal.GetUserId();
+            return userId is null
+                ? Results.Unauthorized()
+                : (await sender.Send(new MarkAssignmentDeliveredCommand(userId.Value), cancellationToken)).ToHttpResult();
         });
 
         return couriers;
