@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCourier } from "@/lib/courier/use-courier";
 import { useCurrentAssignment } from "@/lib/courier/use-current-assignment";
+import { useLocationHeartbeat } from "@/lib/courier/use-location-heartbeat";
 
 /**
  * Home autenticada — status-aware. Switch ramas segun `courier.status`:
@@ -19,16 +20,18 @@ import { useCurrentAssignment } from "@/lib/courier/use-current-assignment";
  *    skeleton + retry visible.
  *  - Offline: OnlineToggle (con sub-ramas: sin vehiculo / con vehiculo).
  *  - Online sin asignacion: OnlineToggle ("Desconectarme") + WaitingCard.
- *  - Online con asignacion (200 del poll): placeholder "pedido activo" — el
- *    contenido completo (mapa + panel) llega en el commit 6.
+ *  - Online con asignacion (200 del poll): ActiveDelivery (mapa + panel).
  *  - Busy: idem, pero el poll es mas agresivo (3s).
  *
- * El polling de `useCurrentAssignment` esta gated por status (no corre si
- * Offline). El heartbeat de location se monta en el commit 7.
+ * Dos heartbeats:
+ *   - useCurrentAssignment: polling adaptativo del endpoint (3s Busy / 5s Online).
+ *   - useLocationHeartbeat: navigator.geolocation.watchPosition + throttle
+ *     adaptativo (5s Busy / 12s Online). Ambos solo corren con status valido.
  */
 function HomeContent() {
   const courier = useCourier();
   const assignment = useCurrentAssignment(courier.data?.status);
+  useLocationHeartbeat({ status: courier.data?.status });
 
   if (courier.isLoading || !courier.data) {
     return <HomeLoading error={courier.error} onRetry={() => courier.refetch()} />;
