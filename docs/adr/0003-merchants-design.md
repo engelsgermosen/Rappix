@@ -91,3 +91,20 @@ magic bytes (**PNG/JPEG/WebP**; se rechaza SVG por XSS y GIF por complejidad), d
   `nearby` (menos portable que LINQ, documentado en código); dos puertos que gestionar para gRPC.
 - **TODO futuro:** consumer de `MerchantRatingUpdatedIntegrationEvent` (Fase 5) para `AverageRating`
   /`TotalReviews`; thumbnails/normalización de logos; TLS para gRPC en entornos no locales.
+
+## Follow-up Fase 13.6 — texto de pickup address
+
+`Merchant.PickupLocation` es `Point` PostGIS (`SetPickupLocation(Point pickupLocation, …)`): solo
+lat/lng, sin campo de calle. Esto deja un hueco en la asignación del courier: el portal recibe
+`pickup: { merchantName, latitude, longitude }` y debe renderizar las coordenadas sin texto humano
+("Recoger en: Av. X 123"). Para cerrarlo cuando se priorice:
+
+- Agregar `PickupAddress` (string opcional, ≤ 200 chars) al agregado `Merchant`.
+- Aceptarlo en `PUT /api/v1/merchants/me/pickup-location` (campo opcional para retro-compat).
+- Exponerlo en `MerchantBasicInfoResponse` (gRPC) — el contrato ya viaja, solo es un campo más.
+- Propagarlo a `MerchantInfo` en Orders → `Order` aggregate (snapshot al crear pedido) →
+  `OrderSubmittedDomainEvent` → `CourierRequestedIntegrationEvent` → `AssignmentSnapshot.PickupAddress`
+  en Dispatch → response del courier. Solo es un campo más en cadena, sin nuevos eventos.
+
+Mientras tanto: el portal courier usa `pickup.latitude/longitude` con `pickup.merchantName` como
+etiqueta humana y un botón "Abrir en mapa" — suficiente para entregar en v1.
