@@ -27,10 +27,14 @@ internal sealed class OrderSubmittedDomainEventHandler(IPublishEndpoint publishE
                 TotalAmount = domainEvent.TotalAmount,
                 Currency = domainEvent.Currency,
                 DeliveryAddress = domainEvent.DeliveryAddress,
+                DeliveryReference = domainEvent.DeliveryReference,
                 DeliveryLatitude = domainEvent.DeliveryLatitude,
                 DeliveryLongitude = domainEvent.DeliveryLongitude,
                 PickupLatitude = domainEvent.PickupLatitude,
                 PickupLongitude = domainEvent.PickupLongitude,
+                MerchantName = domainEvent.MerchantName,
+                // Proyeccion del snapshot de dominio al snapshot de contrato (mismos campos, distinto namespace).
+                Lines = [.. domainEvent.Lines.Select(line => new OrderLineSnapshot(line.ItemName, line.Quantity))],
             },
             cancellationToken);
     }

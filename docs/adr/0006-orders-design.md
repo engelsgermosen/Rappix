@@ -99,6 +99,14 @@ demo llegue a `Completed` sin Dispatch, el responder de entrega reacciona al est
 `OrderDelivered`; además hay un endpoint **temporal** `POST /orders/{id}/mark-delivered` (seam de Dispatch,
 se elimina en Fase 6).
 
+**Actualización Fase 13.6**: Dispatch ya tiene un endpoint courier real con ownership —
+`POST /api/v1/couriers/me/current-assignment/delivered` (resuelve la asignación por `JWT.sub`,
+publica el mismo `OrderDeliveredIntegrationEvent`). El seam `POST /orders/{id}/mark-delivered` **se
+mantiene vivo** porque `tools/smoke-tracking-e2e.ps1` y `tools/seed-smoke.ps1` aún lo invocan; el
+follow-up es migrar esos scripts al endpoint courier y luego borrar el seam (command, handler,
+endpoint y referencias en docs). No usar el seam desde portales reales — su `RequireAuthorization()`
+no valida ownership.
+
 ### 7. Concurrencia de la saga: xmin optimista
 
 `OrderState` usa el token `xmin` de PostgreSQL como concurrencia optimista (igual que el resto de agregados).

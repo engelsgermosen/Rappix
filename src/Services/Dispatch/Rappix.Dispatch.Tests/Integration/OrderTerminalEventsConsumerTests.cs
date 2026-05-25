@@ -97,6 +97,14 @@ public sealed class OrderTerminalEventsConsumerTests : IAsyncLifetime
             PickupLongitude = Pickup_Lng,
             DeliveryLatitude = 18.49,
             DeliveryLongitude = -69.94,
+            // Fase 13.6: campos del snapshot.
+            CustomerUserId = Guid.CreateVersion7(),
+            MerchantName = "Comercio Test",
+            DeliveryStreet = "Calle Test 123",
+            DeliveryReference = null,
+            OrderTotal = 250m,
+            OrderCurrency = "DOP",
+            Lines = [new Rappix.Contracts.Orders.OrderLineSnapshot("Pizza", 2)],
         });
         await WaitConsumedAsync<CourierRequestedConsumer, CourierRequestedIntegrationEvent>(orderId);
 
@@ -243,6 +251,14 @@ public sealed class OrderTerminalEventsConsumerTests : IAsyncLifetime
         PickupLongitude = Pickup_Lng,
         DeliveryLatitude = 18.49,
         DeliveryLongitude = -69.94,
+        // Fase 13.6: campos del snapshot.
+        CustomerUserId = Guid.CreateVersion7(),
+        MerchantName = "Comercio Test",
+        DeliveryStreet = "Calle Test 123",
+        DeliveryReference = null,
+        OrderTotal = 250m,
+        OrderCurrency = "DOP",
+        Lines = [new Rappix.Contracts.Orders.OrderLineSnapshot("Pizza", 2)],
     };
 
     private async Task WaitConsumedAsync<TConsumer, TMessage>(Guid orderId)

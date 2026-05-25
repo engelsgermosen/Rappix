@@ -161,7 +161,7 @@ public sealed class OrderOutboxSagaFactory : WebApplicationFactory<Program>, IAs
         OrderLine line = OrderLine.Create(Guid.CreateVersion7(), "Pizza", 100m, 0m, 2).Value;
         DeliveryAddress address = DeliveryAddress.Create("Calle 1", null, 18.48, -69.93).Value;
         return Order.Create(
-            Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), "Food", "DOP", [line],
+            Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), "Comercio Test", Guid.CreateVersion7(), "Food", "DOP", [line],
             200m, 50m, 0m, 0m, 0m, 0m, 250m, address,
             pickupLatitude: 18.4861, pickupLongitude: -69.9312,
             DateTime.UtcNow).Value;
@@ -211,10 +211,13 @@ public sealed class OrderOutboxSagaTests(OrderOutboxSagaFactory factory) : IClas
             TotalAmount = 250m,
             Currency = "DOP",
             DeliveryAddress = "Calle 1",
+            DeliveryReference = null,
             DeliveryLatitude = 18.48,
             DeliveryLongitude = -69.93,
             PickupLatitude = 18.4861,
             PickupLongitude = -69.9312,
+            MerchantName = "Comercio Test",
+            Lines = [new OrderLineSnapshot("Pizza", 2)],
         });
 
         // El stub de stock falla, asi que el camino feliz se desvia a compensacion: ValidatingQuote ->
@@ -261,10 +264,13 @@ public sealed class OrderOutboxSagaTests(OrderOutboxSagaFactory factory) : IClas
             TotalAmount = 250m,
             Currency = "DOP",
             DeliveryAddress = "Calle 1",
+            DeliveryReference = null,
             DeliveryLatitude = 18.48,
             DeliveryLongitude = -69.93,
             PickupLatitude = 18.4861,
             PickupLongitude = -69.9312,
+            MerchantName = "Comercio Test",
+            Lines = [new OrderLineSnapshot("Pizza", 2)],
         });
 
         // Nadie acepta: el timeout de merchant (5s, en Quartz+Postgres real) debe disparar -> compensacion -> Cancelled.

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MassTransit;
 using Microsoft.Extensions.Options;
 using Rappix.Contracts.Dispatch;
@@ -66,6 +67,11 @@ public sealed class OrderStateMachine : MassTransitStateMachine<OrderState>
                     context.Saga.DeliveryLongitude = context.Message.DeliveryLongitude;
                     context.Saga.PickupLatitude = context.Message.PickupLatitude;
                     context.Saga.PickupLongitude = context.Message.PickupLongitude;
+                    // Fase 13.6: snapshot del pedido para propagar a CourierRequested.
+                    context.Saga.MerchantName = context.Message.MerchantName;
+                    context.Saga.DeliveryStreet = context.Message.DeliveryAddress;
+                    context.Saga.DeliveryReference = context.Message.DeliveryReference;
+                    context.Saga.LinesJson = JsonSerializer.Serialize(context.Message.Lines);
                 })
                 .Publish(context => new ConsumeQuote(context.Saga.CorrelationId, context.Saga.QuoteId))
                 .TransitionTo(ValidatingQuote));
@@ -114,7 +120,28 @@ public sealed class OrderStateMachine : MassTransitStateMachine<OrderState>
                     context.Saga.PaymentCaptured = true;
                     context.Saga.PaymentId = context.Message.PaymentId;
                 })
-                .Publish(context => new CourierRequestedIntegrationEvent { OrderId = context.Saga.CorrelationId, MerchantId = context.Saga.MerchantId, PickupLatitude = context.Saga.PickupLatitude, PickupLongitude = context.Saga.PickupLongitude, DeliveryLatitude = context.Saga.DeliveryLatitude, DeliveryLongitude = context.Saga.DeliveryLongitude })
+                .Publish(context => new CourierRequestedIntegrationEvent
+                {
+                    OrderId = context.Saga.CorrelationId,
+                    MerchantId = context.Saga.MerchantId,
+                    PickupLatitude = context.Saga.PickupLatitude,
+                    PickupLongitude = context.Saga.PickupLongitude,
+                    DeliveryLatitude = context.Saga.DeliveryLatitude,
+                    DeliveryLongitude = context.Saga.DeliveryLongitude,
+                    // Fase 13.6: snapshot. Fallbacks defensivos para sagas pre-13.6 que no tienen
+                    // estos campos en la fila de OrderState (NULL en BD); pre-13.6 + nuevo deploy
+                    // significa que el OrderSubmitted original no los traia. El consumer de Dispatch
+                    // tolera cadenas vacias y arreglos vacios sin reventar.
+                    CustomerUserId = context.Saga.CustomerUserId,
+                    MerchantName = context.Saga.MerchantName ?? string.Empty,
+                    DeliveryStreet = context.Saga.DeliveryStreet ?? string.Empty,
+                    DeliveryReference = context.Saga.DeliveryReference,
+                    OrderTotal = context.Saga.TotalAmount,
+                    OrderCurrency = context.Saga.Currency,
+                    Lines = string.IsNullOrEmpty(context.Saga.LinesJson)
+                        ? Array.Empty<OrderLineSnapshot>()
+                        : JsonSerializer.Deserialize<IReadOnlyList<OrderLineSnapshot>>(context.Saga.LinesJson) ?? Array.Empty<OrderLineSnapshot>(),
+                })
                 .Schedule(CourierTimeout, context => new CourierTimeoutExpired(context.Saga.CorrelationId))
                 .Publish(context => new OrderStatusChanged(context.Saga.CorrelationId, OrderStatus.AwaitingCourier, DateTime.UtcNow, null))
                 .TransitionTo(AwaitingCourier),

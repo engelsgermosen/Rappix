@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Rappix.Orders.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Rappix.Orders.Infrastructure.Persistence;
 namespace Rappix.Orders.Infrastructure.Migrations
 {
     [DbContext(typeof(OrdersDbContext))]
-    partial class OrdersDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260525062112_AddOrderMerchantName")]
+    partial class AddOrderMerchantName
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -226,23 +229,8 @@ namespace Rappix.Orders.Infrastructure.Migrations
                     b.Property<double>("DeliveryLongitude")
                         .HasColumnType("double precision");
 
-                    b.Property<string>("DeliveryReference")
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
-                    b.Property<string>("DeliveryStreet")
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
-                    b.Property<string>("LinesJson")
-                        .HasColumnType("text");
-
                     b.Property<Guid>("MerchantId")
                         .HasColumnType("uuid");
-
-                    b.Property<string>("MerchantName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
 
                     b.Property<Guid?>("MerchantTimeoutTokenId")
                         .HasColumnType("uuid");

@@ -246,10 +246,14 @@ public sealed class TrackingHubConnectionTests : IAsyncLifetime
             TotalAmount = 100m,
             Currency = "DOP",
             DeliveryAddress = "test",
+            DeliveryReference = null,
             DeliveryLatitude = 18.49,
             DeliveryLongitude = -69.94,
             PickupLatitude = 18.48,
             PickupLongitude = -69.93,
+            // Fase 13.6.
+            MerchantName = "Comercio Test",
+            Lines = [new OrderLineSnapshot("Pizza", 2)],
         });
 
         // Espera a que el consumer proyecte (poll hasta 15s).

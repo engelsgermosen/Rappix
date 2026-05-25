@@ -30,6 +30,14 @@ internal sealed class OrderStateConfiguration : IEntityTypeConfiguration<OrderSt
         builder.Property(state => state.PickupLatitude);
         builder.Property(state => state.PickupLongitude);
 
+        // Fase 13.6: snapshot del pedido propagado por OrderSubmitted -> saga -> CourierRequested.
+        // Todas nullable + sin default — sagas pre-13.6 las dejan NULL y siguen funcionando (los nuevos
+        // campos solo viajan a CourierRequested si tienen valor, con fallbacks vacios en el state machine).
+        builder.Property(state => state.MerchantName).HasMaxLength(200);
+        builder.Property(state => state.DeliveryStreet).HasMaxLength(300);
+        builder.Property(state => state.DeliveryReference).HasMaxLength(300);
+        builder.Property(state => state.LinesJson).HasColumnType("text");
+
         builder.Property(state => state.PaymentCaptured);
         builder.Property(state => state.PaymentId);
         builder.Property(state => state.CourierId);

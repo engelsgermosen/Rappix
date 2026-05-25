@@ -26,7 +26,7 @@ public sealed class OrderTests
     public void Create_NoLines_Fails()
     {
         Result<Order> result = Order.Create(
-            Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), "Food", "DOP", [],
+            Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), "Comercio Test", Guid.CreateVersion7(), "Food", "DOP", [],
             200m, 50m, 0m, 0m, 0m, 0m, 250m, Address(),
             pickupLatitude: 18.4861, pickupLongitude: -69.9312, Now);
 
@@ -89,7 +89,7 @@ public sealed class OrderTests
     {
         OrderLine line = OrderLine.Create(Guid.CreateVersion7(), "Pizza", 100m, 25m, 2).Value;
         return Order.Create(
-            Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), "Food", "DOP", [line],
+            Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), "Comercio Test", Guid.CreateVersion7(), "Food", "DOP", [line],
             200m, 50m, 0m, 0m, 0m, 0m, 250m, Address(),
             pickupLatitude: 18.4861, pickupLongitude: -69.9312, Now).Value;
     }

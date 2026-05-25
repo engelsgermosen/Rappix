@@ -120,8 +120,22 @@ internal sealed partial class CourierRequestedConsumer(
             return;
         }
 
-        // 6) Persistir asignacion (la unique partial index es la red de seguridad).
-        CourierAssignment assignment = CourierAssignment.Create(chosen.Value, message.OrderId, now);
+        // 6) Persistir asignacion + snapshot del pedido (Fase 13.6). El snapshot viaja en el evento
+        //    para que el courier vea direcciones/lineas/total via GET /me/current-assignment sin
+        //    consultar Orders/Merchants en caliente.
+        AssignmentSnapshot snapshot = AssignmentSnapshot.Create(
+            customerUserId: message.CustomerUserId,
+            merchantName: message.MerchantName,
+            pickupLatitude: message.PickupLatitude,
+            pickupLongitude: message.PickupLongitude,
+            deliveryStreet: message.DeliveryStreet,
+            deliveryReference: message.DeliveryReference,
+            deliveryLatitude: message.DeliveryLatitude,
+            deliveryLongitude: message.DeliveryLongitude,
+            orderTotal: message.OrderTotal,
+            orderCurrency: message.OrderCurrency,
+            lines: [.. message.Lines.Select(line => new AssignmentLineSnapshot(line.ItemName, line.Quantity))]);
+        CourierAssignment assignment = CourierAssignment.Create(chosen.Value, message.OrderId, snapshot, now);
         assignments.Add(assignment);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

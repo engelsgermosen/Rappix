@@ -231,6 +231,14 @@ public sealed class CourierRequestedConsumerTests : IAsyncLifetime
         PickupLongitude = Pickup_Lng,
         DeliveryLatitude = 18.49,
         DeliveryLongitude = -69.94,
+        // Fase 13.6: campos del snapshot (el consumer los persiste en CourierAssignment.Snapshot).
+        CustomerUserId = Guid.CreateVersion7(),
+        MerchantName = "Comercio Test",
+        DeliveryStreet = "Calle Test 123",
+        DeliveryReference = null,
+        OrderTotal = 250m,
+        OrderCurrency = "DOP",
+        Lines = [new Rappix.Contracts.Orders.OrderLineSnapshot("Pizza", 2)],
     };
 
     private async Task WaitForConsumedAsync(Guid orderId, int expected = 1)

@@ -46,6 +46,23 @@ public sealed class OrderState : SagaStateMachineInstance
     /// <summary>Longitud del pickup.</summary>
     public double PickupLongitude { get; set; }
 
+    // --- Snapshot del pedido para propagar a CourierRequested (Fase 13.6) ---
+
+    /// <summary>Nombre del comercio (snapshot del OrderSubmitted). Nullable para sagas pre-13.6.</summary>
+    public string? MerchantName { get; set; }
+
+    /// <summary>Calle de entrega (snapshot). Nullable para sagas pre-13.6.</summary>
+    public string? DeliveryStreet { get; set; }
+
+    /// <summary>Referencia opcional de la direccion de entrega.</summary>
+    public string? DeliveryReference { get; set; }
+
+    /// <summary>
+    /// Lineas del pedido serializadas como JSON: <c>[{"itemName": "...", "quantity": N}]</c>.
+    /// Nullable para sagas pre-13.6. Texto plano (no jsonb) — la saga lo reescribe entero, no se queryea.
+    /// </summary>
+    public string? LinesJson { get; set; }
+
     // --- Tracking ---
 
     /// <summary>Indica si el pago se capturo (determina si una compensacion debe reembolsar).</summary>
