@@ -12,7 +12,7 @@
         al courier, mueve el pedido a Completed y respeta el ownership.
 
   Reusa tools/seed-smoke.ps1 para setup de usuarios + merchant + item + cotizacion fresca.
-  Imprime cada assert individualmente — no dice "smoke paso" sin mostrar el resultado.
+  Imprime cada assert individualmente - no dice "smoke paso" sin mostrar el resultado.
 
 .REQUIREMENTS
   - docker compose down -v && docker compose up -d   (DB limpia)
@@ -22,7 +22,7 @@
 
 $ErrorActionPreference = "Stop"
 
-# Endpoints (mismos puertos que seed-smoke.ps1, sin gateway — el smoke golpea cada servicio directo
+# Endpoints (mismos puertos que seed-smoke.ps1, sin gateway - el smoke golpea cada servicio directo
 # para diagnostico mas claro; el portal real iria por http://localhost:5000 via gateway).
 $IDENTITY  = "http://localhost:5001"
 $MERCHANTS = "http://localhost:5002"
@@ -63,33 +63,28 @@ function GetRaw($url, $token) {
     return Invoke-WebRequest -Method Get -Uri $url -Headers $headers -UseBasicParsing
 }
 function ExpectStatusCode($url, $method, $token, $expected, $label) {
+    # Catch generico: PS 5.1 (System.Net.WebException) y PS 7+ (Microsoft.PowerShell.Commands.HttpResponseException)
+    # exponen ambos $_.Exception.Response.StatusCode con el HttpStatusCode enum, asi que el dispatch
+    # dinamico cubre los dos sin que el parser tenga que resolver tipos especificos en parse-time.
     $headers = @{}
     if ($token) { $headers["Authorization"] = "Bearer $token" }
+    $code = $null
     try {
         $resp = Invoke-WebRequest -Method $method -Uri $url -Headers $headers -UseBasicParsing -ErrorAction Stop
-        if ($resp.StatusCode -eq $expected) {
-            Write-Host "  [ASSERT OK] $label (HTTP $($resp.StatusCode))" -ForegroundColor Green
+        $code = [int]$resp.StatusCode
+    } catch {
+        if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+            $code = [int]$_.Exception.Response.StatusCode
         } else {
-            Write-Host "  [ASSERT FAIL] $label (esperado HTTP $expected, recibido $($resp.StatusCode))" -ForegroundColor Red
-            throw "status code mismatch"
+            Write-Host "  [ASSERT FAIL] $label (excepcion sin Response.StatusCode: $($_.Exception.Message))" -ForegroundColor Red
+            throw
         }
-    } catch [System.Net.WebException] {
-        $code = [int]$_.Exception.Response.StatusCode
-        if ($code -eq $expected) {
-            Write-Host "  [ASSERT OK] $label (HTTP $code)" -ForegroundColor Green
-        } else {
-            Write-Host "  [ASSERT FAIL] $label (esperado HTTP $expected, recibido $code)" -ForegroundColor Red
-            throw "status code mismatch"
-        }
-    } catch [Microsoft.PowerShell.Commands.HttpResponseException] {
-        # PowerShell 7+ usa HttpResponseException
-        $code = [int]$_.Exception.Response.StatusCode
-        if ($code -eq $expected) {
-            Write-Host "  [ASSERT OK] $label (HTTP $code)" -ForegroundColor Green
-        } else {
-            Write-Host "  [ASSERT FAIL] $label (esperado HTTP $expected, recibido $code)" -ForegroundColor Red
-            throw "status code mismatch"
-        }
+    }
+    if ($code -eq $expected) {
+        Write-Host "  [ASSERT OK] $label (HTTP $code)" -ForegroundColor Green
+    } else {
+        Write-Host "  [ASSERT FAIL] $label (esperado HTTP $expected, recibido $code)" -ForegroundColor Red
+        throw "status code mismatch"
     }
 }
 
@@ -127,7 +122,7 @@ $COURIER2 = $resp2.accessToken
 Ok "Token COURIER2"
 
 # 3) Crear pedido con direccion + referencia (los campos que viajan al snapshot del courier).
-Step "3. Customer crea pedido (con dirección + referencia)"
+Step "3. Customer crea pedido (con direccion + referencia)"
 $DELIVERY_STREET    = "Av. 27 de Febrero 100"
 $DELIVERY_REFERENCE = "Edif Azul, apto 3B"
 $order = PostJson "$ORDERS/api/v1/orders" @{
@@ -139,6 +134,13 @@ $order = PostJson "$ORDERS/api/v1/orders" @{
 } $CUSTOMER
 $ORDER_ID = $order.orderId
 Ok "ORDER_ID = $ORDER_ID (status=$($order.status))"
+
+# Pausa entre create y accept para evitar la carrera del outbox: el POST /orders escribe el outbox
+# y MassTransit lo despacha asincronamente. Si el accept llega antes que la saga reciba
+# OrderSubmittedIntegrationEvent, MerchantAccepted cae en OnUnhandledEvent.Ignore() (la saga aun
+# no existe). 5s da margen al outbox (~500ms tipico) + ValidatingQuote + ReservingStock.
+Info "Esperando 5s para que la saga arranque (outbox -> OrderSubmitted -> AwaitingMerchant)..."
+Start-Sleep -Seconds 5
 
 # 4) Merchant accept.
 Step "4. Merchant accept"
@@ -152,7 +154,7 @@ Info "Esperando 10s para que la saga + dispatch + claim completen..."
 Start-Sleep -Seconds 10
 
 # 5) [ASSERTS DEL PASO 8 DEL PLAN] El courier ve su asignacion enriquecida.
-Step "5. ASSERTS — el courier ve direcciones, comercio, lineas, total (Gap #1)"
+Step "5. ASSERTS - el courier ve direcciones, comercio, lineas, total (Gap #1)"
 $assignment = GetJson "$DISPATCH/api/v1/couriers/me/current-assignment" $COURIER
 Write-Host "  --- Response JSON literal ---" -ForegroundColor Yellow
 $assignment | ConvertTo-Json -Depth 5
@@ -183,14 +185,31 @@ Ok "Location actualizada"
 
 # 7) [GAP #4] Courier marca entregado por el endpoint NUEVO.
 Step "7. Courier marca entregado por POST /me/current-assignment/delivered (Gap #4)"
-$resp = PostEmpty "$DISPATCH/api/v1/couriers/me/current-assignment/delivered" $COURIER
-Assert ([int]$resp.StatusCode -eq 204) "POST .../delivered responde 204 No Content"
+$deliveredUrl = "$DISPATCH/api/v1/couriers/me/current-assignment/delivered"
+$deliveredCode = $null
+$deliveredBody = ""
+try {
+    $resp = Invoke-WebRequest -Method Post -Uri $deliveredUrl `
+        -Headers @{ Authorization = "Bearer $COURIER" } -UseBasicParsing -ErrorAction Stop
+    $deliveredCode = [int]$resp.StatusCode
+    $deliveredBody = $resp.Content
+} catch {
+    if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+        $deliveredCode = [int]$_.Exception.Response.StatusCode
+        try { $deliveredBody = $_.ErrorDetails.Message } catch { $deliveredBody = "" }
+    } else {
+        Write-Host "  [ASSERT FAIL] excepcion sin Response: $($_.Exception.Message)" -ForegroundColor Red
+        throw
+    }
+}
+Info "HTTP $deliveredCode  Body: '$deliveredBody'"
+Assert ($deliveredCode -eq 204) "POST .../delivered responde 204 No Content (recibido $deliveredCode)"
 
 Info "Esperando 6s para que el bus propague OrderDelivered -> consumers terminales..."
 Start-Sleep -Seconds 6
 
 # 8) [ASSERTS DEL PASO 12 DEL PLAN] Secuencia final.
-Step "8. ASSERTS — secuencia final tras entregar"
+Step "8. ASSERTS - secuencia final tras entregar"
 $finalAssign = GetRaw "$DISPATCH/api/v1/couriers/me/current-assignment" $COURIER
 Assert ([int]$finalAssign.StatusCode -eq 204) "GET /me/current-assignment ahora responde 204 No Content (asignacion liberada)"
 
@@ -201,7 +220,7 @@ $finalOrder = GetJson "$ORDERS/api/v1/orders/$ORDER_ID" $CUSTOMER
 Assert ($finalOrder.status -eq "Completed") "GET /api/v1/orders/{id} (token customer) responde status='Completed'. Recibido: $($finalOrder.status)"
 
 # 9) [ASSERTS DEL PASO 13 DEL PLAN] Negativos de seguridad.
-Step "9. ASSERTS — negativos de seguridad"
+Step "9. ASSERTS - negativos de seguridad"
 
 # 9a) El mismo courier sin asignacion vuelve a llamar -> 404 Dispatch.Assignment.NoActiveAssignment.
 ExpectStatusCode "$DISPATCH/api/v1/couriers/me/current-assignment/delivered" "POST" $COURIER 404 `
@@ -217,7 +236,7 @@ ExpectStatusCode "$DISPATCH/api/v1/couriers/me/current-assignment/delivered" "PO
 
 # Cierre.
 Write-Host "`n=================================================================" -ForegroundColor Green
-Write-Host " SMOKE-COURIER-E2E COMPLETO — todos los asserts en VERDE" -ForegroundColor Green
+Write-Host " SMOKE-COURIER-E2E COMPLETO - todos los asserts en VERDE" -ForegroundColor Green
 Write-Host "=================================================================" -ForegroundColor Green
 Write-Host "Gap #1 (snapshot con direcciones)            : verificado en paso 5" -ForegroundColor Green
 Write-Host "Gap #4 (endpoint courier de entrega)         : verificado en paso 7-8" -ForegroundColor Green
