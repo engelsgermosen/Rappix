@@ -12,13 +12,15 @@ public sealed class CourierAssignment : Entity<Guid>
 {
     private CourierAssignment()
     {
+        Snapshot = AssignmentSnapshot.Empty;
     }
 
-    private CourierAssignment(Guid id, CourierId courierId, Guid orderId, DateTime assignedAtUtc)
+    private CourierAssignment(Guid id, CourierId courierId, Guid orderId, AssignmentSnapshot snapshot, DateTime assignedAtUtc)
         : base(id)
     {
         CourierId = courierId;
         OrderId = orderId;
+        Snapshot = snapshot;
         AssignedAtUtc = assignedAtUtc;
     }
 
@@ -27,6 +29,13 @@ public sealed class CourierAssignment : Entity<Guid>
 
     /// <summary>Pedido (sin FK; vive en otro servicio).</summary>
     public Guid OrderId { get; private set; }
+
+    /// <summary>
+    /// Snapshot congelado de los datos del pedido al momento del claim (Fase 13.6): pickup, delivery,
+    /// nombre del comercio, total, lineas. Lo lee <c>GetCurrentAssignmentQuery</c> para que el courier
+    /// vea las direcciones sin consultar Orders/Merchants.
+    /// </summary>
+    public AssignmentSnapshot Snapshot { get; private set; }
 
     /// <summary>Momento de la asignacion (UTC).</summary>
     public DateTime AssignedAtUtc { get; private set; }
@@ -42,9 +51,9 @@ public sealed class CourierAssignment : Entity<Guid>
     /// <summary>Indica si la asignacion sigue activa.</summary>
     public bool IsActive => ReleasedAtUtc is null;
 
-    /// <summary>Crea una asignacion activa. La unicidad se valida por BD (indices parciales).</summary>
-    public static CourierAssignment Create(CourierId courierId, Guid orderId, DateTime assignedAtUtc) =>
-        new(Guid.CreateVersion7(), courierId, orderId, assignedAtUtc);
+    /// <summary>Crea una asignacion activa con su snapshot. La unicidad se valida por BD (indices parciales).</summary>
+    public static CourierAssignment Create(CourierId courierId, Guid orderId, AssignmentSnapshot snapshot, DateTime assignedAtUtc) =>
+        new(Guid.CreateVersion7(), courierId, orderId, snapshot, assignedAtUtc);
 
     /// <summary>Marca la asignacion como liberada con la razon dada. Idempotente: si ya estaba liberada, no-op.</summary>
     public void Release(DateTime releasedAtUtc, string reason)
