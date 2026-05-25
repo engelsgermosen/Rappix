@@ -190,10 +190,17 @@ public sealed class Order : AggregateRoot<OrderId>, IHasDomainEvents
             pickupLatitude, pickupLongitude, utcNow);
         order._lines.AddRange(lines);
 
+        // Fase 13.6: el domain event incluye merchantName + delivery.Reference + lines snapshot para
+        // que la saga (via el integration event) los propague a CourierRequested -> Dispatch persiste
+        // todo en CourierAssignment.AssignmentSnapshot.
+        IReadOnlyList<OrderLineDomainSnapshot> linesSnapshot = [
+            .. lines.Select(line => new OrderLineDomainSnapshot(line.ItemName, line.Quantity))
+        ];
+
         order.RaiseDomainEvent(new OrderSubmittedDomainEvent(
-            order.Id, customerUserId, merchantId, quoteId, totalAmount, currency,
-            deliveryAddress.Street, deliveryAddress.Latitude, deliveryAddress.Longitude,
-            pickupLatitude, pickupLongitude));
+            order.Id, customerUserId, merchantId, normalizedMerchantName, quoteId, totalAmount, currency,
+            deliveryAddress.Street, deliveryAddress.Reference, deliveryAddress.Latitude, deliveryAddress.Longitude,
+            pickupLatitude, pickupLongitude, linesSnapshot));
 
         return order;
     }

@@ -327,10 +327,13 @@ public sealed class OrderSagaTests
                 TotalAmount = 250m,
                 Currency = "DOP",
                 DeliveryAddress = "Calle 1",
+                DeliveryReference = null,
                 DeliveryLatitude = 18.48,
                 DeliveryLongitude = -69.93,
                 PickupLatitude = 18.4861,
                 PickupLongitude = -69.9312,
+                MerchantName = "Comercio Test",
+                Lines = [new OrderLineSnapshot("Pizza", 2)],
             });
             return id;
         }

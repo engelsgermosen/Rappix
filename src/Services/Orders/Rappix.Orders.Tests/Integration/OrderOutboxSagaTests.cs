@@ -211,10 +211,13 @@ public sealed class OrderOutboxSagaTests(OrderOutboxSagaFactory factory) : IClas
             TotalAmount = 250m,
             Currency = "DOP",
             DeliveryAddress = "Calle 1",
+            DeliveryReference = null,
             DeliveryLatitude = 18.48,
             DeliveryLongitude = -69.93,
             PickupLatitude = 18.4861,
             PickupLongitude = -69.9312,
+            MerchantName = "Comercio Test",
+            Lines = [new OrderLineSnapshot("Pizza", 2)],
         });
 
         // El stub de stock falla, asi que el camino feliz se desvia a compensacion: ValidatingQuote ->
@@ -261,10 +264,13 @@ public sealed class OrderOutboxSagaTests(OrderOutboxSagaFactory factory) : IClas
             TotalAmount = 250m,
             Currency = "DOP",
             DeliveryAddress = "Calle 1",
+            DeliveryReference = null,
             DeliveryLatitude = 18.48,
             DeliveryLongitude = -69.93,
             PickupLatitude = 18.4861,
             PickupLongitude = -69.9312,
+            MerchantName = "Comercio Test",
+            Lines = [new OrderLineSnapshot("Pizza", 2)],
         });
 
         // Nadie acepta: el timeout de merchant (5s, en Quartz+Postgres real) debe disparar -> compensacion -> Cancelled.

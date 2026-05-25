@@ -85,9 +85,13 @@ public sealed class OrderSubmittedConsumerTests : TrackingConsumerTestBase
         TotalAmount = 250m,
         Currency = "DOP",
         DeliveryAddress = "Av. Winston Churchill 1234",
+        DeliveryReference = null,
         DeliveryLatitude = 18.4861d,
         DeliveryLongitude = -69.9312d,
         PickupLatitude = 18.4900d,
         PickupLongitude = -69.9400d,
+        // Fase 13.6.
+        MerchantName = "Comercio Test",
+        Lines = [new OrderLineSnapshot("Pizza", 2)],
     };
 }
