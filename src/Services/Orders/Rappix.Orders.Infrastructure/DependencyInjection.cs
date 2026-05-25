@@ -13,7 +13,6 @@ using Rappix.Orders.Infrastructure.Grpc.Merchants;
 using Rappix.Orders.Infrastructure.Grpc.Pricing;
 using Rappix.Orders.Infrastructure.Messaging.Activities;
 using Rappix.Orders.Infrastructure.Messaging.Projections;
-using Rappix.Orders.Infrastructure.Messaging.Simulation;
 using Rappix.Orders.Infrastructure.Persistence;
 using Rappix.Orders.Infrastructure.Persistence.Repositories;
 
@@ -98,8 +97,6 @@ public static class DependencyInjection
 
     private static void AddMessaging(IServiceCollection services, IConfiguration configuration)
     {
-        bool enableSimulated = configuration.GetValue("Orders:EnableSimulatedResponders", defaultValue: true);
-
         services.AddRappixMessaging(
             configuration,
             serviceName: "orders",
@@ -117,23 +114,16 @@ public static class DependencyInjection
                     });
 
                 // Activities (efectos gRPC) + proyeccion del estado al agregado.
+                // Todos los responders simulados ya fueron retirados: Payment en Fase 8 (Payments real),
+                // Courier en Fase 6 (Dispatch real), Delivery en este commit (el endpoint courier
+                // POST /api/v1/couriers/me/current-assignment/delivered de Fase 13.6 lo reemplaza —
+                // el seam temporal /orders/{id}/mark-delivered sigue vivo para tools/smoke-tracking-e2e.ps1).
                 bus.AddConsumer<ConsumeQuoteConsumer>();
                 bus.AddConsumer<ReserveStockConsumer>();
                 bus.AddConsumer<CommitStockConsumer>();
                 bus.AddConsumer<ReleaseStockConsumer>();
                 bus.AddConsumer<RevertQuoteConsumer>();
                 bus.AddConsumer<OrderStatusProjectionConsumer>();
-
-                // Responder simulado de ENTREGA (borrable cuando un servicio real publique
-                // OrderDeliveredIntegrationEvent — la propia Fase 6 dejo Dispatch.OrderTerminalEventsConsumer
-                // como el consumidor, pero el "delivered" lo dispara hoy el endpoint mark-delivered + este
-                // responder). El responder de COURIER se borro en Fase 6 (Dispatch responde
-                // CourierRequested con un courier real). El responder de PAGO se borro en Fase 8
-                // (Payments consume PaymentRequested y publica PaymentSucceeded/Failed real).
-                if (enableSimulated)
-                {
-                    bus.AddConsumer<SimulatedDeliveryResponder>();
-                }
 
                 bus.AddEntityFrameworkOutbox<OrdersDbContext>(outbox =>
                 {

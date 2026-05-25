@@ -14,14 +14,16 @@ using Rappix.Orders.Application.Sagas.Messages;
 using Rappix.Orders.Domain.Common;
 using Rappix.Orders.Domain.Orders;
 using Rappix.Orders.Infrastructure.Messaging.Activities;
-using Rappix.Orders.Infrastructure.Messaging.Simulation;
 
 // Fase 6: el SimulatedCourierResponder se borro porque Dispatch lo reemplaza.
 // Fase 8: el SimulatedPaymentResponder se borro porque Payments lo reemplaza.
-// En estos tests in-memory (sin Dispatch/Payments reales ni broker), publicamos los integration
-// events de las respuestas (PaymentSucceeded/Failed, CourierAssigned/Unavailable) directamente en
-// el harness para ejercer las transiciones de la saga. Los contratos en Rappix.Contracts.* quedan
-// intocados — el unico cambio es que el productor pasa de un responder in-process a un servicio real.
+// chore/retire-simulated-delivery: el SimulatedDeliveryResponder se borro porque el endpoint
+// courier POST /api/v1/couriers/me/current-assignment/delivered (Fase 13.6) lo reemplaza.
+// En estos tests in-memory (sin Dispatch/Payments/courier reales ni broker), publicamos los
+// integration events de las respuestas (PaymentSucceeded/Failed, CourierAssigned/Unavailable,
+// OrderDelivered) directamente en el harness para ejercer las transiciones de la saga. Los
+// contratos en Rappix.Contracts.* quedan intocados — el unico cambio es que el productor pasa
+// de un responder in-process a un servicio real.
 
 namespace Rappix.Orders.Tests.Sagas;
 
@@ -49,6 +51,11 @@ public sealed class OrderSagaTests
         // Sin SimulatedCourierResponder: simulamos a Dispatch publicando CourierAssigned manualmente.
         (await context.Saga.Exists(orderId, machine => machine.AwaitingCourier)).Should().NotBeNull();
         await context.Harness.Bus.Publish(new CourierAssignedIntegrationEvent { OrderId = orderId, CourierId = Guid.CreateVersion7() });
+
+        // Sin SimulatedDeliveryResponder: simulamos al courier real publicando OrderDelivered.
+        // (chore/retire-simulated-delivery: antes el responder lo auto-publicaba al detectar InProgress.)
+        (await context.Saga.Exists(orderId, machine => machine.InProgress)).Should().NotBeNull();
+        await context.Harness.Bus.Publish(new OrderDeliveredIntegrationEvent { OrderId = orderId, DeliveredAtUtc = DateTime.UtcNow });
 
         (await context.Saga.Exists(orderId, machine => machine.Completed)).Should().NotBeNull();
         (await context.Harness.Published.Any<OrderCompletedIntegrationEvent>()).Should().BeTrue();
@@ -258,7 +265,6 @@ public sealed class OrderSagaTests
         {
             ReservationTtlSeconds = 1800,
             Timeouts = { Merchant = TimeSpan.FromSeconds(300), Payment = TimeSpan.FromSeconds(300), Courier = TimeSpan.FromSeconds(300) },
-            Simulation = { AutoDeliver = true, DeliveryDelayMs = 0 },
         };
         configureOptions?.Invoke(options);
 
@@ -280,7 +286,8 @@ public sealed class OrderSagaTests
             // manualmente para ejercer las transiciones (o deja correr el timeout).
             // SimulatedPaymentResponder eliminado en Fase 8: cada test publica PaymentSucceeded/Failed
             // manualmente para ejercer las transiciones (o deja correr el timeout).
-            configurator.AddConsumer<SimulatedDeliveryResponder>();
+            // SimulatedDeliveryResponder eliminado en chore/retire-simulated-delivery: cada test publica
+            // OrderDelivered manualmente (o deja el pedido en InProgress si no le interesa el terminal feliz).
         });
 
         ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
