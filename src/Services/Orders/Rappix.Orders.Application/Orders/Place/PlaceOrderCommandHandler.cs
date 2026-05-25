@@ -71,6 +71,7 @@ internal sealed class PlaceOrderCommandHandler(
             command.CustomerUserId,
             quote.MerchantId,
             merchant.OwnerUserId,
+            merchant.Name,
             command.QuoteId,
             quote.Vertical,
             quote.Currency,

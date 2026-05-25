@@ -26,6 +26,7 @@ public sealed class Order : AggregateRoot<OrderId>, IHasDomainEvents
         Guid customerUserId,
         Guid merchantId,
         Guid merchantOwnerUserId,
+        string merchantName,
         Guid quoteId,
         string vertical,
         string currency,
@@ -45,6 +46,7 @@ public sealed class Order : AggregateRoot<OrderId>, IHasDomainEvents
         CustomerUserId = customerUserId;
         MerchantId = merchantId;
         MerchantOwnerUserId = merchantOwnerUserId;
+        MerchantName = merchantName;
         QuoteId = quoteId;
         Vertical = vertical;
         Currency = currency;
@@ -70,6 +72,13 @@ public sealed class Order : AggregateRoot<OrderId>, IHasDomainEvents
 
     /// <summary>Usuario (Identity) propietario del merchant. Autoriza accept/reject del merchant (vs el sub del JWT).</summary>
     public Guid MerchantOwnerUserId { get; private set; }
+
+    /// <summary>
+    /// Nombre del comercio congelado al momento de crear el pedido (Fase 13.6). Viaja a Dispatch via
+    /// el snapshot del CourierAssignment para que el courier vea "Recoger en {MerchantName}". El nombre
+    /// del aggregate Merchant puede cambiar despues sin afectar pedidos historicos.
+    /// </summary>
+    public string MerchantName { get; private set; } = null!;
 
     /// <summary>Cotizacion congelada que respalda el pedido.</summary>
     public Guid QuoteId { get; private set; }
@@ -148,6 +157,7 @@ public sealed class Order : AggregateRoot<OrderId>, IHasDomainEvents
         Guid customerUserId,
         Guid merchantId,
         Guid merchantOwnerUserId,
+        string merchantName,
         Guid quoteId,
         string vertical,
         string currency,
@@ -169,8 +179,13 @@ public sealed class Order : AggregateRoot<OrderId>, IHasDomainEvents
             return Result.Failure<Order>(OrderErrors.NoLines);
         }
 
+        // Fase 13.6: merchantName se persiste para auditoria/reporting + viaja al snapshot del
+        // CourierAssignment en commits posteriores. Aqui solo se setea, sin propagar al domain event
+        // todavia (ese cambio va en el commit que extiende OrderSubmittedDomainEvent + el contrato).
+        string normalizedMerchantName = string.IsNullOrWhiteSpace(merchantName) ? string.Empty : merchantName.Trim();
+
         var order = new Order(
-            OrderId.New(), customerUserId, merchantId, merchantOwnerUserId, quoteId, vertical, currency,
+            OrderId.New(), customerUserId, merchantId, merchantOwnerUserId, normalizedMerchantName, quoteId, vertical, currency,
             subtotal, deliveryFee, serviceFee, tax, tip, discountAmount, totalAmount, deliveryAddress,
             pickupLatitude, pickupLongitude, utcNow);
         order._lines.AddRange(lines);

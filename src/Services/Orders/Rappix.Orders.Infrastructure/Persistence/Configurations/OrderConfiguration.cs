@@ -23,6 +23,9 @@ internal sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.Property(order => order.MerchantId).IsRequired();
         builder.Property(order => order.MerchantOwnerUserId).IsRequired();
+        // Snapshot del nombre del comercio (Fase 13.6). NOT NULL + default '' en la migration
+        // para cubrir filas pre-13.6 (pedidos historicos creados sin este campo).
+        builder.Property(order => order.MerchantName).HasMaxLength(200).IsRequired();
         // La consulta de pendientes del merchant filtra por el dueno (sub del JWT) + estado.
         builder.HasIndex(order => new { order.MerchantOwnerUserId, order.Status });
 
