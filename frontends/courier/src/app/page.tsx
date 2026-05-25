@@ -2,6 +2,7 @@
 
 import { AlertCircle, RefreshCw } from "lucide-react";
 
+import { ActiveDelivery } from "@/components/courier/active-delivery";
 import { AppHeader } from "@/components/courier/app-header";
 import { OnlineToggle } from "@/components/courier/online-toggle";
 import { WaitingCard } from "@/components/courier/waiting-card";
@@ -47,11 +48,12 @@ function HomeContent() {
             <OnlineToggle courier={courier.data} />
             <WaitingCard />
           </div>
+        ) : assignment.data ? (
+          <ActiveDelivery assignment={assignment.data} />
         ) : (
-          <ActiveDeliveryPlaceholder
-            orderId={assignment.data?.orderId}
-            merchantName={assignment.data?.pickup.merchantName}
-          />
+          // Busy en el courier pero el poll todavia no devolvio el snapshot
+          // (carrera muy corta entre status flip y proxima vuelta). Spinner.
+          <WaitingCard />
         )}
       </main>
     </>
@@ -81,32 +83,6 @@ function HomeLoading({ error, onRetry }: { error: unknown; onRetry: () => void }
         ) : null}
       </main>
     </>
-  );
-}
-
-function ActiveDeliveryPlaceholder({
-  orderId,
-  merchantName,
-}: {
-  orderId: string | undefined;
-  merchantName: string | undefined;
-}) {
-  // Contenido real (mapa + panel + acciones "Recogi"/"Entregue") llega en el
-  // commit 6. Aqui confirmamos que el poll funciona y llegamos al Busy branch
-  // con datos del snapshot enriquecido de Fase 13.6.
-  return (
-    <div className="mx-auto w-full max-w-[600px] rounded-2xl border border-brand-200 bg-brand-50 p-6 text-center">
-      <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">Pedido activo</p>
-      <p className="mt-2 text-lg font-bold text-foreground">
-        {merchantName ? `Recoger en ${merchantName}` : "Asignacion en curso"}
-      </p>
-      {orderId ? (
-        <p className="mt-1 text-xs text-muted-foreground">orderId: {orderId}</p>
-      ) : null}
-      <p className="mt-4 text-sm text-muted-foreground">
-        La pantalla completa de entrega (mapa + direcciones + acciones) se conecta en el siguiente commit.
-      </p>
-    </div>
   );
 }
 
