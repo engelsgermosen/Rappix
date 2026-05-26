@@ -17,6 +17,25 @@ export type ProblemDetails = {
   [key: string]: unknown;
 };
 
+// -------- Pagination ----------------------------------------------------
+
+/**
+ * Espejo de `Rappix.BuildingBlocks.Core.Pagination.PagedResult<T>` — el backend
+ * SIEMPRE envuelve listas paginadas en este shape (NO devuelve arrays desnudos).
+ * Histórico: clientes que tipaban `Promise<T[]>` (mintiendo) provocaban runtime
+ * crashes al hacer `.filter/.map/.length` sobre el wrapper. Se corrigió y ahora
+ * cada caller desempaca explicitamente `result.items`.
+ */
+export type PagedResult<T> = {
+  items: T[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+};
+
 // -------- Identity ------------------------------------------------------
 
 export type AccountType = "Customer" | "Merchant" | "Courier" | "Admin";
