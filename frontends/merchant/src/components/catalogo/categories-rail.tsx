@@ -26,10 +26,16 @@ export function CategoriesRail({
   const queryClient = useQueryClient();
   const [newName, setNewName] = useState("");
 
+  // addCategory devuelve solo la CategoryResponse creada, NO el catalogo entero.
+  // removeCategory no devuelve body. En ambos casos pisar el cache con `data`
+  // corrompe la query ["catalog","me"] (esperaba CatalogResponse con .categories).
+  // Por eso invalidamos para forzar un refetch fresco del catalogo. Tambien
+  // invalidamos los items porque una categoria eliminada deja items huerfanos
+  // que el rail muestra bajo "Sin categoria" — el contador debe refrescarse.
   const add = useMutation({
     mutationFn: () => addCategory({ name: newName.trim(), sortOrder: (catalog.categories.length + 1) * 10 }),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["catalog", "me"], data);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["catalog", "me"] });
       setNewName("");
       toast.success("Categoría creada.");
     },
@@ -38,23 +44,31 @@ export function CategoriesRail({
 
   const remove = useMutation({
     mutationFn: (categoryId: string) => removeCategory(categoryId),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["catalog", "me"], data);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["catalog", "me"] });
+      queryClient.invalidateQueries({ queryKey: ["catalog", "me", "items"] });
       toast.success("Categoría eliminada.");
     },
     onError: (err) => toast.error(describeError(err)),
   });
 
+  // Defensa en profundidad: aunque el caller ya desempaca PagedResult.items y pasa
+  // un array, normalizamos aqui tambien. El bug original "items.filter is not a
+  // function" venia de un caller que pasaba el wrapper { items, page, ... }
+  // directamente — esta linea garantiza que ningun futuro caller equivocado
+  // vuelva a romper este componente.
+  const safeItems: ItemResponse[] = Array.isArray(items) ? items : [];
+
   function countFor(c: CategoryResponse) {
-    return items.filter((it) => it.categoryId === c.id).length;
+    return safeItems.filter((it) => it.categoryId === c.id).length;
   }
 
   function totalCount() {
-    return items.length;
+    return safeItems.length;
   }
 
   function uncategorizedCount() {
-    return items.filter((it) => !it.categoryId).length;
+    return safeItems.filter((it) => !it.categoryId).length;
   }
 
   return (

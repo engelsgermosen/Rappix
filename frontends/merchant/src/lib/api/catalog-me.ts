@@ -11,9 +11,11 @@ import type {
   AddModifierRequest,
   AdjustStockRequest,
   CatalogResponse,
+  CategoryResponse,
   CreateCategoryRequest,
   CreateItemRequest,
   ItemResponse,
+  PagedResult,
   SetAvailabilityRequest,
   SetItemAttributesRequest,
   StockResponse,
@@ -25,18 +27,34 @@ export function getMyCatalog(): Promise<CatalogResponse> {
   return apiFetch<CatalogResponse>("/api/v1/catalog/me/");
 }
 
-/** POST /api/v1/catalog/me/categories. */
-export function addCategory(req: CreateCategoryRequest): Promise<CatalogResponse> {
-  return apiFetch<CatalogResponse>("/api/v1/catalog/me/categories", {
+/**
+ * POST /api/v1/catalog/me/categories.
+ *
+ * Devuelve solo la categoria creada — `Result<CategoryResponse>` en el backend
+ * (NO el catalogo completo). Antes este caller mentia con `Promise<CatalogResponse>`
+ * y el componente caller hacia `queryClient.setQueryData(["catalog","me"], data)`,
+ * pisando el cache del catalogo con `{id,name,sortOrder}` y rompiendo cualquier
+ * `catalog.data.categories.length/map/find` posterior. Ahora el caller debe
+ * invalidar la query (`["catalog","me"]`) para forzar un refetch.
+ */
+export function addCategory(req: CreateCategoryRequest): Promise<CategoryResponse> {
+  return apiFetch<CategoryResponse>("/api/v1/catalog/me/categories", {
     method: "POST",
     json: req,
     idempotencyKey: newIdempotencyKey(),
   });
 }
 
-/** DELETE /api/v1/catalog/me/categories/{id}. */
-export function removeCategory(categoryId: string): Promise<CatalogResponse> {
-  return apiFetch<CatalogResponse>(`/api/v1/catalog/me/categories/${categoryId}`, {
+/**
+ * DELETE /api/v1/catalog/me/categories/{id}.
+ *
+ * No devuelve body — `Result` (void) en el backend. Antes mentia con
+ * `Promise<CatalogResponse>` y el caller hacia `setQueryData(data)` con
+ * `undefined`, dejando el cache del catalogo en estado invalido. El caller
+ * debe invalidar `["catalog","me"]` para refrescar la lista de categorias.
+ */
+export function removeCategory(categoryId: string): Promise<void> {
+  return apiFetch<void>(`/api/v1/catalog/me/categories/${categoryId}`, {
     method: "DELETE",
     idempotencyKey: newIdempotencyKey(),
   });
@@ -51,13 +69,22 @@ export function createItem(req: CreateItemRequest): Promise<ItemResponse> {
   });
 }
 
-/** GET /api/v1/catalog/me/items?... */
+/**
+ * GET /api/v1/catalog/me/items?...
+ *
+ * Devuelve un PagedResult — el backend SIEMPRE envuelve la lista en
+ * `{ items, page, pageSize, totalCount, totalPages, hasPrevious, hasNext }`.
+ * Antes la firma decia `Promise<ItemResponse[]>` (mintiendo) y el caller
+ * pasaba el wrapper directamente al UI provocando `items.filter is not a
+ * function` en componentes que esperaban un array. Ahora la firma refleja
+ * la verdad y el caller debe desempacar `.items`.
+ */
 export function listMyItems(params: {
   categoryId?: string | null;
   page?: number;
   pageSize?: number;
-}): Promise<ItemResponse[]> {
-  return apiFetch<ItemResponse[]>(
+}): Promise<PagedResult<ItemResponse>> {
+  return apiFetch<PagedResult<ItemResponse>>(
     withQuery("/api/v1/catalog/me/items", {
       categoryId: params.categoryId ?? null,
       page: params.page ?? 1,
