@@ -30,12 +30,18 @@ export default function CatalogoPage() {
     staleTime: 30_000,
   });
 
+  // El backend devuelve PagedResult<ItemResponse> = { items, page, pageSize, ... } —
+  // SIEMPRE desempacar `.items` antes de pasar a componentes que esperan array.
+  // Antes este caller hacia `items.data ?? []` y pasaba el wrapper como prop,
+  // crasheando `<CategoriesRail>` con "items.filter is not a function".
+  // useMemo para estabilizar la referencia y no recalcular `filtered` en cada render.
+  const itemsList = useMemo(() => items.data?.items ?? [], [items.data]);
+
   const filtered = useMemo(() => {
-    const list = items.data ?? [];
-    if (selectedCategoryId === "all") return list;
-    if (selectedCategoryId === "") return list.filter((i) => !i.categoryId);
-    return list.filter((i) => i.categoryId === selectedCategoryId);
-  }, [items.data, selectedCategoryId]);
+    if (selectedCategoryId === "all") return itemsList;
+    if (selectedCategoryId === "") return itemsList.filter((i) => !i.categoryId);
+    return itemsList.filter((i) => i.categoryId === selectedCategoryId);
+  }, [itemsList, selectedCategoryId]);
 
   // The catalog row only exists after the merchant is Active. If we get a 404,
   // show a friendly empty-state instead of an error banner.
@@ -58,6 +64,15 @@ export default function CatalogoPage() {
     );
   }
 
+  // Estado completamente vacio (comercio recien aprobado): banner amable arriba del grid
+  // guiando al merchant a crear su primera categoria + producto. Las columnas debajo
+  // siguen funcionales (CategoriesRail tiene el form para agregar categoria, ItemsTable
+  // muestra "No hay productos") — el banner solo agrega contexto, no reemplaza el UI.
+  const isEmptyCatalog = !!catalog.data
+    && catalog.data.categories.length === 0
+    && !items.isPending
+    && itemsList.length === 0;
+
   return (
     <section className="px-8 py-8">
       <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
@@ -67,11 +82,21 @@ export default function CatalogoPage() {
         </div>
       </header>
 
+      {isEmptyCatalog ? (
+        <Card className="mb-6 border-brand-100 bg-brand-50/40 px-6 py-5">
+          <h2 className="text-base font-semibold text-brand-700">Empieza tu catálogo</h2>
+          <p className="mt-1 text-sm text-foreground/80">
+            Aún no tienes categorías ni productos. Crea una categoría a la izquierda
+            (por ejemplo, "Pizzas") y luego usa <span className="font-semibold">Añadir producto</span> para tu primer item.
+          </p>
+        </Card>
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-[280px,1fr]">
         {catalog.data ? (
           <CategoriesRail
             catalog={catalog.data}
-            items={items.data ?? []}
+            items={itemsList}
             selectedCategoryId={selectedCategoryId}
             onSelectCategory={setSelectedCategoryId}
           />
