@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  /* Courier login hero — mismo gradient morado-coral del brand */
+  .hero-courier {
+    background: linear-gradient(135deg, #534AB7 0%, #6E47C8 45%, #D85A30 100%);
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .skeleton {
+    @apply animate-pulse bg-muted/80 rounded-md;
+  }
+
+  /* Boton gigante (>=64px) usado en el toggle Online/Offline y la accion Entregar.
+     Diseno hecho para usar en la calle, al sol, con guantes. */
+  .btn-giant {
+    @apply h-16 text-lg font-semibold rounded-xl shadow-sm transition-all active:scale-[0.98];
+  }
+}
