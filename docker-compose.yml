@@ -541,8 +541,10 @@ services:
       Jwt__Audience: rappix
       # Misma clave que Identity y los otros 8 servicios — para validar tokens en el gateway.
       Jwt__SigningKey: "${IDENTITY_JWT_SIGNINGKEY:?Define IDENTITY_JWT_SIGNINGKEY en .env}"
-      # Origenes permitidos para CORS en produccion (dev frontend Next.js). Subir mas si hace falta.
-      Cors__AllowedOrigins__0: "http://localhost:3000"
+      # Origenes permitidos para CORS en produccion (dev frontend Next.js).
+      Cors__AllowedOrigins__0: "http://localhost:3000"   # customer-web
+      Cors__AllowedOrigins__1: "http://localhost:3001"   # merchant-web
+      Cors__AllowedOrigins__2: "http://localhost:3002"   # courier-web
     ports:
       - "5000:8080"   # entry point publico (REST + WebSocket upgrade /hubs/tracking)
     depends_on:
@@ -556,6 +558,70 @@ services:
       payments-api:      { condition: service_started }
       notifications-api: { condition: service_started }
       seq:               { condition: service_started }
+    networks:
+      - rappix-net
+
+  # ──────────────────────────────────────────────────────────────
+  # Frontends Next.js. Build context propio (frontends/<app>), no la raiz del repo.
+  # NEXT_PUBLIC_* se inlinea en build time (build args): la URL del gateway debe ser la
+  # alcanzable desde el NAVEGADOR (localhost:5000), no el hostname interno de Docker.
+  # Puertos de host alineados a los scripts `pnpm dev` locales de cada app.
+  # ──────────────────────────────────────────────────────────────
+  customer-web:
+    build:
+      context: ./frontends/customer
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: "http://localhost:5000"
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "${CUSTOMER_STRIPE_PUBLISHABLE_KEY:-}"
+        NEXT_PUBLIC_DEFAULT_LAT: "18.4719"
+        NEXT_PUBLIC_DEFAULT_LNG: "-69.9000"
+        NEXT_PUBLIC_DEFAULT_DISTANCE_KM: "2.5"
+    container_name: rappix-customer-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      gateway-api:
+        condition: service_started
+    networks:
+      - rappix-net
+
+  merchant-web:
+    build:
+      context: ./frontends/merchant
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: "http://localhost:5000"
+        NEXT_PUBLIC_DEFAULT_LAT: "18.4719"
+        NEXT_PUBLIC_DEFAULT_LNG: "-69.9000"
+    container_name: rappix-merchant-web
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    depends_on:
+      gateway-api:
+        condition: service_started
+    networks:
+      - rappix-net
+
+  courier-web:
+    build:
+      context: ./frontends/courier
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: "http://localhost:5000"
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: "${COURIER_GOOGLE_MAPS_API_KEY:-}"
+        NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: "${COURIER_GOOGLE_MAPS_MAP_ID:-}"
+        NEXT_PUBLIC_DEFAULT_LAT: "18.4719"
+        NEXT_PUBLIC_DEFAULT_LNG: "-69.9000"
+    container_name: rappix-courier-web
+    restart: unless-stopped
+    ports:
+      - "3002:3000"
+    depends_on:
+      gateway-api:
+        condition: service_started
     networks:
       - rappix-net
 
