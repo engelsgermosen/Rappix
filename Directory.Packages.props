@@ -79,13 +79,21 @@
     <PackageVersion Include="Serilog.Enrichers.Environment" Version="3.0.1" />
     <PackageVersion Include="Serilog.Enrichers.CorrelationId" Version="3.0.1" />
     <!-- OpenTelemetry 1.15.3+: resuelve CVE-2025-27513 (OpenTelemetry.Api <1.11.2) y
-         CVE-2026-42191 (OpenTelemetry.Exporter.OpenTelemetryProtocol <1.15.3). Versiones
-         exigidas tambien por la dependencia transitiva WireMock.Net 2.6.0 (Fase 10). -->
-    <PackageVersion Include="OpenTelemetry.Api" Version="1.15.3" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.3" />
-    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
+         CVE-2026-42191 (OpenTelemetry.Exporter.OpenTelemetryProtocol <1.15.3). Piso minimo exigido
+         tambien por la dependencia transitiva WireMock.Net 2.6.0 (Fase 10). Subido a 1.16.0 (lockstep
+         Api/Extensions.Hosting/Exporter/Instrumentation.AspNetCore+Http) al agregar instrumentacion
+         real (Fase Observabilidad, Orders): AspNetCore 1.15.2 exige Api >=1.16.0 transitivamente. -->
+    <PackageVersion Include="OpenTelemetry.Api" Version="1.16.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.16.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.16.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.16.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.16.0-beta.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.16.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.StackExchangeRedis" Version="1.16.0-beta.1" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.16.0" />
+    <!-- Puente Serilog -> OTLP: logs correlacionados por TraceId en el mismo backend que trazas/metricas.
+         No reemplaza Console/Seq, se agrega como sink adicional. -->
+    <PackageVersion Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
   </ItemGroup>
 
   <ItemGroup Label="Real-time / gRPC">
@@ -95,10 +103,12 @@
          (single instance, sin backplane). -->
     <PackageVersion Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="10.0.0" />
     <PackageVersion Include="Grpc.AspNetCore" Version="2.67.0" />
-    <PackageVersion Include="Grpc.Net.Client" Version="2.67.0" />
+    <!-- 2.70.0: piso minimo exigido por Serilog.Sinks.OpenTelemetry 4.2.0 (export OTLP via gRPC). -->
+    <PackageVersion Include="Grpc.Net.Client" Version="2.70.0" />
     <!-- AddGrpcClient (fabrica de clientes gRPC) para el cliente del servicio Merchants (Catalog, Fase 3). -->
     <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.67.0" />
-    <PackageVersion Include="Google.Protobuf" Version="3.29.1" />
+    <!-- 3.30.1: piso minimo exigido por Serilog.Sinks.OpenTelemetry 4.2.0 (export OTLP via gRPC). -->
+    <PackageVersion Include="Google.Protobuf" Version="3.30.1" />
     <PackageVersion Include="Grpc.Tools" Version="2.68.1" />
   </ItemGroup>
 

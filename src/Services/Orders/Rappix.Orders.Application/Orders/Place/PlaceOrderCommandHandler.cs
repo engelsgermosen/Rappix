@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using MediatR;
 using Rappix.BuildingBlocks.Core.Results;
 using Rappix.BuildingBlocks.Core.Time;
 using Rappix.Orders.Application.Abstractions;
+using Rappix.Orders.Application.Observability;
 using Rappix.Orders.Application.Responses;
 using Rappix.Orders.Domain.Common;
 using Rappix.Orders.Domain.Errors;
@@ -24,6 +26,23 @@ internal sealed class PlaceOrderCommandHandler(
 {
     public async Task<Result<OrderResponse>> Handle(PlaceOrderCommand command, CancellationToken cancellationToken)
     {
+        using Activity? activity = OrdersTelemetry.ActivitySource.StartActivity("PlaceOrder");
+        activity?.SetTag("rappix.customer_user_id", command.CustomerUserId);
+
+        try
+        {
+            return await HandleInternal(command, activity, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            activity?.AddException(ex);
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            throw;
+        }
+    }
+
+    private async Task<Result<OrderResponse>> HandleInternal(PlaceOrderCommand command, Activity? activity, CancellationToken cancellationToken)
+    {
         Result<DeliveryAddress> address = DeliveryAddress.Create(command.Street, command.Reference, command.Latitude, command.Longitude);
         if (address.IsFailure)
         {
@@ -44,6 +63,8 @@ internal sealed class PlaceOrderCommandHandler(
         // Resolver el dueno del merchant para persistirlo en el pedido (autoriza accept/reject del merchant).
         // Tambien congela el pickup (ubicacion fisica) para que la saga lo propague a Dispatch en
         // CourierRequestedIntegrationEvent (Fase 6). Sin pickup el pedido no es enviable.
+        activity?.SetTag("rappix.merchant_id", quote.MerchantId);
+
         MerchantInfo merchant = await merchants.GetAsync(quote.MerchantId, cancellationToken);
         if (!merchant.ServiceAvailable || !merchant.Found)
         {
@@ -94,6 +115,9 @@ internal sealed class PlaceOrderCommandHandler(
 
         orders.Add(order.Value);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Solo cuenta una vez confirmada la persistencia (camino feliz real, no un intento).
+        OrdersTelemetry.OrdersPlaced.Add(1);
 
         return OrderResponse.From(order.Value);
     }
