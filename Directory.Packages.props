@@ -7,6 +7,9 @@
 
   <ItemGroup Label="ASP.NET Core / Web">
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+    <!-- Pin explicito: Microsoft.OpenApi 2.0.0 (transitivo de AspNetCore.OpenApi 10.0.0) trae
+         GHSA-v5pm-xwqc-g5wc (DoS por referencia circular de schema). Parchado en 2.7.5+. -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.7.5" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
     <!-- Scalar sirve la UI sobre el documento OpenAPI nativo de .NET 10 (Microsoft.OpenApi 2.0).
          Reemplaza a Swashbuckle, que esta compilado contra Microsoft.OpenApi 1.6 (ADR-0002). -->
@@ -63,6 +66,9 @@
     <!-- PostGIS via Npgsql NTS (ya en CPM). Microsoft.AspNetCore.Authorization NO se agrega (shared framework). -->
     <PackageVersion Include="NetTopologySuite.IO.GeoJSON" Version="4.0.0" />
     <PackageVersion Include="Minio" Version="6.0.4" />
+    <!-- 3.1.12 trae 5 CVEs (GHSA-gwg2-r3hj-4w44, j3p4-wp97-rph4, j9gm-c75j-xc9q, jjfr-hcj7-qf5w, wmxv-xphr-5c9g),
+         parchadas solo en 4.1.2+, pero 4.x exige licencia de pago SixLabors (ya no Apache 2.0 gratis).
+         Deuda de seguridad conocida, suprimida via NoWarn en Directory.Build.props (NU1902/NU1903). -->
     <PackageVersion Include="SixLabors.ImageSharp" Version="3.1.12" />
   </ItemGroup>
 
