@@ -7,7 +7,8 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors />
     <WarningsNotAsErrors>CS1591</WarningsNotAsErrors>
-    <NoWarn>$(NoWarn);CS1591;CA1000;CA1716;CA1305;CA2007;CA1848</NoWarn>
+    <!-- NU1902/NU1903: SixLabors.ImageSharp 3.1.12 tiene CVEs conocidos, parche solo en 4.x que exige licencia de pago. Deuda de seguridad aceptada a proposito, no oversight. -->
+    <NoWarn>$(NoWarn);CS1591;CA1000;CA1716;CA1305;CA2007;CA1848;NU1902;NU1903</NoWarn>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <AnalysisLevel>latest</AnalysisLevel>
