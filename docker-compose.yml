@@ -88,10 +88,9 @@ services:
   # Object storage S3-compatible para imágenes, comprobantes, etc.
   # ──────────────────────────────────────────────────────────────
   minio:
-    image: minio/minio:latest
+    image: rustfs/rustfs:latest
     container_name: rappix-minio
     restart: unless-stopped
-    command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: rappix
       MINIO_ROOT_PASSWORD: rappix_minio_2026
