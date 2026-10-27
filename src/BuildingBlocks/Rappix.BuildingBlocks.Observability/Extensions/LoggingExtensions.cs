@@ -1,8 +1,10 @@
+using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Events;
+using Serilog.Sinks.OpenTelemetry;
 
 namespace Rappix.BuildingBlocks.Observability.Extensions;
 
@@ -17,6 +19,8 @@ public static class LoggingExtensions
         return hostBuilder.UseSerilog((context, services, configuration) =>
         {
             var seqUrl = context.Configuration["Seq:ServerUrl"] ?? "http://localhost:5341";
+            var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT") ?? "http://localhost:18889";
+            var serviceVersion = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "unknown";
 
             // El nivel de MassTransit es configurable via Logging:LogLevel:MassTransit (mismos nombres que MEL).
             // Default Information (comportamiento previo); en Development se sube a Debug para ver el movimiento
@@ -39,7 +43,20 @@ public static class LoggingExtensions
                 .MinimumLevel.Override("MassTransit", massTransitLevel)
                 .WriteTo.Console(outputTemplate:
                     "[{Timestamp:HH:mm:ss} {Level:u3}] [{Service}] {Message:lj} {Properties:j}{NewLine}{Exception}")
-                .WriteTo.Seq(seqUrl);
+                .WriteTo.Seq(seqUrl)
+                // Sink adicional (no reemplaza Console/Seq): exporta los mismos logs por OTLP para que el
+                // dashboard los correlacione por TraceId con las trazas de la request.
+                .WriteTo.OpenTelemetry(options =>
+                {
+                    options.Endpoint = otlpEndpoint;
+                    options.Protocol = OtlpProtocol.Grpc;
+                    options.ResourceAttributes = new Dictionary<string, object>
+                    {
+                        ["service.name"] = serviceName,
+                        ["service.version"] = serviceVersion,
+                        ["deployment.environment"] = context.HostingEnvironment.EnvironmentName,
+                    };
+                });
         });
     }
 

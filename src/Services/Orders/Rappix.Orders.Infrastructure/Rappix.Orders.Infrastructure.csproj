@@ -20,6 +20,8 @@
     <PackageReference Include="Quartz.Serialization.Json" />
     <!-- Cache distribuida para la idempotencia del middleware REST (Redis en prod, memoria en dev/tests). -->
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
+    <!-- IConnectionMultiplexer explicito: compartido entre el cache y la instrumentacion OpenTelemetry de Redis. -->
+    <PackageReference Include="StackExchange.Redis" />
     <!-- Clientes gRPC a Pricing y Catalog (reserva) con resiliencia (retry + circuit breaker). -->
     <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Grpc.Net.ClientFactory" />

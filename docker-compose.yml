@@ -109,6 +109,22 @@ services:
       - rappix-net
 
   # ──────────────────────────────────────────────────────────────
+  # Aspire Dashboard standalone: visualiza trazas/metricas/logs OTLP en local.
+  # Solo dev local: auth anonima (sin login) via DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS.
+  # ──────────────────────────────────────────────────────────────
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:latest
+    container_name: rappix-aspire-dashboard
+    restart: unless-stopped
+    environment:
+      DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
+    ports:
+      - "18888:18888" # UI
+      - "18889:18889" # OTLP gRPC (receptor)
+    networks:
+      - rappix-net
+
+  # ──────────────────────────────────────────────────────────────
   # Identity Service (Fase 1). Los secretos se inyectan desde .env.
   # ──────────────────────────────────────────────────────────────
   identity-api:
@@ -329,6 +345,8 @@ services:
       # clave para diagnosticar la saga. (appsettings.Development.json esta gitignored, por eso se fija aqui.)
       Logging__LogLevel__MassTransit: "Debug"
       Orders__Timeouts__Merchant: "00:05:00"
+      # OpenTelemetry (piloto de observabilidad, Orders): OTLP gRPC al Aspire Dashboard local.
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://aspire-dashboard:18889"
     ports:
       - "5005:8080" # REST
       - "5015:8081" # HTTP/2 (gRPC interno futuro)
@@ -340,6 +358,8 @@ services:
       rabbitmq:
         condition: service_healthy
       seq:
+        condition: service_started
+      aspire-dashboard:
         condition: service_started
       catalog-api:
         condition: service_started

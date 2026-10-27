@@ -20,6 +20,7 @@ using Scalar.AspNetCore;
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseRappixLogging("orders");
+builder.AddRappixObservability("orders", instrumentRedis: true);
 
 // Dos endpoints Kestrel cleartext: 8080 = REST (HTTP/1.1), 8081 = HTTP/2 (reservado para gRPC interno
 // futuro, p. ej. OrderService.GetOrderStatus). Puertos separados por ADR-0003.

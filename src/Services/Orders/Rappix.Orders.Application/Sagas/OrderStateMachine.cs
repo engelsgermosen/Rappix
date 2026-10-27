@@ -5,6 +5,7 @@ using Rappix.Contracts.Dispatch;
 using Rappix.Contracts.Orders;
 using Rappix.Contracts.Payments;
 using Rappix.Orders.Application.Configuration;
+using Rappix.Orders.Application.Observability;
 using Rappix.Orders.Application.Sagas.Messages;
 using Rappix.Orders.Domain.Orders;
 
@@ -174,6 +175,7 @@ public sealed class OrderStateMachine : MassTransitStateMachine<OrderState>
             When(OrderDelivered)
                 .Publish(context => new OrderStatusChanged(context.Saga.CorrelationId, OrderStatus.Completed, DateTime.UtcNow, null))
                 .Publish(context => new OrderCompletedIntegrationEvent { OrderId = context.Saga.CorrelationId, CustomerUserId = context.Saga.CustomerUserId, MerchantId = context.Saga.MerchantId, CompletedAtUtc = DateTime.UtcNow })
+                .Then(_ => OrdersTelemetry.OrdersCompleted.Add(1))
                 .TransitionTo(Completed));
 
         During(CompensatingStock,
