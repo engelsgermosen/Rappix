@@ -16,6 +16,7 @@
     <PackageReference Include="MassTransit.EntityFrameworkCore" />
     <!-- Cache distribuida para la idempotencia del middleware REST (Redis en prod, memoria en dev/tests). -->
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
+    <PackageReference Include="StackExchange.Redis" />
     <!-- Clientes gRPC a Catalog (precios) y Merchants (validacion) con resiliencia (retry + circuit breaker). -->
     <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Grpc.Net.ClientFactory" />
