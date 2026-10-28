@@ -18,6 +18,7 @@ using Rappix.Gateway.Api.OpenApi;
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseRappixLogging("gateway");
+builder.AddRappixObservability("gateway");
 
 // Manejo global de excepciones (ProblemDetails RFC 7807) — patron identico a los 9 servicios.
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

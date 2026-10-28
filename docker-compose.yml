@@ -587,6 +587,8 @@ services:
       Cors__AllowedOrigins__0: "http://localhost:3000"   # customer-web
       Cors__AllowedOrigins__1: "http://localhost:3001"   # merchant-web
       Cors__AllowedOrigins__2: "http://localhost:3002"   # courier-web
+      # OpenTelemetry: OTLP gRPC al Aspire Dashboard local (la traza de cada request empieza aqui).
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://aspire-dashboard:18889"
     ports:
       - "5000:8080"   # entry point publico (REST + WebSocket upgrade /hubs/tracking)
     depends_on:
@@ -600,6 +602,7 @@ services:
       payments-api:      { condition: service_started }
       notifications-api: { condition: service_started }
       seq:               { condition: service_started }
+      aspire-dashboard:  { condition: service_started }
     networks:
       - rappix-net
 
