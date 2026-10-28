@@ -23,17 +23,36 @@ Actualizado: 2026-10-28
 
 ## Infraestructura
 - [x] Healthchecks en el compose para servicios .NET y gateway (`/health`, gateway `/health/live`)
-- [ ] Healthchecks de los 3 frontends (Next.js no expone `/health`; habría que añadir una ruta o sondear `/`)
+- [x] Healthchecks de los 3 frontends (route handler `/api/health`, sondeado con node) y de Seq (`/health`)
+- [ ] Aspire Dashboard sin healthcheck: la imagen es distroless (sin shell, curl, wget ni node). Solo con un sidecar o una imagen propia
 - [ ] Actualizar Next.js (15.1.3 tiene avisos de seguridad); correr `pnpm audit` en los 3 frontends, en un cambio aparte
 
-## Observabilidad (piloto en Orders)
-- [ ] Validar el flujo completo: pedido desde `localhost:3000` y revisar Trazas, Métricas (`orders.placed`) y Logs en `localhost:18888`
+## Observabilidad
+- [x] Validar el flujo completo de un pedido hasta `Completed`: `tools/e2e-order-flow.sh` (vía gateway). Trazas de crear, aceptar, ubicación y entrega relacionadas en Aspire; la revisión visual queda en "Verificaciones manuales mías"
 - [x] Filtrar el span de telemetría sobre telemetría (`opentelemetry.proto.collector.logs.v1.LogsService/Export`)
 - [x] Instrumentar el gateway: `builder.AddRappixObservability("gateway")`, para que la traza empiece en la entrada
 - [x] Instrumentar Pricing (Orders lo llama por gRPC) y luego Catalog y Merchants
+- [x] Instrumentar Identity, Dispatch (con Redis), Tracking (más la fuente SignalR), Payments y Notifications: los 9 servicios y el gateway quedan con OTel
+- [x] Redis instrumentado en Pricing y Merchants (patrón de Orders: `IConnectionMultiplexer` compartido con el cache)
+- [x] TraceId y SpanId en los logs de consola (`UseRappixLogging`)
 - [ ] Unificar `X-Correlation-Id` con `Activity.Current.TraceId` en `CorrelationIdMiddleware`
 - [ ] Quartz: `OpenTelemetry.Instrumentation.Quartz` si los jobs importan
 - [ ] Producción: sampler `ParentBased(TraceIdRatioBased)` y OpenTelemetry Collector delante del backend
 
 ## Repositorio
-- [ ] Ordenar ramas: commits separados (OTel/Orders y frontends/Docker), PRs a main, merge y borrado de ramas, con tags de respaldo
+- [x] Ordenar ramas: PRs a main con merge commit, borrado de ramas mergeadas y tags `backup/*` de respaldo
+
+## Hallazgos del flujo E2E (sin tocar lógica de negocio)
+- [ ] `frontends/COURIER_API_MAP.md` está desactualizado: dice que el courier no puede marcar la entrega, pero existe `POST /api/v1/couriers/me/current-assignment/delivered` (es lo que usa `tools/e2e-order-flow.sh`). Revisar también los otros API maps
+- [ ] El seam temporal `POST /api/v1/orders/{id}/mark-delivered` sigue expuesto y **no comprueba ownership** (cualquier usuario autenticado puede completar cualquier pedido). Ya no hace falta para llegar a `Completed`: decidir si se elimina
+- [ ] La saga no tiene estados intermedios de preparación ni de recogida (Preparing/PickedUp/InTransit); Tracking salta de `CourierAssigned` a `Delivered`. Follow-up de ADR-0008
+
+## Verificaciones manuales mías
+- [ ] Aceptar la licencia de Xcode: `sudo xcodebuild -license` (mientras tanto git funciona con `DEVELOPER_DIR=/Library/Developer/CommandLineTools`)
+- [ ] Revisar visualmente en Aspire (http://localhost:18888) la traza de un pedido vía gateway y la métrica `orders.placed` (recurso `orders`)
+- [ ] Comprobar en Aspire que `orders.completed` sube tras `tools/e2e-order-flow.sh` (el contador se incrementa en la transición a `Completed`; Aspire no tiene API de métricas)
+- [ ] Borrar los tags `backup/*` cuando confirme que main está bien
+- [ ] Probar `tools/seed-smoke.sh` desde base vacía la próxima vez que reinicie el entorno desde cero (requiere `docker compose down -v`, lo decido yo)
+- [ ] Revisar y limpiar la zona de cobertura duplicada de "Tienda Smoke" y los pedidos de prueba
+- [ ] Configurar claves de terceros (Google Maps, Stripe, SendGrid, Google OAuth) y restringir la key de Maps por HTTP referrer
+- [ ] Rotar credenciales de RabbitMQ/MinIO si se expone fuera de local
