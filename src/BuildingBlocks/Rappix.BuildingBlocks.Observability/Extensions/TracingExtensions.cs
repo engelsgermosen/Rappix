@@ -49,6 +49,8 @@ public static class TracingExtensions
                     .AddSource(serviceName)
                     .AddSource("MassTransit")
                     .AddSource("Npgsql")
+                    // Invocaciones de hubs SignalR (Tracking); sin hubs, la fuente no emite nada.
+                    .AddSource("Microsoft.AspNetCore.SignalR.Server")
                     .AddAspNetCoreInstrumentation(options =>
                         options.Filter = httpContext => !httpContext.Request.Path.StartsWithSegments("/health"))
                     .AddHttpClientInstrumentation(options =>

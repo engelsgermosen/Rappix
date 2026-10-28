@@ -41,8 +41,10 @@ public static class LoggingExtensions
                 .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
                 .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
                 .MinimumLevel.Override("MassTransit", massTransitLevel)
+                // {TraceId}/{SpanId}: propiedades integradas de Serilog 4 (Activity.Current al emitir el
+                // evento); vacias fuera de una traza. Solo afecta a la consola: Seq y OTLP ya las reciben.
                 .WriteTo.Console(outputTemplate:
-                    "[{Timestamp:HH:mm:ss} {Level:u3}] [{Service}] {Message:lj} {Properties:j}{NewLine}{Exception}")
+                    "[{Timestamp:HH:mm:ss} {Level:u3}] [{Service}] [{TraceId} {SpanId}] {Message:lj} {Properties:j}{NewLine}{Exception}")
                 .WriteTo.Seq(seqUrl)
                 // Sink adicional (no reemplaza Console/Seq): exporta los mismos logs por OTLP para que el
                 // dashboard los correlacione por TraceId con las trazas de la request.

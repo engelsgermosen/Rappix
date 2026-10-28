@@ -20,6 +20,7 @@ using Scalar.AspNetCore;
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseRappixLogging("dispatch");
+builder.AddRappixObservability("dispatch", instrumentRedis: true);
 
 // Dos endpoints Kestrel cleartext: 8080 = REST (HTTP/1.1), 8081 = HTTP/2 cleartext (reservado
 // para Fase 7 Tracking — Dispatch no expone servicios gRPC en Fase 6). HTTP/2 sin TLS no negocia
