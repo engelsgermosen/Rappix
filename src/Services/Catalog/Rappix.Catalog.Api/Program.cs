@@ -19,6 +19,7 @@ using Scalar.AspNetCore;
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseRappixLogging("catalog");
+builder.AddRappixObservability("catalog");
 
 // Dos endpoints Kestrel cleartext: 8080 = REST (HTTP/1.1), 8081 = gRPC (HTTP/2 h2c). HTTP/2 sin TLS
 // no negocia con HTTP/1.1 en el mismo puerto, por eso van separados (ADR-0003). No usar ASPNETCORE_URLS.
