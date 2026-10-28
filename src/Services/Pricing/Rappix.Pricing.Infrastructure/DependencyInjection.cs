@@ -11,6 +11,7 @@ using Rappix.Pricing.Infrastructure.Grpc.Merchants;
 using Rappix.Pricing.Infrastructure.Messaging;
 using Rappix.Pricing.Infrastructure.Persistence;
 using Rappix.Pricing.Infrastructure.Persistence.Repositories;
+using StackExchange.Redis;
 
 namespace Rappix.Pricing.Infrastructure;
 
@@ -50,7 +51,14 @@ public static class DependencyInjection
         }
         else
         {
-            services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
+            // Una sola instancia (lazy) de IConnectionMultiplexer, compartida entre el cache (via
+            // ConnectionMultiplexerFactory) y la instrumentacion OpenTelemetry de Redis
+            // (AddRedisInstrumentation la resuelve del contenedor). AddSingleton por si solo no alcanza:
+            // AddStackExchangeRedisCache no la toma del DI, hay que pasarle la misma instancia explicitamente.
+            var multiplexer = new Lazy<IConnectionMultiplexer>(() => ConnectionMultiplexer.Connect(redisConnection));
+            services.AddSingleton(_ => multiplexer.Value);
+            services.AddStackExchangeRedisCache(options =>
+                options.ConnectionMultiplexerFactory = () => Task.FromResult(multiplexer.Value));
         }
     }
 
