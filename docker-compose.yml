@@ -212,6 +212,8 @@ services:
       Minio__SecretKey: rappix_minio_2026
       Minio__Bucket: merchants-logos
       Minio__UseSsl: "false"
+      # OpenTelemetry: OTLP gRPC al Aspire Dashboard local.
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://aspire-dashboard:18889"
     ports:
       - "5002:8080" # REST
       - "5012:8081" # gRPC (h2c)
@@ -223,6 +225,8 @@ services:
       rabbitmq:
         condition: service_healthy
       seq:
+        condition: service_started
+      aspire-dashboard:
         condition: service_started
       minio:
         condition: service_healthy
@@ -263,6 +267,8 @@ services:
       Minio__SecretKey: rappix_minio_2026
       Minio__Bucket: catalog-items
       Minio__UseSsl: "false"
+      # OpenTelemetry: OTLP gRPC al Aspire Dashboard local.
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://aspire-dashboard:18889"
     ports:
       - "5003:8080" # REST
       - "5013:8081" # gRPC (h2c)
@@ -274,6 +280,8 @@ services:
       rabbitmq:
         condition: service_healthy
       seq:
+        condition: service_started
+      aspire-dashboard:
         condition: service_started
       minio:
         condition: service_healthy
@@ -310,6 +318,8 @@ services:
       # Clientes gRPC por nombre de servicio en la red de Docker.
       Grpc__CatalogUrl: "http://catalog-api:8081"
       Grpc__MerchantsUrl: "http://merchants-api:8081"
+      # OpenTelemetry: OTLP gRPC al Aspire Dashboard local.
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://aspire-dashboard:18889"
     ports:
       - "5004:8080" # REST
       - "5014:8081" # gRPC (h2c)
@@ -321,6 +331,8 @@ services:
       rabbitmq:
         condition: service_healthy
       seq:
+        condition: service_started
+      aspire-dashboard:
         condition: service_started
       catalog-api:
         condition: service_started
