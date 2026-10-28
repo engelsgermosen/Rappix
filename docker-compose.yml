@@ -1,5 +1,14 @@
 name: rappix
 
+# Healthcheck HTTP de los servicios .NET contra su /health propio. La imagen aspnet no trae curl/wget:
+# se usa bash + /dev/tcp. start_period cubre las migraciones EF al arrancar (~63s de reintentos maximo).
+x-dotnet-healthcheck: &dotnet-healthcheck
+  test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /health HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && head -1 <&3 | grep -q ' 200 '"]
+  interval: 15s
+  timeout: 5s
+  retries: 5
+  start_period: 90s
+
 services:
   # ──────────────────────────────────────────────────────────────
   # Base de datos relacional con extensión geoespacial
@@ -132,6 +141,7 @@ services:
       dockerfile: src/Services/Identity/Rappix.Identity.Api/Dockerfile
     container_name: rappix-identity
     restart: unless-stopped
+    healthcheck: *dotnet-healthcheck
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: "http://+:8080"
@@ -180,6 +190,7 @@ services:
       dockerfile: src/Services/Merchants/Rappix.Merchants.Api/Dockerfile
     container_name: rappix-merchants
     restart: unless-stopped
+    healthcheck: *dotnet-healthcheck
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       # No se define ASPNETCORE_URLS: los dos puertos (8080 REST, 8081 gRPC) van en codigo (ConfigureKestrel).
@@ -228,6 +239,7 @@ services:
       dockerfile: src/Services/Catalog/Rappix.Catalog.Api/Dockerfile
     container_name: rappix-catalog
     restart: unless-stopped
+    healthcheck: *dotnet-healthcheck
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       # No se define ASPNETCORE_URLS: los dos puertos (8080 REST, 8081 gRPC) van en codigo (ConfigureKestrel).
@@ -280,6 +292,7 @@ services:
       dockerfile: src/Services/Pricing/Rappix.Pricing.Api/Dockerfile
     container_name: rappix-pricing
     restart: unless-stopped
+    healthcheck: *dotnet-healthcheck
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       # No se define ASPNETCORE_URLS: los dos puertos (8080 REST, 8081 gRPC) van en codigo (ConfigureKestrel).
@@ -322,6 +335,7 @@ services:
       dockerfile: src/Services/Orders/Rappix.Orders.Api/Dockerfile
     container_name: rappix-orders
     restart: unless-stopped
+    healthcheck: *dotnet-healthcheck
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       # No se define ASPNETCORE_URLS: los dos puertos (8080 REST, 8081 HTTP/2) van en codigo (ConfigureKestrel).
@@ -379,6 +393,7 @@ services:
       dockerfile: src/Services/Dispatch/Rappix.Dispatch.Api/Dockerfile
     container_name: rappix-dispatch
     restart: unless-stopped
+    healthcheck: *dotnet-healthcheck
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       # No se define ASPNETCORE_URLS: los dos puertos (8080 REST, 8081 HTTP/2) van en codigo (ConfigureKestrel).
@@ -427,6 +442,7 @@ services:
       dockerfile: src/Services/Tracking/Rappix.Tracking.Api/Dockerfile
     container_name: rappix-tracking
     restart: unless-stopped
+    healthcheck: *dotnet-healthcheck
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       # No se define ASPNETCORE_URLS: los dos puertos (8080 REST+SignalR, 8081 HTTP/2) van en codigo.
@@ -470,6 +486,7 @@ services:
       dockerfile: src/Services/Payments/Rappix.Payments.Api/Dockerfile
     container_name: rappix-payments
     restart: unless-stopped
+    healthcheck: *dotnet-healthcheck
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       # No se define ASPNETCORE_URLS: los dos puertos (8080 REST+webhook, 8081 HTTP/2) van en codigo.
@@ -508,6 +525,7 @@ services:
       dockerfile: src/Services/Notifications/Rappix.Notifications.Api/Dockerfile
     container_name: rappix-notifications
     restart: unless-stopped
+    healthcheck: *dotnet-healthcheck
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__NotificationsDb: "Host=postgres;Port=5432;Database=rappix_notifications;Username=rappix;Password=rappix_dev_2026"
@@ -552,6 +570,11 @@ services:
       dockerfile: src/ApiGateway/Rappix.Gateway.Api/Dockerfile
     container_name: rappix-gateway
     restart: unless-stopped
+    healthcheck:
+      <<: *dotnet-healthcheck
+      # /health/live: liveness propio; /health agrega los 9 downstream y no debe tumbar al gateway.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /health/live HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && head -1 <&3 | grep -q ' 200 '"]
+      start_period: 30s
     environment:
       ASPNETCORE_ENVIRONMENT: Docker   # carga appsettings.Docker.json con destinos *-api:8080
       ASPNETCORE_URLS: "http://+:8080"
