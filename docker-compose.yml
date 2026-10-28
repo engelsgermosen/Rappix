@@ -9,6 +9,15 @@ x-dotnet-healthcheck: &dotnet-healthcheck
   retries: 5
   start_period: 90s
 
+# Healthcheck de los frontends Next.js contra /api/health (route handler propio). La imagen
+# node:alpine no trae curl: se sondea con node (fetch nativo).
+x-frontend-healthcheck: &frontend-healthcheck
+  test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+  interval: 15s
+  timeout: 5s
+  retries: 3
+  start_period: 20s
+
 services:
   # ──────────────────────────────────────────────────────────────
   # Base de datos relacional con extensión geoespacial
@@ -84,6 +93,13 @@ services:
     image: datalust/seq:2024.3
     container_name: rappix-seq
     restart: unless-stopped
+    # /health propio de Seq. La imagen no trae curl/wget: bash + /dev/tcp.
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/80 && printf 'GET /health HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && head -1 <&3 | grep -q ' 200 '"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     environment:
       ACCEPT_EULA: "Y"
     ports:
@@ -124,6 +140,7 @@ services:
     image: mcr.microsoft.com/dotnet/aspire-dashboard:latest
     container_name: rappix-aspire-dashboard
     restart: unless-stopped
+    # Sin healthcheck: la imagen es distroless (sin shell, curl, wget ni node) y no hay con que sondear.
     environment:
       DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
     ports:
@@ -656,6 +673,7 @@ services:
         NEXT_PUBLIC_DEFAULT_DISTANCE_KM: "2.5"
     container_name: rappix-customer-web
     restart: unless-stopped
+    healthcheck: *frontend-healthcheck
     ports:
       - "3000:3000"
     depends_on:
@@ -674,6 +692,7 @@ services:
         NEXT_PUBLIC_DEFAULT_LNG: "-69.9000"
     container_name: rappix-merchant-web
     restart: unless-stopped
+    healthcheck: *frontend-healthcheck
     ports:
       - "3001:3000"
     depends_on:
@@ -694,6 +713,7 @@ services:
         NEXT_PUBLIC_DEFAULT_LNG: "-69.9000"
     container_name: rappix-courier-web
     restart: unless-stopped
+    healthcheck: *frontend-healthcheck
     ports:
       - "3002:3000"
     depends_on:
