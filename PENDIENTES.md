@@ -37,3 +37,12 @@ Actualizado: 2026-10-28
 
 ## Repositorio
 - [ ] Ordenar ramas: commits separados (OTel/Orders y frontends/Docker), PRs a main, merge y borrado de ramas, con tags de respaldo
+
+## Verificaciones manuales mías
+- [ ] Aceptar la licencia de Xcode: `sudo xcodebuild -license` (mientras tanto git funciona con `DEVELOPER_DIR=/Library/Developer/CommandLineTools`)
+- [ ] Revisar visualmente en Aspire (http://localhost:18888) la traza de un pedido vía gateway y la métrica `orders.placed` (recurso `orders`)
+- [ ] Borrar los tags `backup/*` cuando confirme que main está bien
+- [ ] Probar `tools/seed-smoke.sh` desde base vacía la próxima vez que reinicie el entorno desde cero (requiere `docker compose down -v`, lo decido yo)
+- [ ] Revisar y limpiar la zona de cobertura duplicada de "Tienda Smoke" y los pedidos de prueba
+- [ ] Configurar claves de terceros (Google Maps, Stripe, SendGrid, Google OAuth) y restringir la key de Maps por HTTP referrer
+- [ ] Rotar credenciales de RabbitMQ/MinIO si se expone fuera de local
