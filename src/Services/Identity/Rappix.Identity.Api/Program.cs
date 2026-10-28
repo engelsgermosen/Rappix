@@ -23,6 +23,7 @@ using Rappix.Identity.Infrastructure.Mail;
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseRappixLogging("identity");
+builder.AddRappixObservability("identity");
 
 // Opciones tipadas.
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));

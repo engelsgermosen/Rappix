@@ -167,6 +167,8 @@ services:
       Google__CallbackPath: /signin-google
       App__PublicBaseUrl: "https://localhost:5001"
       App__FrontendUrl: "http://localhost:3000"
+      # OpenTelemetry: OTLP gRPC al Aspire Dashboard local.
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://aspire-dashboard:18889"
     ports:
       - "5001:8080"
     depends_on:
@@ -177,6 +179,8 @@ services:
       rabbitmq:
         condition: service_healthy
       seq:
+        condition: service_started
+      aspire-dashboard:
         condition: service_started
     networks:
       - rappix-net
@@ -425,6 +429,8 @@ services:
       Dispatch__Matching__CandidateLimit: "10"
       # Log de MassTransit en Debug para el stack dev (consistente con Orders).
       Logging__LogLevel__MassTransit: "Debug"
+      # OpenTelemetry: OTLP gRPC al Aspire Dashboard local.
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://aspire-dashboard:18889"
     ports:
       - "5006:8080" # REST
       - "5016:8081" # HTTP/2 (reservado Fase 7)
@@ -436,6 +442,8 @@ services:
       rabbitmq:
         condition: service_healthy
       seq:
+        condition: service_started
+      aspire-dashboard:
         condition: service_started
     networks:
       - rappix-net
@@ -470,6 +478,8 @@ services:
       # handshake del Hub SignalR, que recibe el bearer en ?access_token=...).
       Jwt__SigningKey: "${IDENTITY_JWT_SIGNINGKEY:?Define IDENTITY_JWT_SIGNINGKEY en .env}"
       Logging__LogLevel__MassTransit: "Debug"
+      # OpenTelemetry: OTLP gRPC al Aspire Dashboard local.
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://aspire-dashboard:18889"
     ports:
       - "5007:8080" # REST + SignalR
       - "5017:8081" # HTTP/2 (reservado gRPC futuro)
@@ -479,6 +489,8 @@ services:
       rabbitmq:
         condition: service_healthy
       seq:
+        condition: service_started
+      aspire-dashboard:
         condition: service_started
     networks:
       - rappix-net
@@ -518,6 +530,8 @@ services:
       Payments__Stripe__WebhookSecret: "${STRIPE_WEBHOOK_SECRET:-}"
       Payments__Fake__Mode: "Always"
       Logging__LogLevel__MassTransit: "Debug"
+      # OpenTelemetry: OTLP gRPC al Aspire Dashboard local.
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://aspire-dashboard:18889"
     ports:
       - "5008:8080" # REST + webhook Stripe
       - "5018:8081" # HTTP/2 (reservado gRPC futuro)
@@ -527,6 +541,8 @@ services:
       rabbitmq:
         condition: service_healthy
       seq:
+        condition: service_started
+      aspire-dashboard:
         condition: service_started
     networks:
       - rappix-net
@@ -557,6 +573,8 @@ services:
       Notifications__SendGrid__FromEmail: "${SENDGRID_FROM_EMAIL:-noreply@rappix.local}"
       Notifications__SendGrid__FromName: "${SENDGRID_FROM_NAME:-Rappix}"
       Logging__LogLevel__MassTransit: "Debug"
+      # OpenTelemetry: OTLP gRPC al Aspire Dashboard local.
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://aspire-dashboard:18889"
     ports:
       - "5009:8080" # REST + /health
       # Sin 5019:8081 — Notifications no expone HTTP/2 ni gRPC en Fase 9.
@@ -566,6 +584,8 @@ services:
       rabbitmq:
         condition: service_healthy
       seq:
+        condition: service_started
+      aspire-dashboard:
         condition: service_started
     networks:
       - rappix-net
