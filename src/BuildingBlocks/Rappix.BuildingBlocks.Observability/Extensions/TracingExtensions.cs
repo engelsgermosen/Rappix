@@ -33,8 +33,11 @@ public static class TracingExtensions
         string environment = builder.Environment.EnvironmentName;
 
         // Las llamadas HTTP del propio sink de Seq no deben generar spans (telemetria sobre telemetria).
-        // El exportador OTLP ya se auto-excluye via SuppressInstrumentationScope del SDK.
+        // El exportador OTLP del SDK ya se auto-excluye via SuppressInstrumentationScope, pero el sink
+        // OTLP de Serilog (UseRappixLogging) no: se excluye su endpoint en HttpClient y sus spans gRPC
+        // (LogsService/Export) con OtlpExportFilterProcessor.
         string? seqHost = GetHost(builder.Configuration["Seq:ServerUrl"]);
+        string? otlpAuthority = GetAuthority(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
 
         builder.Services.AddOpenTelemetry()
             .ConfigureResource(resource => resource
@@ -50,8 +53,11 @@ public static class TracingExtensions
                         options.Filter = httpContext => !httpContext.Request.Path.StartsWithSegments("/health"))
                     .AddHttpClientInstrumentation(options =>
                         options.FilterHttpRequestMessage = request =>
-                            !string.Equals(request.RequestUri?.Host, seqHost, StringComparison.OrdinalIgnoreCase))
+                            !string.Equals(request.RequestUri?.Host, seqHost, StringComparison.OrdinalIgnoreCase)
+                            && !string.Equals(request.RequestUri?.Authority, otlpAuthority, StringComparison.OrdinalIgnoreCase))
                     .AddGrpcClientInstrumentation(options => options.SuppressDownstreamInstrumentation = true)
+                    // Antes del exporter: los processors corren en orden de registro en OnEnd.
+                    .AddProcessor(new OtlpExportFilterProcessor())
                     .AddOtlpExporter();
 
                 if (instrumentRedis)
@@ -73,4 +79,7 @@ public static class TracingExtensions
 
     private static string? GetHost(string? url) =>
         Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) ? uri.Host : null;
+
+    private static string? GetAuthority(string? url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) ? uri.Authority : null;
 }
