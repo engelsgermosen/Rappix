@@ -18,6 +18,7 @@ using Scalar.AspNetCore;
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseRappixLogging("notifications");
+builder.AddRappixObservability("notifications");
 
 // Notifications expone solo REST en 8080 (sin HTTP/2 ni gRPC en Fase 9 — el puerto 5019 mapeado en
 // docker-compose queda reservado para una futura adicion sin recompilar el binario). Tampoco hay

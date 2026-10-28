@@ -20,6 +20,7 @@ using Scalar.AspNetCore;
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseRappixLogging("payments");
+builder.AddRappixObservability("payments");
 
 // Dos endpoints Kestrel cleartext: 8080 = REST + webhook (HTTP/1.1), 8081 = HTTP/2 cleartext reservado
 // para un futuro PaymentsGrpc (no se expone servicio en Fase 8). HTTP/2 sin TLS no negocia con HTTP/1.1
