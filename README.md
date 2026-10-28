@@ -200,7 +200,7 @@ rappix/
 │   ├── Services/           # los 10 microservicios
 │   ├── ApiGateway/         # YARP
 │   └── Contracts/          # eventos públicos entre servicios
-├── frontends/              # 3 apps Next.js (cliente, merchant, back-office)
+├── frontends/              # 3 apps Next.js (cliente, merchant, courier)
 ├── tools/                  # scripts utilitarios
 ├── infra/local/            # config para infraestructura local
 └── docs/                   # ADRs, diagramas, docs
@@ -208,41 +208,79 @@ rappix/
 
 ## Arrancar local
 
-Requisitos: Docker Desktop, .NET 10 SDK, Node 20+, pnpm.
+Requisitos: Docker Desktop (8 GB de RAM como mínimo; 12 GB recomendados para el build completo),
+.NET 10 SDK, Node 20+, pnpm, `jq` para el seed en bash.
 
 ```bash
-# 1) Levantar infraestructura
-docker compose -f docker-compose.yml up -d postgres redis rabbitmq seq minio
+# 1) Variables de entorno: solo IDENTITY_JWT_SIGNINGKEY es obligatoria (>= 32 bytes).
+cp .env.example .env
+#    IDENTITY_JWT_SIGNINGKEY=$(openssl rand -base64 48)
 
-# 2) Restaurar y compilar la solución
-dotnet restore
-dotnet build
+# 2) Levantar infraestructura
+docker compose up -d postgres redis rabbitmq seq minio aspire-dashboard
 
-# 3) Aplicar migraciones (cada servicio)
-./tools/apply-migrations.sh
-
-# 4) Levantar todos los servicios
-docker compose up -d
+# 3) Levantar todos los servicios (con 8 GB de RAM: COMPOSE_PARALLEL_LIMIT=3)
+docker compose up -d --build
 ```
+
+Bases de datos y migraciones: `infra/local/postgres-init.sql` crea una base por servicio (más PostGIS y
+`uuid-ossp`) al inicializar el volumen de Postgres, y **cada servicio aplica sus migraciones EF Core al
+arrancar** (`MigrateDbContextWithRetryAsync`, con reintentos mientras Postgres arranca). No hay que
+migrar a mano.
 
 UIs disponibles:
 - Seq: http://localhost:5341
-- RabbitMQ: http://localhost:15672 (guest/guest)
-- MinIO: http://localhost:9001
+- RabbitMQ: http://localhost:15672 (credenciales de desarrollo en `docker-compose.yml`:
+  `RABBITMQ_DEFAULT_USER` / `RABBITMQ_DEFAULT_PASS`)
+- MinIO (RustFS): API en http://localhost:9000, consola en http://localhost:9001/rustfs/console/
+  (`MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` en `docker-compose.yml`)
+- Aspire Dashboard (trazas, métricas y logs OTLP): http://localhost:18888
 - Gateway API: http://localhost:5000
 - Portal cliente: http://localhost:3000
 - Portal merchant: http://localhost:3001
-- Back-office: http://localhost:3002
+- Portal courier: http://localhost:3002
+
+### macOS: puerto 5000 ocupado por AirPlay
+
+En macOS el **Receptor AirPlay** (proceso `ControlCenter`) escucha en el puerto 5000 y el gateway no
+puede publicarse. Dos opciones:
+
+1. Desactivarlo: *Ajustes del Sistema → General → AirDrop y Handoff → Receptor AirPlay*.
+2. Publicar el gateway en otro puerto con un `docker-compose.override.yml` **local** (Compose lo carga
+   automáticamente). No se commitea: añádelo a `.git/info/exclude`.
+
+   ```yaml
+   services:
+     gateway-api:
+       ports: !override
+         - "5100:8080"
+     # NEXT_PUBLIC_API_URL se inlinea en build: hay que reconstruir los 3 frontends.
+     customer-web:
+       build: { args: { NEXT_PUBLIC_API_URL: "http://localhost:5100" } }
+     merchant-web:
+       build: { args: { NEXT_PUBLIC_API_URL: "http://localhost:5100" } }
+     courier-web:
+       build: { args: { NEXT_PUBLIC_API_URL: "http://localhost:5100" } }
+   ```
+
+   Luego `docker compose up -d --build gateway-api customer-web merchant-web courier-web`.
+
+En Apple Silicon, `postgis/postgis` solo publica imagen amd64 y corre emulada (Rosetta).
 
 ### Smoke E2E de la saga de Orders
 
-`tools/seed-smoke.ps1` (PowerShell) automatiza el setup para probar la saga de Orders end-to-end:
-registra cliente/merchant/admin, confirma sus emails, aprueba el merchant, crea catálogo + ítem con
-stock y emite una cotización; al final imprime los tokens, IDs y los comandos listos para crear el
-pedido → accept → mark-delivered observando Seq.
+`tools/seed-smoke.sh` (bash + curl + jq) automatiza el setup para probar la saga de Orders end-to-end:
+registra cliente/merchant/courier/admin (contraseña `Sup3rSecret!`), confirma sus emails, aprueba el
+merchant, crea catálogo + ítem con stock, pone al courier Online y emite una cotización (caduca a los
+10 min); al final imprime los IDs, el token del cliente y el comando para crear el pedido observando Seq.
+Es **idempotente**: se puede re-ejecutar sobre un stack ya sembrado y solo crea una cotización nueva.
 
-Requisitos: PowerShell 5+, el contenedor postgres `rappix-postgres` y los 5 servicios + infra arriba
-(`docker compose up -d`). Pensado para un stack recién levantado (`docker compose down -v` + `up`).
+```bash
+./tools/seed-smoke.sh
+```
+
+`tools/seed-smoke.ps1` es la versión original en PowerShell (5+). No es idempotente: está pensada para
+un stack recién levantado (`docker compose down -v` + `up`).
 
 ```powershell
 ./tools/seed-smoke.ps1
