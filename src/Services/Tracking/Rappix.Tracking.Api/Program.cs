@@ -21,6 +21,7 @@ using Scalar.AspNetCore;
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseRappixLogging("tracking");
+builder.AddRappixObservability("tracking");
 
 // Dos endpoints Kestrel cleartext: 8080 = REST + SignalR (HTTP/1.1, WebSockets se montan sobre el mismo
 // listener), 8081 = HTTP/2 cleartext reservado para un futuro TrackingGrpc streaming (no se expone
