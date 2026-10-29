@@ -42,6 +42,16 @@ Actualizado: 2026-10-28
 ## Repositorio
 - [x] Ordenar ramas: PRs a main con merge commit, borrado de ramas mergeadas y tags `backup/*` de respaldo
 
+## Tests
+- [x] `Catalog.MerchantEventConsumerTests.MerchantSuspended_DisablesCatalog` intermitente con las suites en paralelo: esperaba con `Harness.Consumed.Any` y leía la base al instante. `Consumed` también cuenta los consumes con fault y su espera depende de la inactividad del harness. Ahora sondea el catálogo hasta el estado esperado (timeout 30 s) y, si vence, falla con el último estado y los faults
+- [ ] Mismo patrón frágil (`Consumed.Any` + lectura inmediata de la base), sin tocar:
+  - Catalog: `MerchantEventConsumerTests.MerchantApproved_CreatesEnabledCatalog`
+  - Tracking: `CourierAssignedConsumerTests`, `CourierLocationUpdatedConsumerTests`, `OrderAcceptedConsumerTests`, `OrderSubmittedConsumerTests`, `OrderTerminalEventsConsumerTests`
+  - Notifications: `CourierAssignedConsumerTests`, `MerchantLifecycleConsumerTests`, `OrderAcceptedConsumerTests`, `OrderSubmittedConsumerTests`, `OrderTerminalEventsConsumerTests`, `UserRegisteredConsumerTests`
+- [ ] `Task.Delay(500)` fijo como espera, sin tocar: `Tracking.OrderSubmittedConsumerTests` (segundo publish) y `Notifications.DoubleDeliveryIdempotencyTests`
+- [ ] Bucles de espera que **vuelven en silencio** al agotar ~5-6 s (cuentan `Consumed`, incluidos los faults), sin tocar: `Catalog.MerchantEventConsumerTests.WaitForConsumedAsync`, `Dispatch.UserRegisteredConsumerTests`, `Dispatch.CourierRequestedConsumerTests`, `Merchants.UserRegisteredConsumerTests`, `Payments.PaymentRequestedConsumerTests`, `Payments.OrderDeliveredCaptureConsumerTests`, `Payments.OrderTerminalCompensationConsumerTests`. Referencia correcta: `Dispatch.OrderTerminalEventsConsumerTests` lanza `TimeoutException`
+- [ ] `Rappix.Merchants.Tests` se colgó una vez (>15 min sin avanzar, CPU ~0) en la 3.ª corrida completa en paralelo al reproducir el test de Catalog; no se repitió en 5 corridas posteriores con `--blame-hang-timeout 8m`. Sin diagnóstico: si reaparece, correr con `--blame-hang-timeout 5m --blame-hang-dump-type mini` para identificar el test
+
 ## Hallazgos del flujo E2E (sin tocar lógica de negocio)
 - [ ] `frontends/COURIER_API_MAP.md` está desactualizado: dice que el courier no puede marcar la entrega, pero existe `POST /api/v1/couriers/me/current-assignment/delivered` (es lo que usa `tools/e2e-order-flow.sh`). Revisar también los otros API maps
 - [ ] El seam temporal `POST /api/v1/orders/{id}/mark-delivered` sigue expuesto y **no comprueba ownership** (cualquier usuario autenticado puede completar cualquier pedido). Ya no hace falta para llegar a `Completed`: decidir si se elimina

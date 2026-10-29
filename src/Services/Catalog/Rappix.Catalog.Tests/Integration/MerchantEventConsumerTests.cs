@@ -105,9 +105,11 @@ public sealed class MerchantEventConsumerTests(CatalogConsumerHarnessFixture fix
     {
         Guid merchantId = Guid.CreateVersion7();
 
+        // Se espera el estado observable en la base (no Consumed.Any): Consumed tambien registra los
+        // consumes con fault y su espera depende de la inactividad del harness, que bajo carga (suites en
+        // paralelo) puede cortar antes de que el consumer termine.
         await fixture.Harness.Bus.Publish(Approved(merchantId));
-        (await fixture.Harness.Consumed.Any<MerchantApprovedIntegrationEvent>(consumed =>
-            consumed.Context.Message.MerchantId == merchantId)).Should().BeTrue();
+        await WaitForCatalogAsync(merchantId, catalog => catalog is { IsEnabled: true });
 
         await fixture.Harness.Bus.Publish(new MerchantSuspendedIntegrationEvent
         {
@@ -115,11 +117,9 @@ public sealed class MerchantEventConsumerTests(CatalogConsumerHarnessFixture fix
             OwnerUserId = Guid.CreateVersion7(),
             Reason = "Abuso",
         });
-        (await fixture.Harness.Consumed.Any<MerchantSuspendedIntegrationEvent>(consumed =>
-            consumed.Context.Message.MerchantId == merchantId)).Should().BeTrue();
+        MerchantCatalog catalog = await WaitForCatalogAsync(merchantId, catalog => catalog is { IsEnabled: false });
 
-        MerchantCatalog? catalog = await fixture.GetCatalogAsync(merchantId);
-        catalog!.IsEnabled.Should().BeFalse();
+        catalog.IsEnabled.Should().BeFalse();
     }
 
     [Fact]
@@ -146,6 +146,35 @@ public sealed class MerchantEventConsumerTests(CatalogConsumerHarnessFixture fix
         Slug = $"comercio-{merchantId:N}",
         VerticalType = "Food",
     };
+
+    /// <summary>
+    /// Sondea el catalogo del merchant hasta que cumpla <paramref name="condition"/> o venza el timeout
+    /// (30 s, holgado para Postgres emulado bajo carga). Al vencer falla con el ultimo estado leido y las
+    /// excepciones de los consumes con fault, para que el motivo quede en el reporte del test.
+    /// </summary>
+    private async Task<MerchantCatalog> WaitForCatalogAsync(Guid merchantId, Func<MerchantCatalog?, bool> condition)
+    {
+        TimeSpan timeout = TimeSpan.FromSeconds(30);
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        MerchantCatalog? catalog;
+        do
+        {
+            catalog = await fixture.GetCatalogAsync(merchantId);
+            if (condition(catalog))
+            {
+                return catalog!;
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+        }
+        while (stopwatch.Elapsed < timeout);
+
+        string faults = string.Join("; ", fixture.Harness.Consumed.Select(consumed => consumed.Exception is not null)
+            .Select(consumed => consumed.Exception!.Message));
+        throw new TimeoutException(
+            $"El catalogo del merchant {merchantId} no alcanzo el estado esperado en {timeout.TotalSeconds:0} s " +
+            $"(ultimo IsEnabled={catalog?.IsEnabled.ToString() ?? "sin catalogo"}; faults: {(faults.Length == 0 ? "ninguno" : faults)}).");
+    }
 
     private static async Task WaitForConsumedAsync(IConsumerTestHarness<MerchantApprovedConsumer> consumer, Guid merchantId, int expected)
     {
