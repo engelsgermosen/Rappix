@@ -1,3 +1,4 @@
+using Rappix.BuildingBlocks.Testing;
 using System.Globalization;
 using System.Text;
 using MassTransit;
@@ -47,8 +48,8 @@ public sealed class TrackingApiFactory : WebApplicationFactory<Program>, IAsyncL
 
     public async Task InitializeAsync()
     {
-        await _postgres.StartAsync();
-        await _rabbitmq.StartAsync();
+        await ContainerStartup.StartAsync(_postgres);
+        await ContainerStartup.StartAsync(_rabbitmq);
 
         // Program.cs lee las env vars al CreateBuilder; se fijan ANTES de tocar Services.
         Environment.SetEnvironmentVariable("ConnectionStrings__TrackingDb", _postgres.GetConnectionString());

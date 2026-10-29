@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using NSubstitute;
 using Rappix.BuildingBlocks.Core.Storage;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Catalog.Application.Abstractions;
 using Rappix.Catalog.Infrastructure.Persistence;
 using Testcontainers.PostgreSql;
@@ -71,7 +72,7 @@ public sealed class CatalogApiFactory : WebApplicationFactory<Program>, IAsyncLi
 
     public async Task InitializeAsync()
     {
-        await _postgres.StartAsync();
+        await ContainerStartup.StartAsync(_postgres);
 
         // WebApplication.CreateBuilder lee variables de entorno, asi que estan disponibles al arrancar.
         Environment.SetEnvironmentVariable("ConnectionStrings__CatalogDb", _postgres.GetConnectionString());

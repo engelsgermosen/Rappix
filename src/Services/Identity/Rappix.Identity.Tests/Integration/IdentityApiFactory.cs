@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using NSubstitute;
 using Rappix.BuildingBlocks.Core.Results;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Identity.Application.Authentication;
 using Rappix.Identity.Infrastructure.Persistence;
 using Testcontainers.PostgreSql;
@@ -57,7 +58,7 @@ public sealed class IdentityApiFactory : WebApplicationFactory<Program>, IAsyncL
 
     public async Task InitializeAsync()
     {
-        await _postgres.StartAsync();
+        await ContainerStartup.StartAsync(_postgres);
 
         // Las variables de entorno las lee WebApplication.CreateBuilder (AddEnvironmentVariables),
         // por lo que estan disponibles cuando Program.cs lee la configuracion al arrancar.

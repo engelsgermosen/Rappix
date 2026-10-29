@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Rappix.BuildingBlocks.Core.Time;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Dispatch.Application;
 using Rappix.Dispatch.Application.Abstractions;
 using Rappix.Dispatch.Domain.Couriers;
@@ -38,7 +39,7 @@ public sealed class RedisGeoRehydrationTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        await Task.WhenAll(_postgres.StartAsync(), _redis.StartAsync());
+        await ContainerStartup.StartAsync(_postgres, _redis);
 
         var services = new ServiceCollection();
         services.AddLogging();

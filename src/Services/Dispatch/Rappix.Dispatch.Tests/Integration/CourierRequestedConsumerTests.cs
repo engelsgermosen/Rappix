@@ -48,7 +48,7 @@ public sealed class CourierRequestedConsumerTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        await Task.WhenAll(_postgres.StartAsync(), _redis.StartAsync());
+        await ContainerStartup.StartAsync(_postgres, _redis);
 
         var services = new ServiceCollection();
         services.AddLogging();

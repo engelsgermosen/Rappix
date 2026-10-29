@@ -39,7 +39,7 @@ public sealed class OrderDeliveredCaptureConsumerTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        await _postgres.StartAsync();
+        await ContainerStartup.StartAsync(_postgres);
 
         var services = new ServiceCollection();
         services.AddLogging();
