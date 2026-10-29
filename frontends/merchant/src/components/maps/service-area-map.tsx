@@ -1,48 +1,37 @@
 "use client";
 
-import L from "leaflet";
-import { useEffect, useMemo } from "react";
-import { Circle, MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
+import { useMapsLibrary } from "@vis.gl/react-google-maps";
+import { useMemo, type CSSProperties } from "react";
 
+import { FitCircle, GoogleMap, MapCircle, MapPin, type LatLngLiteral } from "@/components/map/google-map";
 import { cn } from "@/lib/utils";
 
-const CENTER_ICON = L.divIcon({
-  className: "",
-  html: `<span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#534AB7;color:#fff;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);font-size:12px;">●</span>`,
-  iconSize: [26, 26],
-  iconAnchor: [13, 13],
-});
+const MIN_RADIUS_M = 300;
+const MAX_RADIUS_M = 15_000;
 
-const HANDLE_ICON = L.divIcon({
-  className: "",
-  html: `<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid #534AB7;box-shadow:0 1px 3px rgba(0,0,0,.3);"></span>`,
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
-});
+const CENTER_ICON: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 26,
+  height: 26,
+  borderRadius: "50%",
+  background: "#534AB7",
+  color: "#fff",
+  border: "3px solid #fff",
+  boxShadow: "0 1px 4px rgba(0,0,0,.3)",
+  fontSize: 12,
+};
 
-function InvalidateOnMount() {
-  const map = useMap();
-  useEffect(() => {
-    const a = window.setTimeout(() => map.invalidateSize(), 50);
-    const b = window.setTimeout(() => map.invalidateSize(), 350);
-    return () => {
-      window.clearTimeout(a);
-      window.clearTimeout(b);
-    };
-  }, [map]);
-  return null;
-}
-
-function FitToCircle({ lat, lng, radius, token }: { lat: number; lng: number; radius: number; token: number }) {
-  const map = useMap();
-  useEffect(() => {
-    const center = L.latLng(lat, lng);
-    const bounds = center.toBounds(radius * 2.4);
-    map.fitBounds(bounds, { padding: [20, 20] });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
-  return null;
-}
+const HANDLE_ICON: CSSProperties = {
+  display: "inline-flex",
+  width: 20,
+  height: 20,
+  borderRadius: "50%",
+  background: "#fff",
+  border: "3px solid #534AB7",
+  boxShadow: "0 1px 3px rgba(0,0,0,.3)",
+};
 
 export type ServiceAreaMapProps = {
   centerLat: number;
@@ -56,10 +45,48 @@ export type ServiceAreaMapProps = {
 };
 
 /**
- * Circle service area editor: a draggable center marker + a draggable handle
- * marker positioned at `center + radius east`. Dragging the center moves the
- * whole circle; dragging the handle changes the radius. The slider in the
- * parent stays in sync.
+ * Drag handle at `center + radius` due east. Needs the Maps `geometry` library,
+ * so it lives inside the map (APIProvider) and renders nothing until it loads.
+ */
+function RadiusHandle({
+  center,
+  radiusMeters,
+  onRadiusChange,
+}: {
+  center: LatLngLiteral;
+  radiusMeters: number;
+  onRadiusChange: (radiusMeters: number) => void;
+}) {
+  const geometry = useMapsLibrary("geometry");
+
+  const handlePos = useMemo(() => {
+    if (!geometry) return null;
+    const east = geometry.spherical.computeOffset(center, radiusMeters, 90);
+    return { lat: east.lat(), lng: east.lng() };
+  }, [geometry, center, radiusMeters]);
+
+  if (!geometry || !handlePos) return null;
+
+  return (
+    <MapPin
+      position={handlePos}
+      anchor="center"
+      draggable
+      onDragEnd={(p) => {
+        const newRadius = geometry.spherical.computeDistanceBetween(center, p);
+        onRadiusChange(Math.max(MIN_RADIUS_M, Math.min(MAX_RADIUS_M, newRadius)));
+      }}
+    >
+      <span style={HANDLE_ICON} />
+    </MapPin>
+  );
+}
+
+/**
+ * Circle service area editor (Google Maps): a draggable center marker + a
+ * draggable handle marker positioned at `center + radius east`. Dragging the
+ * center moves the whole circle; dragging the handle changes the radius. The
+ * slider in the parent stays in sync.
  *
  * Polygon support is out of MVP scope (see plan §11). The backend already
  * accepts polygons — only the editor is missing.
@@ -73,76 +100,36 @@ export function ServiceAreaMap({
   className,
   interactive = true,
 }: ServiceAreaMapProps) {
-  // Compute the handle's lat/lng: `radius` meters due east of the center.
-  // L.LatLng.toBounds gives the east edge as the "right" of the rectangle.
-  const handlePos = useMemo<[number, number]>(() => {
-    const center = L.latLng(centerLat, centerLng);
-    const east = center.toBounds(radiusMeters * 2).getEast();
-    return [centerLat, east];
-  }, [centerLat, centerLng, radiusMeters]);
+  const center = useMemo(() => ({ lat: centerLat, lng: centerLng }), [centerLat, centerLng]);
 
   return (
-    <div className={cn("rounded-lg overflow-hidden border border-border h-80", className)}>
-      <MapContainer
-        center={[centerLat, centerLng]}
-        zoom={13}
-        scrollWheelZoom={interactive}
-        dragging={interactive}
-        doubleClickZoom={interactive}
-        zoomControl={interactive}
-        className="h-full w-full"
+    <GoogleMap
+      defaultCenter={center}
+      defaultZoom={13}
+      gestureHandling={interactive ? "greedy" : "none"}
+      zoomControl={interactive}
+      className={cn("rounded-lg h-80", className)}
+    >
+      <MapCircle center={center} radius={radiusMeters} color="#534AB7" />
+
+      <MapPin
+        position={center}
+        anchor="center"
+        draggable={interactive}
+        onDragEnd={(p) => onChange({ centerLat: p.lat, centerLng: p.lng, radiusMeters })}
       >
-        <TileLayer
-          attribution="© OpenStreetMap"
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        <span style={CENTER_ICON}>●</span>
+      </MapPin>
+
+      {interactive ? (
+        <RadiusHandle
+          center={center}
+          radiusMeters={radiusMeters}
+          onRadiusChange={(r) => onChange({ centerLat, centerLng, radiusMeters: r })}
         />
+      ) : null}
 
-        <Circle
-          center={[centerLat, centerLng]}
-          radius={radiusMeters}
-          pathOptions={{
-            color: "#534AB7",
-            weight: 2,
-            opacity: 0.85,
-            dashArray: "6 6",
-            fillColor: "#534AB7",
-            fillOpacity: 0.12,
-          }}
-        />
-
-        <Marker
-          position={[centerLat, centerLng]}
-          icon={CENTER_ICON}
-          draggable={interactive}
-          eventHandlers={{
-            dragend(e) {
-              const m = e.target as L.Marker;
-              const ll = m.getLatLng();
-              onChange({ centerLat: ll.lat, centerLng: ll.lng, radiusMeters });
-            },
-          }}
-        />
-
-        {interactive ? (
-          <Marker
-            position={handlePos}
-            icon={HANDLE_ICON}
-            draggable
-            eventHandlers={{
-              dragend(e) {
-                const m = e.target as L.Marker;
-                const ll = m.getLatLng();
-                const newRadius = L.latLng(centerLat, centerLng).distanceTo(ll);
-                const clamped = Math.max(300, Math.min(15_000, newRadius));
-                onChange({ centerLat, centerLng, radiusMeters: clamped });
-              },
-            }}
-          />
-        ) : null}
-
-        <FitToCircle lat={centerLat} lng={centerLng} radius={radiusMeters} token={recenterToken} />
-        <InvalidateOnMount />
-      </MapContainer>
-    </div>
+      <FitCircle center={center} radius={radiusMeters} token={recenterToken} />
+    </GoogleMap>
   );
 }

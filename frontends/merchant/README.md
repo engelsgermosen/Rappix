@@ -19,7 +19,7 @@ backend, no código.
 | TanStack Query | 5.62.7 |
 | Zustand | 5.0.2 |
 | Radix UI primitives | 1.x / 2.x |
-| Leaflet + react-leaflet | 1.9.4 / 5.0.0 |
+| @vis.gl/react-google-maps (Maps JavaScript API) | 1.8.3 |
 | Sonner | 1.7.1 (toasts) |
 | lucide-react | 0.469.0 (icons) |
 
@@ -96,7 +96,7 @@ pnpm dev            # http://localhost:3000
 src/
 ├── app/
 │   ├── layout.tsx                     Providers + Geist fonts
-│   ├── globals.css                    Tailwind base + Leaflet z-index
+│   ├── globals.css                    Tailwind base + design tokens
 │   ├── page.tsx                       Router por merchant.status
 │   ├── login/page.tsx                 Split layout (hero + form)
 │   ├── register/page.tsx              accountType=Merchant always
@@ -104,8 +104,8 @@ src/
 │   │   ├── layout.tsx
 │   │   ├── datos-basicos/page.tsx
 │   │   ├── horarios/page.tsx
-│   │   ├── zona/page.tsx              Mapa Leaflet (Circle MVP)
-│   │   ├── ubicacion/page.tsx         Mapa Leaflet (pickup pin)
+│   │   ├── zona/page.tsx              Mapa Google (Circle MVP)
+│   │   ├── ubicacion/page.tsx         Mapa Google (pickup pin)
 │   │   └── logo/page.tsx
 │   ├── en-revision/page.tsx           Pending (polling 15s)
 │   ├── suspendido/page.tsx            Suspended | Rejected
@@ -155,9 +155,11 @@ src/
   pantallas de catálogo o que un Pending vea el wizard.
 - **Polling en vez de SignalR.** El backend no expone hub para comercios; el
   portal poll-ea cada 10 s con TanStack Query.
-- **Mapas con Leaflet + OpenStreetMap.** Sin Mapbox ni Google. Los dos
-  componentes de mapa (`service-area-map.tsx`, `pickup-map.tsx`) cargan via
-  `next/dynamic({ ssr: false })` para que Leaflet no toque `window` durante SSR.
+- **Mapas con Google Maps (Maps JavaScript API).** Misma integración que
+  courier-web: `src/components/map/google-map.tsx` es idéntico en los tres
+  frontends. Los dos componentes de mapa (`service-area-map.tsx`,
+  `pickup-map.tsx`) cargan via `next/dynamic({ ssr: false })`. Sin
+  `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` muestran "Mapa no disponible".
 - **Forms con `useState` plano.** No react-hook-form, no zod. Cada form tiene
   ≤6 fields; el wrapper de Server-side error de TanStack ya da los mensajes via
   `describeError(err)`.

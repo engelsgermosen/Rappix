@@ -162,7 +162,7 @@ service team; the merchant portal works around each of them honestly.
 
 **Backend**: `AddServiceAreaRequest` soporta ambos tipos (`MerchantRequests.cs:21`). El editor de polígono es solo trabajo de FE.
 
-**Workaround**: MVP solo Círculo. El select se oculta y se muestra "Círculo (radio fijo)" fijo. El editor de polígono (Leaflet polyline editable o leaflet-draw) queda como follow-up.
+**Workaround**: MVP solo Círculo. El select se oculta y se muestra "Círculo (radio fijo)" fijo. El editor de polígono (Google Maps `Polygon` editable o Drawing tools) queda como follow-up.
 
 **Backend ask**: ninguno (el backend ya está listo).
 
@@ -172,7 +172,7 @@ service team; the merchant portal works around each of them honestly.
 
 **Design**: paso 4 del wizard tiene un input "Dirección de recogida".
 
-**Backend**: no hay servicio de geocoding (ni Mapbox ni Nominatim ni Google integrado). El backend solo almacena lat/lng.
+**Backend**: no hay servicio de geocoding (ni propio ni de terceros; el frontend tampoco usa Geocoding/Places de Google). El backend solo almacena lat/lng.
 
 **Workaround**: el merchant escribe la dirección a mano (texto libre). Se guarda en `localStorage.rappix.merchant.pickup-address` solo para mostrársela a él. El backend recibe únicamente lat/lng.
 
