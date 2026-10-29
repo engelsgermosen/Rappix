@@ -139,7 +139,7 @@ El push en vivo (segundo tramo `IClientNotifier → SignalR → cliente`) **no**
 
 ### Smoke automatizado (recomendado)
 
-`tools/smoke-tracking-e2e.ps1` automatiza el flujo entero (setup + crear pedido + lanzar el smoke-client en background + accept + 2 location updates + mark-delivered + lectura de pushes recibidos). Requiere `Orders__Simulation__DeliveryDelayMs` ≥ 20000 en `docker-compose.yml` (ya en main; con delay <1s el simulated delivery cierra la saga antes de que las ubicaciones lleguen).
+`tools/smoke-tracking-e2e.ps1` automatiza el flujo entero (setup + crear pedido + lanzar el smoke-client en background + accept + 2 location updates + entrega del courier (`POST /api/v1/couriers/me/current-assignment/delivered`) + lectura de pushes recibidos).
 
 ```powershell
 docker compose down -v
@@ -201,10 +201,10 @@ Si el smoke automatizado pasa con los 6 pushes en orden, los 4 tests SKIP en `Tr
      -Body (@{ latitude = 18.4870; longitude = -69.9320 } | ConvertTo-Json)
    # En el smoke-client llega: LocationUpdated lat=18.487 lng=-69.932 ...
    ```
-7. **Marcar entregado**:
+7. **El courier marca entregado** (resuelve su asignación activa por JWT):
    ```powershell
-   Invoke-RestMethod -Method Post -Uri "http://localhost:5005/api/v1/orders/$ORDER_ID/mark-delivered" `
-     -Headers @{ Authorization = "Bearer $MERCHANT" }
+   Invoke-RestMethod -Method Post -Uri "http://localhost:5006/api/v1/couriers/me/current-assignment/delivered" `
+     -Headers @{ Authorization = "Bearer $COURIER" }
    # En el smoke-client llega: StatusChanged status=Delivered
    ```
 

@@ -96,16 +96,15 @@ los atienden, configurables vía `Orders:Simulation:*` (Success | Fail/Unavailab
 en `Infrastructure/Messaging/Simulation/` detrás del flag `EnableSimulatedResponders`: cuando lleguen los
 servicios reales se apagan/borran sin tocar la saga, porque consumen y emiten los mismos contratos. Para que la
 demo llegue a `Completed` sin Dispatch, el responder de entrega reacciona al estado `InProgress` y publica
-`OrderDelivered`; además hay un endpoint **temporal** `POST /orders/{id}/mark-delivered` (seam de Dispatch,
-se elimina en Fase 6).
+`OrderDelivered`; además hubo un endpoint **temporal** de entrega en Orders (seam de Dispatch, ya eliminado;
+ver la actualización de abajo).
 
 **Actualización Fase 13.6**: Dispatch ya tiene un endpoint courier real con ownership —
 `POST /api/v1/couriers/me/current-assignment/delivered` (resuelve la asignación por `JWT.sub`,
-publica el mismo `OrderDeliveredIntegrationEvent`). El seam `POST /orders/{id}/mark-delivered` **se
-mantiene vivo** porque `tools/smoke-tracking-e2e.ps1` y `tools/seed-smoke.ps1` aún lo invocan; el
-follow-up es migrar esos scripts al endpoint courier y luego borrar el seam (command, handler,
-endpoint y referencias en docs). No usar el seam desde portales reales — su `RequireAuthorization()`
-no valida ownership.
+publica el mismo `OrderDeliveredIntegrationEvent`).
+
+**Actualización 2026-10-28**: el seam de Orders se eliminó (endpoint, command y handler) tras migrar
+`tools/smoke-tracking-e2e.ps1` y `tools/seed-smoke.ps1` al endpoint courier. No validaba ownership.
 
 ### 7. Concurrencia de la saga: xmin optimista
 

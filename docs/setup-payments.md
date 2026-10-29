@@ -52,7 +52,7 @@ Con el stack levantado y los pasos previos de seed corridos (`tools/seed-smoke.p
    - En Seq (`service: payments`): `PaymentRequestedConsumer` autoriza vía Fake → `pi_fake_xxx` → publica `PaymentSucceededIntegrationEvent`.
    - Saga: `AwaitingPayment → AwaitingCourier`. Publica `CourierRequestedIntegrationEvent`.
    - Dispatch asigna courier.
-3. **POST `/api/v1/orders/{id}/mark-delivered`**.
+3. **POST `/api/v1/couriers/me/current-assignment/delivered`** (courier).
    - Dispatch publica `OrderDeliveredIntegrationEvent`.
    - En Seq (`service: payments`): `OrderDeliveredCaptureConsumer` ejecuta `gateway.CaptureAsync` → `payment.Capture()` → SaveChanges. El Payment queda en `Captured`.
 

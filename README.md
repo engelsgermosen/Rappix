@@ -102,15 +102,14 @@ precio + redime cupón) → **reserva stock** (hold) en Catalog → notifica al 
 (2 min) → courier (3 min) → confirma stock → en curso → entregado. **Compensaciones en orden inverso** ante
 cualquier fallo (libera el hold, revierte quote y cupón, reembolsa si se cobró); `StockCommitFailed` tras
 cobrar va a `NeedsReview`, nunca auto-reembolsa. **Timeouts durables** con Quartz + Postgres. Dispatch
-(Fase 6) y Payments (Fase 8) responden los contratos reales; solo la entrega final sigue simulada vía
-un `SimulatedDeliveryResponder` enchufable. Dos clientes gRPC (Pricing; reserva de Catalog).
+(Fase 6) y Payments (Fase 8) responden los contratos reales; la entrega la marca el courier en Dispatch
+(`POST /couriers/me/current-assignment/delivered`). Dos clientes gRPC (Pricing; reserva de Catalog).
 Diseño: [ADR-0006](docs/adr/0006-orders-design.md).
 
 | Grupo | Endpoints |
 |---|---|
 | Cliente (`userType=Customer`) | `POST /orders` · `GET /orders/{id}` · `GET /orders` · `POST /orders/{id}/cancel` |
 | Merchant (`userType=Merchant`) | `GET /orders/merchant/pending` · `POST /orders/{id}/accept` · `POST /orders/{id}/reject` |
-| Seam temporal (Dispatch, Fase 6) | `POST /orders/{id}/mark-delivered` |
 
 ### Tracking (Fase 7) · REST + SignalR 5007 · HTTP/2 5017 (reservado)
 Read model dedicado que proyecta los eventos de Orders y Dispatch a un estado por pedido y empuja al

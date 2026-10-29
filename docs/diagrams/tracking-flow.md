@@ -54,8 +54,8 @@ Cliente              Tracking                Orders/Dispatch       RabbitMQ     
   |                     |                            |                |                |
   |                     |  (repetir LocationUpdated por cada POST /me/location)        |
   |                     |                            |                |                |
-  | POST .../mark-delivered                          |                |                |
-  |---------------------(a Orders)------------------>|                |                |
+  |                     |                            |  POST /couriers/me/current-assignment/delivered
+  |                     |                            |<-(a Dispatch)------------------|
   |                     |                            |- Publish OrderDelivered ------->|
   |                     |                            |- Publish OrderCompleted ------->|
   |                     |<-- (terminal consumer, multi-IConsumer) --- |                |
@@ -93,7 +93,7 @@ Mismo error `"no autorizado"` para "no existe" y "no es tuyo" — el caller no d
 
 ## Estados terminales (idempotencia)
 
-`OrderDelivered` (Dispatch) y `OrderCompleted` (Orders) llegan en secuencia tras `mark-delivered`. Ambos pasan por `ApplyTerminalAsync(Delivered, ...)`:
+`OrderDelivered` (Dispatch) y `OrderCompleted` (Orders) llegan en secuencia tras la entrega del courier (`POST /couriers/me/current-assignment/delivered`). Ambos pasan por `ApplyTerminalAsync(Delivered, ...)`:
 
 - **Primer evento** (`OrderDelivered`): `wasTerminalBefore=false` → `ApplyDelivered` transiciona + `DELETE courier_active_orders` + `Clients.Group.StatusChanged("Delivered")`.
 - **Segundo evento** (`OrderCompleted`): `wasTerminalBefore=true` → `ApplyDelivered` es no-op + `RemoveByOrderIdAsync` no-op (ya borrado) + **NO push** (log "idempotente").
