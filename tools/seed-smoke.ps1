@@ -11,7 +11,7 @@
     - Crea una cotizacion fresca
 
   Al final imprime los tokens + IDs para que hagas A MANO la parte
-  interesante (crear pedido -> accept -> mark-delivered) observando Seq.
+  interesante (crear pedido -> accept -> entrega del courier) observando Seq.
 
   Uso:
     1. Asegurate de que los 5 servicios + infra esten arriba:
@@ -269,7 +269,7 @@ Write-Host @"
   #   [smoke] StatusChanged   status=MerchantAccepted  <- cuando hagas el accept (paso 2)
   #   [smoke] StatusChanged   status=CourierAssigned   <- cuando Dispatch asigne el courier
   #   [smoke] LocationUpdated lat=...  lng=...         <- por cada POST /me/location que dispares
-  #   [smoke] StatusChanged   status=Delivered         <- cuando hagas el mark-delivered (paso 4)
+  #   [smoke] StatusChanged   status=Delivered         <- cuando el courier marque la entrega (paso 4)
 "@
 Write-Host ""
 Write-Host "  # 2.c) Verifica privacidad: cliente B intenta suscribirse al pedido de A -> rechazado" -ForegroundColor Green
@@ -294,10 +294,11 @@ Write-Host @"
     -Body (@{ latitude = 18.4870; longitude = -69.9320 } | ConvertTo-Json)
 "@
 Write-Host ""
-Write-Host "  # 4) Marcar entregado" -ForegroundColor Green
+Write-Host "  # 4) El courier marca entregado (requiere la asignacion activa del paso 3)" -ForegroundColor Green
 Write-Host @"
-  Invoke-RestMethod -Method Post -Uri "http://localhost:5005/api/v1/orders/`$ORDER_ID/mark-delivered" ``
-    -Headers @{ Authorization = "Bearer `$MERCHANT" }
+  Invoke-RestMethod -Method Post -Uri "http://localhost:5006/api/v1/couriers/me/current-assignment/delivered" ``
+    -Headers @{ Authorization = "Bearer `$COURIER" }
+  # 204. 404 Dispatch.Assignment.NoActiveAssignment si el courier no tiene asignacion activa.
 "@
 Write-Host ""
 Write-Host "  # 4.b) Snapshot REST de tracking (fallback cuando WS no conecta)" -ForegroundColor Green
