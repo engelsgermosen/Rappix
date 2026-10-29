@@ -33,7 +33,10 @@ Hecho: 4 commits (courier, customer, merchant, compose). `google-map.tsx` es id�
 - [x] Healthchecks en el compose para servicios .NET y gateway (`/health`, gateway `/health/live`)
 - [x] Healthchecks de los 3 frontends (route handler `/api/health`, sondeado con node) y de Seq (`/health`)
 - [ ] Aspire Dashboard sin healthcheck: la imagen es distroless (sin shell, curl, wget ni node). Solo con un sidecar o una imagen propia
-- [ ] Actualizar Next.js (15.1.3 tiene avisos de seguridad); correr `pnpm audit` en los 3 frontends, en un cambio aparte
+- [x] Actualizar Next.js 15.1.3 a 15.5.28 (la última 15.x) en los 3 frontends; `pnpm audit` da 0 vulnerabilidades (antes 71, 5 críticas). Las dependencias transitivas se refrescaron dentro de sus rangos semver; queda un único override acotado, `next>postcss ^8.5.23`, porque Next fija postcss 8.4.31. Rama `chore/nextjs-security-update`, apilada sobre `feat/google-maps-everywhere`
+- [ ] Antes de Next 16: migrar `next lint` (deprecado en 15.5) a la CLI de ESLint (`npx @next/codemod next-lint-to-eslint-cli .`) en los 3 frontends
+- [ ] React sigue en 19.0.0 exacto (no sale en el audit). Valorar subir a 19.0.x/19.x en un cambio aparte
+- [ ] Hay un `~/pnpm-lock.yaml` suelto en el home que hacía que Next infiriera `~` como raíz del workspace. Ya está neutralizado con `outputFileTracingRoot`. Borrarlo si no se usa (lo decido yo)
 
 ## Observabilidad
 - [x] Validar el flujo completo de un pedido hasta `Completed`: `tools/e2e-order-flow.sh` (vía gateway). Trazas de crear, aceptar, ubicación y entrega relacionadas en Aspire; la revisión visual queda en "Verificaciones manuales mías"
