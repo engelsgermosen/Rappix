@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Utilidades compartidas por los proyectos *.Tests (no es un proyecto de tests en si). -->
+  <PropertyGroup>
+    <RootNamespace>Rappix.BuildingBlocks.Testing</RootNamespace>
+    <AssemblyName>Rappix.BuildingBlocks.Testing</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MassTransit" />
+  </ItemGroup>
+</Project>

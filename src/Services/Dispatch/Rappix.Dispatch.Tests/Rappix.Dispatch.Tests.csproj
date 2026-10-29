@@ -28,6 +28,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Rappix.Dispatch.Api\Rappix.Dispatch.Api.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Testing\Rappix.BuildingBlocks.Testing.csproj" />
   </ItemGroup>
 
   <ItemGroup>
