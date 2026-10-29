@@ -36,10 +36,6 @@
   .hero-parcel    { background: linear-gradient(135deg, #6EA6E8 0%, #4C7DC0 100%); }
   .hero-closed    { background: linear-gradient(135deg, #BCB1A8 0%, #8C8378 100%); }
   .hero-brand     { background: linear-gradient(120deg, #534AB7 0%, #7A3FA5 50%, #C04A8E 100%); }
-
-  /* Leaflet z-index dance: keep map below sticky header */
-  .leaflet-container { z-index: 0 !important; }
-  .leaflet-pane, .leaflet-top, .leaflet-bottom { z-index: 1 !important; }
 }
 
 @layer utilities {

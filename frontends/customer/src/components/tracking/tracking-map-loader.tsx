@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * Leaflet uses `window` at import time — we have to dynamic-import the real
- * map only on the client. This tiny wrapper isolates the dynamic boundary so
- * the rest of the tracking page can stay synchronous.
+ * Dynamic-import boundary: the Google Maps component only runs on the
+ * client (ssr:false) and its script is split out of the main bundle. This
+ * wrapper keeps the parent file synchronous and shows a skeleton meanwhile.
  */
 
 import dynamic from "next/dynamic";
