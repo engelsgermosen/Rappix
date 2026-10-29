@@ -4,6 +4,7 @@ using MassTransit.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Rappix.BuildingBlocks.Core.Time;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Catalog.Application;
 using Rappix.Catalog.Application.Abstractions;
 using Rappix.Catalog.Domain.Catalogs;
@@ -34,7 +35,7 @@ public sealed class CatalogConsumerHarnessFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        await _postgres.StartAsync();
+        await ContainerStartup.StartAsync(_postgres);
 
         var services = new ServiceCollection();
         services.AddLogging();
@@ -91,12 +92,9 @@ public sealed class MerchantEventConsumerTests(CatalogConsumerHarnessFixture fix
         Guid merchantId = Guid.CreateVersion7();
 
         await fixture.Harness.Bus.Publish(Approved(merchantId));
-        (await fixture.Harness.Consumed.Any<MerchantApprovedIntegrationEvent>(consumed =>
-            consumed.Context.Message.MerchantId == merchantId)).Should().BeTrue();
+        MerchantCatalog catalog = await WaitForCatalogAsync(merchantId, catalog => catalog is not null);
 
-        MerchantCatalog? catalog = await fixture.GetCatalogAsync(merchantId);
-        catalog.Should().NotBeNull();
-        catalog!.IsEnabled.Should().BeTrue();
+        catalog.IsEnabled.Should().BeTrue();
         catalog.VerticalType.Should().Be(VerticalType.Food);
     }
 
@@ -148,47 +146,27 @@ public sealed class MerchantEventConsumerTests(CatalogConsumerHarnessFixture fix
     };
 
     /// <summary>
-    /// Sondea el catalogo del merchant hasta que cumpla <paramref name="condition"/> o venza el timeout
-    /// (30 s, holgado para Postgres emulado bajo carga). Al vencer falla con el ultimo estado leido y las
-    /// excepciones de los consumes con fault, para que el motivo quede en el reporte del test.
+    /// Sondea el catalogo del merchant hasta que cumpla <paramref name="condition"/>; al vencer falla con el
+    /// ultimo estado leido y los consumes con fault del harness.
     /// </summary>
     private async Task<MerchantCatalog> WaitForCatalogAsync(Guid merchantId, Func<MerchantCatalog?, bool> condition)
     {
-        TimeSpan timeout = TimeSpan.FromSeconds(30);
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        MerchantCatalog? catalog;
-        do
-        {
-            catalog = await fixture.GetCatalogAsync(merchantId);
-            if (condition(catalog))
-            {
-                return catalog!;
-            }
-
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
-        }
-        while (stopwatch.Elapsed < timeout);
-
-        string faults = string.Join("; ", fixture.Harness.Consumed.Select(consumed => consumed.Exception is not null)
-            .Select(consumed => consumed.Exception!.Message));
-        throw new TimeoutException(
-            $"El catalogo del merchant {merchantId} no alcanzo el estado esperado en {timeout.TotalSeconds:0} s " +
-            $"(ultimo IsEnabled={catalog?.IsEnabled.ToString() ?? "sin catalogo"}; faults: {(faults.Length == 0 ? "ninguno" : faults)}).");
+        MerchantCatalog? catalog = await Eventually.UntilAsync(
+            $"catalogo del merchant {merchantId} en el estado esperado",
+            () => fixture.GetCatalogAsync(merchantId),
+            condition,
+            consumed: fixture.Harness.Consumed,
+            describe: catalog => catalog is null ? "sin catalogo" : $"IsEnabled={catalog.IsEnabled}");
+        return catalog!;
     }
 
     private static async Task WaitForConsumedAsync(IConsumerTestHarness<MerchantApprovedConsumer> consumer, Guid merchantId, int expected)
     {
-        for (int attempt = 0; attempt < 50; attempt++)
-        {
-            int consumed = consumer.Consumed
-                .Select<MerchantApprovedIntegrationEvent>(received => received.Context.Message.MerchantId == merchantId)
-                .Count();
-            if (consumed >= expected)
-            {
-                return;
-            }
-
-            await Task.Delay(100);
-        }
+        await Eventually.UntilAsync(
+            $"MerchantApprovedConsumer consumio {expected} MerchantApproved con MerchantId={merchantId}",
+            () => consumer.Consumed.Select<MerchantApprovedIntegrationEvent>(received => received.Context.Message.MerchantId == merchantId).Count(),
+            count => count >= expected,
+            consumed: consumer.Consumed,
+            describe: count => $"{count} consumidos");
     }
 }

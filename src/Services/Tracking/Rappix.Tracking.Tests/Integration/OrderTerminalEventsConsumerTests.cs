@@ -3,6 +3,7 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Contracts.Dispatch;
 using Rappix.Contracts.Orders;
 using Rappix.Tracking.Application.Abstractions;
@@ -32,8 +33,9 @@ public sealed class OrderTerminalEventsConsumerTests : TrackingConsumerTestBase
         {
             OrderId = orderId, DeliveredAtUtc = deliveredAtUtc,
         });
-        await Harness.GetConsumerHarness<OrderTerminalEventsConsumer>()
-            .Consumed.Any<OrderDeliveredIntegrationEvent>(f => f.Context.Message.OrderId == orderId);
+        await Eventually.ConsumedAsync<OrderDeliveredIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderTerminalEventsConsumer>().Consumed,
+            f => f.Context.Message.OrderId == orderId);
 
         (IServiceScope scope, TrackingDbContext db) = CreateDbScope();
         using (scope)
@@ -61,8 +63,9 @@ public sealed class OrderTerminalEventsConsumerTests : TrackingConsumerTestBase
 
         // Primero OrderDelivered -> transiciona y pushea.
         await Harness.Bus.Publish(new OrderDeliveredIntegrationEvent { OrderId = orderId, DeliveredAtUtc = deliveredAt });
-        await Harness.GetConsumerHarness<OrderTerminalEventsConsumer>()
-            .Consumed.Any<OrderDeliveredIntegrationEvent>(f => f.Context.Message.OrderId == orderId);
+        await Eventually.ConsumedAsync<OrderDeliveredIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderTerminalEventsConsumer>().Consumed,
+            f => f.Context.Message.OrderId == orderId);
 
         Notifier.ClearReceivedCalls();
 
@@ -71,8 +74,9 @@ public sealed class OrderTerminalEventsConsumerTests : TrackingConsumerTestBase
         {
             OrderId = orderId, CustomerUserId = Guid.NewGuid(), MerchantId = Guid.NewGuid(), CompletedAtUtc = completedAt,
         });
-        await Harness.GetConsumerHarness<OrderTerminalEventsConsumer>()
-            .Consumed.Any<OrderCompletedIntegrationEvent>(f => f.Context.Message.OrderId == orderId);
+        await Eventually.ConsumedAsync<OrderCompletedIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderTerminalEventsConsumer>().Consumed,
+            f => f.Context.Message.OrderId == orderId);
 
         await Notifier.DidNotReceive().PushStatus(
             Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<DateTime>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
@@ -92,8 +96,9 @@ public sealed class OrderTerminalEventsConsumerTests : TrackingConsumerTestBase
         {
             OrderId = orderId, Reason = Reason, CancelledAtUtc = cancelledAt,
         });
-        await Harness.GetConsumerHarness<OrderTerminalEventsConsumer>()
-            .Consumed.Any<OrderCancelledIntegrationEvent>(f => f.Context.Message.OrderId == orderId);
+        await Eventually.ConsumedAsync<OrderCancelledIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderTerminalEventsConsumer>().Consumed,
+            f => f.Context.Message.OrderId == orderId);
 
         (IServiceScope scope, TrackingDbContext db) = CreateDbScope();
         using (scope)
@@ -122,8 +127,9 @@ public sealed class OrderTerminalEventsConsumerTests : TrackingConsumerTestBase
         {
             OrderId = orderId, Reason = Reason, FailedAtUtc = DateTime.UtcNow,
         });
-        await Harness.GetConsumerHarness<OrderTerminalEventsConsumer>()
-            .Consumed.Any<OrderFailedIntegrationEvent>(f => f.Context.Message.OrderId == orderId);
+        await Eventually.ConsumedAsync<OrderFailedIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderTerminalEventsConsumer>().Consumed,
+            f => f.Context.Message.OrderId == orderId);
 
         (IServiceScope scope, TrackingDbContext db) = CreateDbScope();
         using (scope)

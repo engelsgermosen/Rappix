@@ -3,6 +3,7 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Contracts.Orders;
 using Rappix.Tracking.Application.Abstractions;
 using Rappix.Tracking.Domain.OrderTrackings;
@@ -32,9 +33,9 @@ public sealed class OrderAcceptedConsumerTests : TrackingConsumerTestBase
             AcceptedAtUtc = acceptedAtUtc,
         });
 
-        (await Harness.GetConsumerHarness<OrderAcceptedConsumer>()
-            .Consumed.Any<OrderAcceptedIntegrationEvent>(f => f.Context.Message.OrderId == orderId))
-            .Should().BeTrue();
+        await Eventually.ConsumedAsync<OrderAcceptedIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderAcceptedConsumer>().Consumed,
+            f => f.Context.Message.OrderId == orderId);
 
         (IServiceScope scope, TrackingDbContext db) = CreateDbScope();
         using (scope)
@@ -65,9 +66,9 @@ public sealed class OrderAcceptedConsumerTests : TrackingConsumerTestBase
         });
 
         // Si la consume se completa OK (sin Faulted), el contrato se cumple.
-        bool consumed = await Harness.GetConsumerHarness<OrderAcceptedConsumer>()
-            .Consumed.Any<OrderAcceptedIntegrationEvent>(f => f.Context.Message.OrderId == orderId);
-        consumed.Should().BeTrue();
+        await Eventually.ConsumedAsync<OrderAcceptedIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderAcceptedConsumer>().Consumed,
+            f => f.Context.Message.OrderId == orderId);
 
         // Verifica que no hubo push (no se inicia status si no hay tracking).
         await Notifier.DidNotReceive().PushStatus(

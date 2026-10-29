@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Rappix.BuildingBlocks.Core.Time;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Notifications.Application;
 using Rappix.Notifications.Application.Abstractions;
 using Rappix.Notifications.Infrastructure.Persistence;
@@ -50,7 +51,7 @@ public abstract class NotificationsConsumerTestBase : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        await _postgres.StartAsync();
+        await ContainerStartup.StartAsync(_postgres);
 
         var services = new ServiceCollection();
         services.AddLogging();

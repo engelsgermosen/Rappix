@@ -3,6 +3,7 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Contracts.Orders;
 using Rappix.Notifications.Application.Abstractions;
 using Rappix.Notifications.Domain.NotificationOrders;
@@ -42,9 +43,9 @@ public sealed class OrderAcceptedConsumerTests : NotificationsConsumerTestBase
         };
 
         await Harness.Bus.Publish(message);
-        (await Harness.GetConsumerHarness<OrderAcceptedConsumer>()
-            .Consumed.Any<OrderAcceptedIntegrationEvent>(filter => filter.Context.Message.OrderId == orderId))
-            .Should().BeTrue();
+        await Eventually.ConsumedAsync<OrderAcceptedIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderAcceptedConsumer>().Consumed,
+            filter => filter.Context.Message.OrderId == orderId);
 
         (IServiceScope scope, var db) = CreateDbScope();
         using (scope)
@@ -79,8 +80,9 @@ public sealed class OrderAcceptedConsumerTests : NotificationsConsumerTestBase
         };
 
         await Harness.Bus.Publish(message);
-        await Harness.GetConsumerHarness<OrderAcceptedConsumer>()
-            .Consumed.Any<OrderAcceptedIntegrationEvent>(filter => filter.Context.Message.OrderId == message.OrderId);
+        await Eventually.ConsumedAsync<OrderAcceptedIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderAcceptedConsumer>().Consumed,
+            filter => filter.Context.Message.OrderId == message.OrderId);
 
         (IServiceScope scope, var db) = CreateDbScope();
         using (scope)

@@ -4,6 +4,7 @@ using MassTransit.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Rappix.BuildingBlocks.Core.Time;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Contracts.Dispatch;
 using Rappix.Contracts.Orders;
 using Rappix.Dispatch.Application;
@@ -47,7 +48,7 @@ public sealed class OrderTerminalEventsConsumerTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        await Task.WhenAll(_postgres.StartAsync(), _redis.StartAsync());
+        await ContainerStartup.StartAsync(_postgres, _redis);
 
         var services = new ServiceCollection();
         services.AddLogging();

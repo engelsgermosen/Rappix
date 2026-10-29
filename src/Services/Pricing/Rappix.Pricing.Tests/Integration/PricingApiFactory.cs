@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using NSubstitute;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Pricing.Application.Abstractions;
 using Rappix.Pricing.Infrastructure.Persistence;
 using Testcontainers.PostgreSql;
@@ -67,7 +68,7 @@ public sealed class PricingApiFactory : WebApplicationFactory<Program>, IAsyncLi
 
     public async Task InitializeAsync()
     {
-        await _postgres.StartAsync();
+        await ContainerStartup.StartAsync(_postgres);
 
         Environment.SetEnvironmentVariable("ConnectionStrings__PricingDb", _postgres.GetConnectionString());
         Environment.SetEnvironmentVariable("Jwt__SigningKey", TestTokens.SigningKey);

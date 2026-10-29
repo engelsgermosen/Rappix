@@ -1,8 +1,10 @@
 using FluentAssertions;
 using MassTransit;
+using MassTransit.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Contracts.Orders;
 using Rappix.Tracking.Domain.OrderTrackings;
 using Rappix.Tracking.Infrastructure.Messaging;
@@ -22,9 +24,9 @@ public sealed class OrderSubmittedConsumerTests : TrackingConsumerTestBase
         OrderSubmittedIntegrationEvent message = SubmittedFor(orderId: Guid.CreateVersion7(), customerUserId: Guid.NewGuid());
 
         await Harness.Bus.Publish(message);
-        (await Harness.GetConsumerHarness<OrderSubmittedConsumer>()
-            .Consumed.Any<OrderSubmittedIntegrationEvent>(filter => filter.Context.Message.OrderId == message.OrderId))
-            .Should().BeTrue();
+        await Eventually.ConsumedAsync<OrderSubmittedIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderSubmittedConsumer>().Consumed,
+            filter => filter.Context.Message.OrderId == message.OrderId);
 
         (IServiceScope scope, TrackingDbContext db) = CreateDbScope();
         using (scope)
@@ -58,15 +60,15 @@ public sealed class OrderSubmittedConsumerTests : TrackingConsumerTestBase
 
         // Primer publish.
         await Harness.Bus.Publish(message);
-        await Harness.GetConsumerHarness<OrderSubmittedConsumer>()
-            .Consumed.Any<OrderSubmittedIntegrationEvent>(filter => filter.Context.Message.OrderId == orderId);
+        IReceivedMessageList consumed = Harness.GetConsumerHarness<OrderSubmittedConsumer>().Consumed;
+        await Eventually.ConsumedAsync<OrderSubmittedIntegrationEvent>(consumed, filter => filter.Context.Message.OrderId == orderId);
 
         // Segundo publish del MISMO mensaje (mismo MessageId): el inbox EF debe dedupicar; el filtro
         // del Apply en el consumer (GetByOrderIdAsync != null) es la defensa en profundidad.
         await Harness.Bus.Publish(message);
 
-        // Espera un poco para que el segundo publish llegue.
-        await Task.Delay(500);
+        // El harness no aplica inbox: el consumer recibe el duplicado. Se espera a que termine.
+        await Eventually.ConsumedAsync<OrderSubmittedIntegrationEvent>(consumed, filter => filter.Context.Message.OrderId == orderId, expected: 2);
 
         (IServiceScope scope, TrackingDbContext db) = CreateDbScope();
         using (scope)

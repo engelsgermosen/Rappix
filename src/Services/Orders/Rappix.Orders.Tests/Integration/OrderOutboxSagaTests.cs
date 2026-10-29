@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NSubstitute;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Contracts.Orders;
 using Rappix.Orders.Application.Abstractions;
 using Rappix.Orders.Domain.Common;
@@ -76,8 +77,8 @@ public sealed class OrderOutboxSagaFactory : WebApplicationFactory<Program>, IAs
 
     public async Task InitializeAsync()
     {
-        await _postgres.StartAsync();
-        await _rabbitmq.StartAsync();
+        await ContainerStartup.StartAsync(_postgres);
+        await ContainerStartup.StartAsync(_rabbitmq);
 
         // WebApplication.CreateBuilder lee variables de entorno: se fijan ANTES de construir/arrancar el host.
         Environment.SetEnvironmentVariable("ConnectionStrings__OrdersDb", _postgres.GetConnectionString());

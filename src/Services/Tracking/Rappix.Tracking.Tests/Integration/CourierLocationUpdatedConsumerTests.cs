@@ -3,6 +3,7 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Contracts.Dispatch;
 using Rappix.Tracking.Application.Abstractions;
 using Rappix.Tracking.Domain.CourierActiveOrders;
@@ -35,8 +36,9 @@ public sealed class CourierLocationUpdatedConsumerTests : TrackingConsumerTestBa
             ReportedAtUtc = reportedAtUtc,
         });
 
-        await Harness.GetConsumerHarness<CourierLocationUpdatedConsumer>()
-            .Consumed.Any<CourierLocationUpdatedIntegrationEvent>(f => f.Context.Message.CourierId == courierId);
+        await Eventually.ConsumedAsync<CourierLocationUpdatedIntegrationEvent>(
+            Harness.GetConsumerHarness<CourierLocationUpdatedConsumer>().Consumed,
+            f => f.Context.Message.CourierId == courierId);
 
         (IServiceScope scope, TrackingDbContext db) = CreateDbScope();
         using (scope)
@@ -66,8 +68,9 @@ public sealed class CourierLocationUpdatedConsumerTests : TrackingConsumerTestBa
             ReportedAtUtc = DateTime.UtcNow,
         });
 
-        await Harness.GetConsumerHarness<CourierLocationUpdatedConsumer>()
-            .Consumed.Any<CourierLocationUpdatedIntegrationEvent>(f => f.Context.Message.CourierId == courierId);
+        await Eventually.ConsumedAsync<CourierLocationUpdatedIntegrationEvent>(
+            Harness.GetConsumerHarness<CourierLocationUpdatedConsumer>().Consumed,
+            f => f.Context.Message.CourierId == courierId);
 
         await Notifier.DidNotReceive().PushLocation(
             Arg.Any<Guid>(), Arg.Any<double>(), Arg.Any<double>(),
@@ -90,9 +93,9 @@ public sealed class CourierLocationUpdatedConsumerTests : TrackingConsumerTestBa
         {
             CourierId = courierId, Latitude = 18.5, Longitude = -69.9, ReportedAtUtc = fresh,
         });
-        await Harness.GetConsumerHarness<CourierLocationUpdatedConsumer>()
-            .Consumed.Any<CourierLocationUpdatedIntegrationEvent>(f =>
-                f.Context.Message.CourierId == courierId && f.Context.Message.ReportedAtUtc == fresh);
+        await Eventually.ConsumedAsync<CourierLocationUpdatedIntegrationEvent>(
+            Harness.GetConsumerHarness<CourierLocationUpdatedConsumer>().Consumed,
+            f => f.Context.Message.CourierId == courierId && f.Context.Message.ReportedAtUtc == fresh);
 
         Notifier.ClearReceivedCalls();
 
@@ -101,9 +104,9 @@ public sealed class CourierLocationUpdatedConsumerTests : TrackingConsumerTestBa
         {
             CourierId = courierId, Latitude = 99.9, Longitude = -99.9, ReportedAtUtc = stale,
         });
-        await Harness.GetConsumerHarness<CourierLocationUpdatedConsumer>()
-            .Consumed.Any<CourierLocationUpdatedIntegrationEvent>(f =>
-                f.Context.Message.CourierId == courierId && f.Context.Message.ReportedAtUtc == stale);
+        await Eventually.ConsumedAsync<CourierLocationUpdatedIntegrationEvent>(
+            Harness.GetConsumerHarness<CourierLocationUpdatedConsumer>().Consumed,
+            f => f.Context.Message.CourierId == courierId && f.Context.Message.ReportedAtUtc == stale);
 
         // Sin push del segundo: descartado por stale.
         await Notifier.DidNotReceive().PushLocation(

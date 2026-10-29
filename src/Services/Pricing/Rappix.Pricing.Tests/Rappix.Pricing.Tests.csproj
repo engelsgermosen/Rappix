@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Rappix.Pricing.Api\Rappix.Pricing.Api.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Testing\Rappix.BuildingBlocks.Testing.csproj" />
   </ItemGroup>
 
   <ItemGroup>

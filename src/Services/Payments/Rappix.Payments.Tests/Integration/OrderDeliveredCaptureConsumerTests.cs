@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Rappix.BuildingBlocks.Core.Time;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Contracts.Dispatch;
 using Rappix.Payments.Application;
 using Rappix.Payments.Application.Abstractions;
@@ -38,7 +39,7 @@ public sealed class OrderDeliveredCaptureConsumerTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        await _postgres.StartAsync();
+        await ContainerStartup.StartAsync(_postgres);
 
         var services = new ServiceCollection();
         services.AddLogging();
@@ -213,17 +214,11 @@ public sealed class OrderDeliveredCaptureConsumerTests : IAsyncLifetime
     {
         IConsumerTestHarness<OrderDeliveredCaptureConsumer> consumer =
             _provider.GetRequiredService<IConsumerTestHarness<OrderDeliveredCaptureConsumer>>();
-        for (int attempt = 0; attempt < 60; attempt++)
-        {
-            int consumed = consumer.Consumed
-                .Select<OrderDeliveredIntegrationEvent>(received => received.Context.Message.OrderId == orderId)
-                .Count();
-            if (consumed >= expected)
-            {
-                return;
-            }
-
-            await Task.Delay(100);
-        }
+        await Eventually.UntilAsync(
+            $"OrderDeliveredCaptureConsumer consumio {expected} OrderDelivered con OrderId={orderId}",
+            () => consumer.Consumed.Select<OrderDeliveredIntegrationEvent>(received => received.Context.Message.OrderId == orderId).Count(),
+            count => count >= expected,
+            consumed: consumer.Consumed,
+            describe: count => $"{count} consumidos");
     }
 }

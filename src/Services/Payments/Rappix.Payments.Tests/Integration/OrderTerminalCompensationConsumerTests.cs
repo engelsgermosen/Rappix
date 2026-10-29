@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Rappix.BuildingBlocks.Core.Time;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Contracts.Orders;
 using Rappix.Contracts.Payments;
 using Rappix.Payments.Application;
@@ -46,7 +47,7 @@ public sealed class OrderTerminalCompensationConsumerTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        await _postgres.StartAsync();
+        await ContainerStartup.StartAsync(_postgres);
 
         var services = new ServiceCollection();
         services.AddLogging();
@@ -358,53 +359,35 @@ public sealed class OrderTerminalCompensationConsumerTests : IAsyncLifetime
     {
         IConsumerTestHarness<OrderTerminalCompensationConsumer> consumer =
             _provider.GetRequiredService<IConsumerTestHarness<OrderTerminalCompensationConsumer>>();
-        for (int attempt = 0; attempt < 60; attempt++)
-        {
-            int consumed = consumer.Consumed
-                .Select<OrderCancelledIntegrationEvent>(received => received.Context.Message.OrderId == orderId)
-                .Count();
-            if (consumed >= expected)
-            {
-                return;
-            }
-
-            await Task.Delay(100);
-        }
+        await Eventually.UntilAsync(
+            $"OrderTerminalCompensationConsumer consumio {expected} OrderCancelled con OrderId={orderId}",
+            () => consumer.Consumed.Select<OrderCancelledIntegrationEvent>(received => received.Context.Message.OrderId == orderId).Count(),
+            count => count >= expected,
+            consumed: consumer.Consumed,
+            describe: count => $"{count} consumidos");
     }
 
     private async Task WaitForOrderFailedConsumedAsync(Guid orderId, int expected = 1)
     {
         IConsumerTestHarness<OrderTerminalCompensationConsumer> consumer =
             _provider.GetRequiredService<IConsumerTestHarness<OrderTerminalCompensationConsumer>>();
-        for (int attempt = 0; attempt < 60; attempt++)
-        {
-            int consumed = consumer.Consumed
-                .Select<OrderFailedIntegrationEvent>(received => received.Context.Message.OrderId == orderId)
-                .Count();
-            if (consumed >= expected)
-            {
-                return;
-            }
-
-            await Task.Delay(100);
-        }
+        await Eventually.UntilAsync(
+            $"OrderTerminalCompensationConsumer consumio {expected} OrderFailed con OrderId={orderId}",
+            () => consumer.Consumed.Select<OrderFailedIntegrationEvent>(received => received.Context.Message.OrderId == orderId).Count(),
+            count => count >= expected,
+            consumed: consumer.Consumed,
+            describe: count => $"{count} consumidos");
     }
 
     private async Task WaitForRefundRequestedConsumedAsync(Guid orderId, int expected = 1)
     {
         IConsumerTestHarness<OrderTerminalCompensationConsumer> consumer =
             _provider.GetRequiredService<IConsumerTestHarness<OrderTerminalCompensationConsumer>>();
-        for (int attempt = 0; attempt < 60; attempt++)
-        {
-            int consumed = consumer.Consumed
-                .Select<RefundRequestedIntegrationEvent>(received => received.Context.Message.OrderId == orderId)
-                .Count();
-            if (consumed >= expected)
-            {
-                return;
-            }
-
-            await Task.Delay(100);
-        }
+        await Eventually.UntilAsync(
+            $"OrderTerminalCompensationConsumer consumio {expected} RefundRequested con OrderId={orderId}",
+            () => consumer.Consumed.Select<RefundRequestedIntegrationEvent>(received => received.Context.Message.OrderId == orderId).Count(),
+            count => count >= expected,
+            consumed: consumer.Consumed,
+            describe: count => $"{count} consumidos");
     }
 }

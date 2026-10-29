@@ -1,6 +1,7 @@
 using FluentAssertions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Contracts.Merchants;
 using Rappix.Notifications.Domain.MerchantContacts;
 using Rappix.Notifications.Infrastructure.Messaging;
@@ -34,9 +35,9 @@ public sealed class MerchantLifecycleConsumerTests : NotificationsConsumerTestBa
         };
 
         await Harness.Bus.Publish(message);
-        (await Harness.GetConsumerHarness<MerchantLifecycleConsumer>()
-            .Consumed.Any<MerchantApprovedIntegrationEvent>(filter => filter.Context.Message.MerchantId == merchantId))
-            .Should().BeTrue();
+        await Eventually.ConsumedAsync<MerchantApprovedIntegrationEvent>(
+            Harness.GetConsumerHarness<MerchantLifecycleConsumer>().Consumed,
+            filter => filter.Context.Message.MerchantId == merchantId);
 
         (Microsoft.Extensions.DependencyInjection.IServiceScope scope, var db) = CreateDbScope();
         using (scope)
@@ -64,8 +65,9 @@ public sealed class MerchantLifecycleConsumerTests : NotificationsConsumerTestBa
             Slug = "m",
             VerticalType = "Restaurant",
         });
-        await Harness.GetConsumerHarness<MerchantLifecycleConsumer>()
-            .Consumed.Any<MerchantApprovedIntegrationEvent>(filter => filter.Context.Message.MerchantId == merchantId);
+        await Eventually.ConsumedAsync<MerchantApprovedIntegrationEvent>(
+            Harness.GetConsumerHarness<MerchantLifecycleConsumer>().Consumed,
+            filter => filter.Context.Message.MerchantId == merchantId);
 
         // 2. Suspended -> update mismo owner (no-op idempotente, solo bump si owner cambia).
         await Harness.Bus.Publish(new MerchantSuspendedIntegrationEvent
@@ -74,8 +76,9 @@ public sealed class MerchantLifecycleConsumerTests : NotificationsConsumerTestBa
             OwnerUserId = ownerUserId,
             Reason = "Test",
         });
-        await Harness.GetConsumerHarness<MerchantLifecycleConsumer>()
-            .Consumed.Any<MerchantSuspendedIntegrationEvent>(filter => filter.Context.Message.MerchantId == merchantId);
+        await Eventually.ConsumedAsync<MerchantSuspendedIntegrationEvent>(
+            Harness.GetConsumerHarness<MerchantLifecycleConsumer>().Consumed,
+            filter => filter.Context.Message.MerchantId == merchantId);
 
         // 3. Activated.
         await Harness.Bus.Publish(new MerchantActivatedIntegrationEvent
@@ -83,8 +86,9 @@ public sealed class MerchantLifecycleConsumerTests : NotificationsConsumerTestBa
             MerchantId = merchantId,
             OwnerUserId = ownerUserId,
         });
-        await Harness.GetConsumerHarness<MerchantLifecycleConsumer>()
-            .Consumed.Any<MerchantActivatedIntegrationEvent>(filter => filter.Context.Message.MerchantId == merchantId);
+        await Eventually.ConsumedAsync<MerchantActivatedIntegrationEvent>(
+            Harness.GetConsumerHarness<MerchantLifecycleConsumer>().Consumed,
+            filter => filter.Context.Message.MerchantId == merchantId);
 
         // 4. Rejected (caso teorico — un merchant Active no se rechaza, pero el consumer lo procesa igual).
         await Harness.Bus.Publish(new MerchantRejectedIntegrationEvent
@@ -93,8 +97,9 @@ public sealed class MerchantLifecycleConsumerTests : NotificationsConsumerTestBa
             OwnerUserId = ownerUserId,
             Reason = "Test",
         });
-        await Harness.GetConsumerHarness<MerchantLifecycleConsumer>()
-            .Consumed.Any<MerchantRejectedIntegrationEvent>(filter => filter.Context.Message.MerchantId == merchantId);
+        await Eventually.ConsumedAsync<MerchantRejectedIntegrationEvent>(
+            Harness.GetConsumerHarness<MerchantLifecycleConsumer>().Consumed,
+            filter => filter.Context.Message.MerchantId == merchantId);
 
         (Microsoft.Extensions.DependencyInjection.IServiceScope scope, var db) = CreateDbScope();
         using (scope)

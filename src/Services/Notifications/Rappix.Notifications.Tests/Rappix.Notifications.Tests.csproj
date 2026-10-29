@@ -30,6 +30,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Rappix.Notifications.Api\Rappix.Notifications.Api.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Rappix.BuildingBlocks.Testing\Rappix.BuildingBlocks.Testing.csproj" />
   </ItemGroup>
 
   <ItemGroup>

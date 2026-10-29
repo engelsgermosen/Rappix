@@ -1,8 +1,10 @@
 using FluentAssertions;
 using MassTransit;
+using MassTransit.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Contracts.Dispatch;
 using Rappix.Contracts.Orders;
 using Rappix.Notifications.Application.Abstractions;
@@ -63,13 +65,13 @@ public sealed class DoubleDeliveryIdempotencyTests : NotificationsConsumerTestBa
 
         // 1er publish.
         await Harness.Bus.Publish(message);
-        await Harness.GetConsumerHarness<OrderAcceptedConsumer>()
-            .Consumed.Any<OrderAcceptedIntegrationEvent>(filter => filter.Context.Message.OrderId == orderId);
+        IReceivedMessageList consumed = Harness.GetConsumerHarness<OrderAcceptedConsumer>().Consumed;
+        await Eventually.ConsumedAsync<OrderAcceptedIntegrationEvent>(consumed, filter => filter.Context.Message.OrderId == orderId);
 
         // 2do publish del MISMO mensaje. El harness in-memory no aplica inbox EF (deliberadamente —
         // el Nivel 1 lookup-then-insert del NotifyHandler debe atajar este caso por si solo).
         await Harness.Bus.Publish(message);
-        await Task.Delay(500); // Pequeno wait para que el segundo consume ejecute.
+        await Eventually.ConsumedAsync<OrderAcceptedIntegrationEvent>(consumed, filter => filter.Context.Message.OrderId == orderId, expected: 2);
 
         (IServiceScope scope, var db) = CreateDbScope();
         using (scope)
@@ -97,8 +99,9 @@ public sealed class DoubleDeliveryIdempotencyTests : NotificationsConsumerTestBa
             OrderId = orderId,
             DeliveredAtUtc = DateTime.UtcNow,
         });
-        await Harness.GetConsumerHarness<OrderTerminalEventsConsumer>()
-            .Consumed.Any<OrderDeliveredIntegrationEvent>(filter => filter.Context.Message.OrderId == orderId);
+        await Eventually.ConsumedAsync<OrderDeliveredIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderTerminalEventsConsumer>().Consumed,
+            filter => filter.Context.Message.OrderId == orderId);
 
         // Verificacion intermedia: 2 filas + 2 channel calls.
         (IServiceScope mid, var midDb) = CreateDbScope();
@@ -122,8 +125,9 @@ public sealed class DoubleDeliveryIdempotencyTests : NotificationsConsumerTestBa
             MerchantId = merchantId,
             CompletedAtUtc = DateTime.UtcNow,
         });
-        await Harness.GetConsumerHarness<OrderTerminalEventsConsumer>()
-            .Consumed.Any<OrderCompletedIntegrationEvent>(filter => filter.Context.Message.OrderId == orderId);
+        await Eventually.ConsumedAsync<OrderCompletedIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderTerminalEventsConsumer>().Consumed,
+            filter => filter.Context.Message.OrderId == orderId);
 
         // ASSERT CRITICO: siguen siendo 2 filas (no 4). El canal NO se llamo de nuevo (sigue en 2).
         (IServiceScope final, var finalDb) = CreateDbScope();
@@ -160,16 +164,18 @@ public sealed class DoubleDeliveryIdempotencyTests : NotificationsConsumerTestBa
             MerchantId = merchantId,
             CompletedAtUtc = DateTime.UtcNow,
         });
-        await Harness.GetConsumerHarness<OrderTerminalEventsConsumer>()
-            .Consumed.Any<OrderCompletedIntegrationEvent>(filter => filter.Context.Message.OrderId == orderId);
+        await Eventually.ConsumedAsync<OrderCompletedIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderTerminalEventsConsumer>().Consumed,
+            filter => filter.Context.Message.OrderId == orderId);
 
         await Harness.Bus.Publish(new OrderDeliveredIntegrationEvent
         {
             OrderId = orderId,
             DeliveredAtUtc = DateTime.UtcNow,
         });
-        await Harness.GetConsumerHarness<OrderTerminalEventsConsumer>()
-            .Consumed.Any<OrderDeliveredIntegrationEvent>(filter => filter.Context.Message.OrderId == orderId);
+        await Eventually.ConsumedAsync<OrderDeliveredIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderTerminalEventsConsumer>().Consumed,
+            filter => filter.Context.Message.OrderId == orderId);
 
         (IServiceScope scope, var db) = CreateDbScope();
         using (scope)
