@@ -10,7 +10,8 @@ Actualizado: 2026-10-28
 - [ ] Cambiar credenciales de RabbitMQ y MinIO si algún día se expone fuera de la máquina local
 
 ## Claves de terceros (desactivadas por ahora)
-- [ ] Google Maps (courier-web): `COURIER_GOOGLE_MAPS_API_KEY` y `COURIER_GOOGLE_MAPS_MAP_ID` en `.env`, luego `docker compose up -d --build courier-web`. Restringir la key por HTTP referrer
+- [ ] Google Maps (customer-web, merchant-web, courier-web): `GOOGLE_MAPS_API_KEY` y `GOOGLE_MAPS_MAP_ID` en `.env` (activar solo "Maps JavaScript API"), luego reconstruir los 3 frontends de uno en uno. Restringir la key por HTTP referrer (`localhost:3000-3002` + prod). `COURIER_GOOGLE_MAPS_*` queda como alias legado de courier-web
+- [ ] Map ID real de Google Maps para producción: sin `GOOGLE_MAPS_MAP_ID` los mapas usan `DEMO_MAP_ID`, válido solo en desarrollo
 - [ ] Stripe (customer-web y Payments): `CUSTOMER_STRIPE_PUBLISHABLE_KEY` en `.env`, luego reconstruir customer-web
 - [ ] SendGrid (Notifications en modo Fake: los emails solo se registran en Seq)
 - [ ] Google OAuth (login con Google no funciona)
