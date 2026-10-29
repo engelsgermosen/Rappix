@@ -24,7 +24,7 @@ public static class Eventually
 
     /// <summary>
     /// Sondea <paramref name="probe"/> hasta que <paramref name="condition"/> se cumple sobre su resultado y lo
-    /// devuelve. Al vencer lanza <see cref="EventuallyTimeoutException"/>.
+    /// devuelve. Al vencer lanza <see cref="EventuallyFailedException"/>.
     /// </summary>
     /// <param name="description">Que se esperaba, en lenguaje natural (va al mensaje de error).</param>
     /// <param name="probe">Lee el estado observable (p. ej. una fila de la base en un scope nuevo).</param>
@@ -69,7 +69,7 @@ public static class Eventually
         }
 
         string observed = last is null ? "null" : describe?.Invoke(last) ?? last.ToString() ?? "null";
-        throw new EventuallyTimeoutException(
+        throw new EventuallyFailedException(
             $"No se cumplio '{description}' en {limit.TotalSeconds:0.#} s ({attempts} sondeos). " +
             $"Ultimo estado observado: {observed}. Consumes con fault: {DescribeFaults(consumed)}.");
     }
@@ -86,6 +86,46 @@ public static class Eventually
     {
         ArgumentNullException.ThrowIfNull(probe);
         return UntilAsync(description, () => Task.FromResult(probe()), condition, timeout, interval, consumed, describe);
+    }
+
+    /// <summary>
+    /// Espera a que <paramref name="consumed"/> (<c>harness.Consumed</c> o <c>consumer.Consumed</c>) registre al
+    /// menos <paramref name="expected"/> consumos TERMINADOS de mensajes <typeparamref name="T"/> que cumplan
+    /// <paramref name="filter"/>, y falla si alguno de ellos termino con fault. A diferencia de
+    /// <c>Consumed.Any</c>, no corta por inactividad del harness ni da por bueno un consume con excepcion: al
+    /// volver, el consumer ya completo su trabajo (incluido el SaveChanges) sin errores.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="filter"/> es un <see cref="FilterDelegate{T}"/> para que la lambda se convierta en el
+    /// call site (MassTransit no acepta un <c>Func</c> ya almacenado).
+    /// </remarks>
+    public static async Task<IReadOnlyList<IReceivedMessage<T>>> ConsumedAsync<T>(
+        IReceivedMessageList consumed,
+        FilterDelegate<IReceivedMessage<T>> filter,
+        int expected = 1,
+        TimeSpan? timeout = null)
+        where T : class
+    {
+        ArgumentNullException.ThrowIfNull(consumed);
+
+        IReceivedMessage<T>[] matches = await UntilAsync(
+            $"{expected} consumo(s) de {typeof(T).Name}",
+            () => consumed.Select(filter).ToArray(),
+            received => received.Length >= expected,
+            timeout,
+            consumed: consumed,
+            describe: received => $"{received.Length} consumidos");
+
+        IReceivedMessage<T>[] faulted = matches.Where(received => received.Exception is not null).ToArray();
+        if (faulted.Length > 0)
+        {
+            throw new EventuallyFailedException(
+                $"{faulted.Length} de {matches.Length} consumo(s) de {typeof(T).Name} terminaron con fault: " +
+                string.Join(" | ", faulted.Select(received => $"{received.Exception!.GetType().Name}: {received.Exception.Message}")),
+                faulted[0].Exception!);
+        }
+
+        return matches;
     }
 
     /// <summary>
@@ -108,19 +148,19 @@ public static class Eventually
     }
 }
 
-/// <summary>La condicion esperada por <see cref="Eventually"/> no se cumplio dentro del timeout.</summary>
-public sealed class EventuallyTimeoutException : Exception
+/// <summary>La condicion esperada por <see cref="Eventually"/> no se cumplio a tiempo, o el consume esperado termino con fault.</summary>
+public sealed class EventuallyFailedException : Exception
 {
-    public EventuallyTimeoutException()
+    public EventuallyFailedException()
     {
     }
 
-    public EventuallyTimeoutException(string message)
+    public EventuallyFailedException(string message)
         : base(message)
     {
     }
 
-    public EventuallyTimeoutException(string message, Exception innerException)
+    public EventuallyFailedException(string message, Exception innerException)
         : base(message, innerException)
     {
     }
