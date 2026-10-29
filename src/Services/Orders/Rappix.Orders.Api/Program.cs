@@ -141,7 +141,6 @@ ApiVersionSet versionSet = app.NewApiVersionSet()
 RouteGroupBuilder apiV1 = app.MapGroup("/api/v{version:apiVersion}").WithApiVersionSet(versionSet);
 apiV1.MapOrderEndpoints();
 apiV1.MapMerchantOrderEndpoints();
-apiV1.MapOrderSeamEndpoints();
 
 app.MapGet("/health", () => Results.Ok(new { service = "orders", status = "ok" }));
 

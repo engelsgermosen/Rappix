@@ -124,8 +124,7 @@ public static class DependencyInjection
                 // Activities (efectos gRPC) + proyeccion del estado al agregado.
                 // Todos los responders simulados ya fueron retirados: Payment en Fase 8 (Payments real),
                 // Courier en Fase 6 (Dispatch real), Delivery en este commit (el endpoint courier
-                // POST /api/v1/couriers/me/current-assignment/delivered de Fase 13.6 lo reemplaza —
-                // el seam temporal /orders/{id}/mark-delivered sigue vivo para tools/smoke-tracking-e2e.ps1).
+                // POST /api/v1/couriers/me/current-assignment/delivered de Fase 13.6 lo reemplaza).
                 bus.AddConsumer<ConsumeQuoteConsumer>();
                 bus.AddConsumer<ReserveStockConsumer>();
                 bus.AddConsumer<CommitStockConsumer>();
