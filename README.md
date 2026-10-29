@@ -297,6 +297,9 @@ dotnet test Rappix.sln -c Release --blame-hang --blame-hang-timeout 5m --blame-h
 
 Las esperas de consumers usan `Rappix.BuildingBlocks.Testing.Eventually` (sondeo con timeout que
 falla con el último estado y los faults del consumer); no usar `Task.Delay` fijo ni `Consumed.Any`.
+Los contenedores se arrancan con `ContainerStartup.StartAsync(...)` (máximo 3 arranques a la vez entre
+todos los procesos de test y timeout de 3 min), no con `container.StartAsync()` directo: con toda la
+solución en paralelo, la espera `pg_isready` de Testcontainers 4.1 puede colgarse sin timeout.
 
 ## Roadmap
 
