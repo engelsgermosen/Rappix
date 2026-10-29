@@ -16,7 +16,7 @@ The customer-facing web app for **Rappix**, a multi-vertical delivery platform (
 | UI atoms  | Vendored shadcn-style primitives (Button, Card, Dialog, Tabs, Dropdown, …) on Radix UI |
 | Data      | TanStack Query v5 (server cache) + Zustand (cart + checkout + auth) |
 | Realtime  | `@microsoft/signalr` for the Tracking hub (JWT via `?access_token=`) |
-| Maps      | Leaflet + react-leaflet (dynamic-imported, client-only) |
+| Maps      | Google Maps JavaScript API via `@vis.gl/react-google-maps` (shared `components/map/google-map.tsx`, dynamic-imported, client-only; "Mapa no disponible" without key) |
 | Payments  | Stripe Elements is **NOT** wired — Phase 8 Payments service is event-driven, no `client_secret` endpoint exists. The UI ships a payment-method picker until a Phase 9+ endpoint lands. |
 | Toasts    | Sonner |
 | Icons     | lucide-react |
@@ -69,7 +69,7 @@ src/
     carrito/page.tsx            – /carrito     Cart (Zustand-persisted)
     checkout/page.tsx           – /checkout    Address + payment + quote + place order
     pedidos/page.tsx            – /pedidos     My orders
-    pedidos/[id]/page.tsx       – /pedidos/<id>  Live tracking (Leaflet + SignalR)
+    pedidos/[id]/page.tsx       – /pedidos/<id>  Live tracking (Google Maps + SignalR)
     cuenta/page.tsx             – /cuenta      Profile (Identity /me + /users/me)
 
   components/

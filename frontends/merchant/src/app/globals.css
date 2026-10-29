@@ -24,10 +24,6 @@
   .hero-merchant {
     background: linear-gradient(135deg, #534AB7 0%, #6E47C8 40%, #B25CC2 100%);
   }
-
-  /* Leaflet z-index dance: keep map below sticky header/sidebar */
-  .leaflet-container { z-index: 0 !important; }
-  .leaflet-pane, .leaflet-top, .leaflet-bottom { z-index: 1 !important; }
 }
 
 @layer utilities {

@@ -668,6 +668,8 @@ services:
       args:
         NEXT_PUBLIC_API_URL: "http://localhost:5000"
         NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "${CUSTOMER_STRIPE_PUBLISHABLE_KEY:-}"
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: "${GOOGLE_MAPS_API_KEY:-}"
+        NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: "${GOOGLE_MAPS_MAP_ID:-}"
         NEXT_PUBLIC_DEFAULT_LAT: "18.4719"
         NEXT_PUBLIC_DEFAULT_LNG: "-69.9000"
         NEXT_PUBLIC_DEFAULT_DISTANCE_KM: "2.5"
@@ -688,6 +690,8 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: "http://localhost:5000"
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: "${GOOGLE_MAPS_API_KEY:-}"
+        NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: "${GOOGLE_MAPS_MAP_ID:-}"
         NEXT_PUBLIC_DEFAULT_LAT: "18.4719"
         NEXT_PUBLIC_DEFAULT_LNG: "-69.9000"
     container_name: rappix-merchant-web
@@ -707,8 +711,9 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: "http://localhost:5000"
-        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: "${COURIER_GOOGLE_MAPS_API_KEY:-}"
-        NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: "${COURIER_GOOGLE_MAPS_MAP_ID:-}"
+        # GOOGLE_MAPS_* es la comun a los 3 frontends; COURIER_GOOGLE_MAPS_* (legado) sigue valiendo.
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: "${GOOGLE_MAPS_API_KEY:-${COURIER_GOOGLE_MAPS_API_KEY:-}}"
+        NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: "${GOOGLE_MAPS_MAP_ID:-${COURIER_GOOGLE_MAPS_MAP_ID:-}}"
         NEXT_PUBLIC_DEFAULT_LAT: "18.4719"
         NEXT_PUBLIC_DEFAULT_LNG: "-69.9000"
     container_name: rappix-courier-web

@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * Dynamic-import boundary for the map picker. Leaflet touches `window`
- * at module load, so the real component must be ssr:false. This wrapper
- * keeps the dialog file synchronous.
+ * Dynamic-import boundary: the Google Maps component only runs on the
+ * client (ssr:false) and its script is split out of the main bundle. This
+ * wrapper keeps the parent file synchronous and shows a skeleton meanwhile.
  */
 
 import dynamic from "next/dynamic";

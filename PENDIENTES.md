@@ -10,10 +10,18 @@ Actualizado: 2026-10-28
 - [ ] Cambiar credenciales de RabbitMQ y MinIO si algún día se expone fuera de la máquina local
 
 ## Claves de terceros (desactivadas por ahora)
-- [ ] Google Maps (courier-web): `COURIER_GOOGLE_MAPS_API_KEY` y `COURIER_GOOGLE_MAPS_MAP_ID` en `.env`, luego `docker compose up -d --build courier-web`. Restringir la key por HTTP referrer
+- [ ] Google Maps (customer-web, merchant-web, courier-web): `GOOGLE_MAPS_API_KEY` y `GOOGLE_MAPS_MAP_ID` en `.env` (activar solo "Maps JavaScript API"), luego reconstruir los 3 frontends de uno en uno. Restringir la key por HTTP referrer (`localhost:3000-3002` + prod). `COURIER_GOOGLE_MAPS_*` queda como alias legado de courier-web
+- [ ] Map ID real de Google Maps para producción: sin `GOOGLE_MAPS_MAP_ID` los mapas usan `DEMO_MAP_ID`, válido solo en desarrollo
 - [ ] Stripe (customer-web y Payments): `CUSTOMER_STRIPE_PUBLISHABLE_KEY` en `.env`, luego reconstruir customer-web
 - [ ] SendGrid (Notifications en modo Fake: los emails solo se registran en Seq)
 - [ ] Google OAuth (login con Google no funciona)
+
+## Mapas: migración OSM/Leaflet a Google Maps (rama `feat/google-maps-everywhere`, local, sin push)
+Hecho: 4 commits (courier, customer, merchant, compose). `google-map.tsx` es idéntico en los 3 frontends. Build, lint y typecheck pasan; el grep de OSM da 0; `docker compose config` resuelve bien la interpolación; las 3 imágenes están construidas, healthy y responden 200.
+- [ ] Verificar en el navegador con Claude in Chrome. Otra extensión se inyecta en localhost y bloquea los clics y las capturas (`Cannot access a chrome-extension:// URL of different extension`); desactivarla antes. Pantallas: customer `/direcciones` (dialog) y `/pedidos/<id>`; merchant onboarding `ubicacion` y `zona` más configuración (pickup y zona, con las vistas previas); courier, pedido activo. Sin key: estado "Mapa no disponible: falta la clave de Google Maps" y consola limpia. Con key: tiles de Google y consola limpia
+- [ ] Consolidar: `gh auth status`, push, PR, merge commit, tag `backup/feat-google-maps-everywhere-<fecha>`, borrar la rama local y la remota, quedar solo en `main`
+- [ ] Revisar las diferencias visuales aceptadas: el borde de la zona de merchant es continuo (Google no admite borde discontinuo en `Circle`) y la línea punteada del tracking se hace con símbolos (`icons`)
+- [ ] Con la key configurada: comprobar que el pin se arrastra y se coloca con click, que el handle cambia el radio dentro de 300-15000 m y que el tracking se actualiza en vivo por SignalR sin duplicar polylines
 
 ## Documentación
 - [x] README: cita `tools/apply-migrations.sh`, que no existe (las migraciones EF se aplican al arrancar cada servicio)
