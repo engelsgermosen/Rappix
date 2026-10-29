@@ -3,8 +3,8 @@ using Rappix.BuildingBlocks.Messaging.Integration;
 namespace Rappix.Contracts.Dispatch;
 
 /// <summary>
-/// Publicado cuando el courier entrega el pedido. Lleva la saga de InProgress a Completed. Lo emitira el
-/// servicio Dispatch (fase futura); hoy lo emite un responder simulado (o el endpoint temporal mark-delivered).
+/// Publicado cuando el courier entrega el pedido. Lleva la saga de InProgress a Completed. Lo emite Dispatch
+/// al recibir <c>POST /api/v1/couriers/me/current-assignment/delivered</c>.
 /// </summary>
 public sealed record OrderDeliveredIntegrationEvent : IntegrationEvent
 {

@@ -55,7 +55,7 @@ Actualizado: 2026-10-28
 
 ## Hallazgos del flujo E2E (sin tocar lógica de negocio)
 - [x] `frontends/COURIER_API_MAP.md` actualizado con `POST /api/v1/couriers/me/current-assignment/delivered` y el snapshot de `current-assignment`; `MERCHANT_API_MAP.md` corregido; `customer/API_MAP.md` revisado sin discrepancias
-- [ ] El seam temporal `POST /api/v1/orders/{id}/mark-delivered` sigue expuesto y **no comprueba ownership** (cualquier usuario autenticado puede completar cualquier pedido). Ya no hace falta para llegar a `Completed` (ni frontends ni tests lo usan), pero **no se borró** porque lo usan `tools/smoke-tracking-e2e.ps1` (paso 6) y `tools/seed-smoke.ps1` (instrucciones impresas). Decidir: migrar esos scripts a `POST /api/v1/couriers/me/current-assignment/delivered` y eliminar el seam (`OrderSeamEndpoints.cs`, `MarkDelivered/`, comentarios en `Orders.Infrastructure/DependencyInjection.cs` y `OrderDeliveredIntegrationEvent.cs`, docs)
+- [x] Eliminado el seam temporal de entrega de Orders (no comprobaba ownership). `tools/smoke-tracking-e2e.ps1` y `tools/seed-smoke.ps1` usan ahora `POST /api/v1/couriers/me/current-assignment/delivered` (no ejecutados: no hay `pwsh` en esta máquina)
 - [ ] **Decisión de producto**: la saga no tiene estados intermedios de preparación ni de recogida (Preparing/PickedUp/InTransit); Tracking salta de `CourierAssigned` a `Delivered` y ni el comercio ni el courier pueden marcarlos. Decidir si se modelan (follow-up de ADR-0008: requiere nuevos eventos, estados de saga y endpoints)
 
 ## Verificaciones manuales mías

@@ -36,9 +36,13 @@ Invoke-RestMethod -Method Post -Uri "http://localhost:5006/api/v1/couriers/me/lo
 Write-Host "[5b] Location 2 enviada (18.4875, -69.9325)."
 Start-Sleep -Seconds 3
 
-# 6) Mark delivered.
-Invoke-RestMethod -Method Post -Uri "http://localhost:5005/api/v1/orders/$ORDER_ID/mark-delivered" -Headers @{ Authorization = "Bearer $MERCHANT" } | Out-Null
-Write-Host "[6] Mark delivered enviado. Esperando 5s..."
+# 6) El courier entrega: endpoint de Dispatch con ownership por JWT (resuelve su asignacion activa).
+$assignment = Invoke-RestMethod -Method Get -Uri "http://localhost:5006/api/v1/couriers/me/current-assignment" -Headers @{ Authorization = "Bearer $COURIER" }
+if ($null -eq $assignment -or $assignment.orderId -ne $ORDER_ID) {
+    throw "El courier no tiene una asignacion activa para el pedido $ORDER_ID (current-assignment: $($assignment | ConvertTo-Json -Compress))."
+}
+Invoke-RestMethod -Method Post -Uri "http://localhost:5006/api/v1/couriers/me/current-assignment/delivered" -Headers @{ Authorization = "Bearer $COURIER" } | Out-Null
+Write-Host "[6] Entrega del courier enviada (asignacion $($assignment.assignmentId)). Esperando 5s..."
 Start-Sleep -Seconds 5
 
 # 7) Cerrar smoke client.
