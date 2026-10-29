@@ -35,6 +35,7 @@ Actualizado: 2026-10-28
 - [x] Instrumentar Identity, Dispatch (con Redis), Tracking (más la fuente SignalR), Payments y Notifications: los 9 servicios y el gateway quedan con OTel
 - [x] Redis instrumentado en Pricing y Merchants (patrón de Orders: `IConnectionMultiplexer` compartido con el cache)
 - [x] TraceId y SpanId en los logs de consola (`UseRappixLogging`)
+- [x] Spans del hub SignalR de Tracking verificados con `tools/signalr-tracking-probe.mjs`: `TrackingHub/OnConnectedAsync`, `Subscribe`, `Unsubscribe` y `OnDisconnectedAsync` (fuente `Microsoft.AspNetCore.SignalR.Server`). Cada invocación del hub es una traza propia, no hija del `GET /hubs/tracking` del WebSocket
 - [ ] Unificar `X-Correlation-Id` con `Activity.Current.TraceId` en `CorrelationIdMiddleware`
 - [ ] Quartz: `OpenTelemetry.Instrumentation.Quartz` si los jobs importan
 - [ ] Producción: sampler `ParentBased(TraceIdRatioBased)` y OpenTelemetry Collector delante del backend
@@ -53,9 +54,9 @@ Actualizado: 2026-10-28
 - [ ] `Rappix.Merchants.Tests` se colgó una vez (>15 min sin avanzar, CPU ~0) en la 3.ª corrida completa en paralelo al reproducir el test de Catalog; no se repitió en 5 corridas posteriores con `--blame-hang-timeout 8m`. Sin diagnóstico: si reaparece, correr con `--blame-hang-timeout 5m --blame-hang-dump-type mini` para identificar el test
 
 ## Hallazgos del flujo E2E (sin tocar lógica de negocio)
-- [ ] `frontends/COURIER_API_MAP.md` está desactualizado: dice que el courier no puede marcar la entrega, pero existe `POST /api/v1/couriers/me/current-assignment/delivered` (es lo que usa `tools/e2e-order-flow.sh`). Revisar también los otros API maps
-- [ ] El seam temporal `POST /api/v1/orders/{id}/mark-delivered` sigue expuesto y **no comprueba ownership** (cualquier usuario autenticado puede completar cualquier pedido). Ya no hace falta para llegar a `Completed`: decidir si se elimina
-- [ ] La saga no tiene estados intermedios de preparación ni de recogida (Preparing/PickedUp/InTransit); Tracking salta de `CourierAssigned` a `Delivered`. Follow-up de ADR-0008
+- [x] `frontends/COURIER_API_MAP.md` actualizado con `POST /api/v1/couriers/me/current-assignment/delivered` y el snapshot de `current-assignment`; `MERCHANT_API_MAP.md` corregido; `customer/API_MAP.md` revisado sin discrepancias
+- [ ] El seam temporal `POST /api/v1/orders/{id}/mark-delivered` sigue expuesto y **no comprueba ownership** (cualquier usuario autenticado puede completar cualquier pedido). Ya no hace falta para llegar a `Completed` (ni frontends ni tests lo usan), pero **no se borró** porque lo usan `tools/smoke-tracking-e2e.ps1` (paso 6) y `tools/seed-smoke.ps1` (instrucciones impresas). Decidir: migrar esos scripts a `POST /api/v1/couriers/me/current-assignment/delivered` y eliminar el seam (`OrderSeamEndpoints.cs`, `MarkDelivered/`, comentarios en `Orders.Infrastructure/DependencyInjection.cs` y `OrderDeliveredIntegrationEvent.cs`, docs)
+- [ ] **Decisión de producto**: la saga no tiene estados intermedios de preparación ni de recogida (Preparing/PickedUp/InTransit); Tracking salta de `CourierAssigned` a `Delivered` y ni el comercio ni el courier pueden marcarlos. Decidir si se modelan (follow-up de ADR-0008: requiere nuevos eventos, estados de saga y endpoints)
 
 ## Verificaciones manuales mías
 - [ ] Aceptar la licencia de Xcode: `sudo xcodebuild -license` (mientras tanto git funciona con `DEVELOPER_DIR=/Library/Developer/CommandLineTools`)
