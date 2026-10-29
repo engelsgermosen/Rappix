@@ -4,6 +4,7 @@ using MassTransit.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Rappix.BuildingBlocks.Core.Time;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Contracts.Identity;
 using Rappix.Merchants.Application;
 using Rappix.Merchants.Application.Abstractions;
@@ -116,17 +117,11 @@ public sealed class UserRegisteredConsumerTests(ConsumerHarnessFixture fixture) 
 
     private static async Task WaitForConsumedAsync(IConsumerTestHarness<UserRegisteredConsumer> consumer, Guid userId, int expected)
     {
-        for (int attempt = 0; attempt < 50; attempt++)
-        {
-            int consumed = consumer.Consumed
-                .Select<UserRegisteredIntegrationEvent>(received => received.Context.Message.UserId == userId)
-                .Count();
-            if (consumed >= expected)
-            {
-                return;
-            }
-
-            await Task.Delay(100);
-        }
+        await Eventually.UntilAsync(
+            $"UserRegisteredConsumer consumio {expected} UserRegistered con UserId={userId}",
+            () => consumer.Consumed.Select<UserRegisteredIntegrationEvent>(received => received.Context.Message.UserId == userId).Count(),
+            count => count >= expected,
+            consumed: consumer.Consumed,
+            describe: count => $"{count} consumidos");
     }
 }

@@ -4,6 +4,7 @@ using MassTransit.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Rappix.BuildingBlocks.Core.Time;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Catalog.Application;
 using Rappix.Catalog.Application.Abstractions;
 using Rappix.Catalog.Domain.Catalogs;
@@ -178,17 +179,11 @@ public sealed class MerchantEventConsumerTests(CatalogConsumerHarnessFixture fix
 
     private static async Task WaitForConsumedAsync(IConsumerTestHarness<MerchantApprovedConsumer> consumer, Guid merchantId, int expected)
     {
-        for (int attempt = 0; attempt < 50; attempt++)
-        {
-            int consumed = consumer.Consumed
-                .Select<MerchantApprovedIntegrationEvent>(received => received.Context.Message.MerchantId == merchantId)
-                .Count();
-            if (consumed >= expected)
-            {
-                return;
-            }
-
-            await Task.Delay(100);
-        }
+        await Eventually.UntilAsync(
+            $"MerchantApprovedConsumer consumio {expected} MerchantApproved con MerchantId={merchantId}",
+            () => consumer.Consumed.Select<MerchantApprovedIntegrationEvent>(received => received.Context.Message.MerchantId == merchantId).Count(),
+            count => count >= expected,
+            consumed: consumer.Consumed,
+            describe: count => $"{count} consumidos");
     }
 }
