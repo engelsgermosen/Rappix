@@ -24,9 +24,9 @@ public sealed class OrderSubmittedConsumerTests : TrackingConsumerTestBase
         OrderSubmittedIntegrationEvent message = SubmittedFor(orderId: Guid.CreateVersion7(), customerUserId: Guid.NewGuid());
 
         await Harness.Bus.Publish(message);
-        (await Harness.GetConsumerHarness<OrderSubmittedConsumer>()
-            .Consumed.Any<OrderSubmittedIntegrationEvent>(filter => filter.Context.Message.OrderId == message.OrderId))
-            .Should().BeTrue();
+        await Eventually.ConsumedAsync<OrderSubmittedIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderSubmittedConsumer>().Consumed,
+            filter => filter.Context.Message.OrderId == message.OrderId);
 
         (IServiceScope scope, TrackingDbContext db) = CreateDbScope();
         using (scope)

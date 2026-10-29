@@ -3,6 +3,7 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Contracts.Dispatch;
 using Rappix.Contracts.Orders;
 using Rappix.Notifications.Application.Abstractions;
@@ -38,8 +39,9 @@ public sealed class OrderTerminalEventsConsumerTests : NotificationsConsumerTest
             OrderId = orderId,
             DeliveredAtUtc = DateTime.UtcNow,
         });
-        await Harness.GetConsumerHarness<OrderTerminalEventsConsumer>()
-            .Consumed.Any<OrderDeliveredIntegrationEvent>(filter => filter.Context.Message.OrderId == orderId);
+        await Eventually.ConsumedAsync<OrderDeliveredIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderTerminalEventsConsumer>().Consumed,
+            filter => filter.Context.Message.OrderId == orderId);
 
         await AssertTerminalNotificationsAsync(orderId, customerUserId, ownerUserId, NotificationType.OrderDelivered);
     }
@@ -58,8 +60,9 @@ public sealed class OrderTerminalEventsConsumerTests : NotificationsConsumerTest
             MerchantId = merchantId,
             CompletedAtUtc = DateTime.UtcNow,
         });
-        await Harness.GetConsumerHarness<OrderTerminalEventsConsumer>()
-            .Consumed.Any<OrderCompletedIntegrationEvent>(filter => filter.Context.Message.OrderId == orderId);
+        await Eventually.ConsumedAsync<OrderCompletedIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderTerminalEventsConsumer>().Consumed,
+            filter => filter.Context.Message.OrderId == orderId);
 
         await AssertTerminalNotificationsAsync(orderId, customerUserId, ownerUserId, NotificationType.OrderDelivered);
     }
@@ -75,8 +78,9 @@ public sealed class OrderTerminalEventsConsumerTests : NotificationsConsumerTest
             Reason = "Merchant rechazo",
             CancelledAtUtc = DateTime.UtcNow,
         });
-        await Harness.GetConsumerHarness<OrderTerminalEventsConsumer>()
-            .Consumed.Any<OrderCancelledIntegrationEvent>(filter => filter.Context.Message.OrderId == orderId);
+        await Eventually.ConsumedAsync<OrderCancelledIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderTerminalEventsConsumer>().Consumed,
+            filter => filter.Context.Message.OrderId == orderId);
 
         await AssertTerminalNotificationsAsync(orderId, customerUserId, ownerUserId, NotificationType.OrderCancelled);
 
@@ -100,8 +104,9 @@ public sealed class OrderTerminalEventsConsumerTests : NotificationsConsumerTest
             Reason = "Stock insuficiente",
             FailedAtUtc = DateTime.UtcNow,
         });
-        await Harness.GetConsumerHarness<OrderTerminalEventsConsumer>()
-            .Consumed.Any<OrderFailedIntegrationEvent>(filter => filter.Context.Message.OrderId == orderId);
+        await Eventually.ConsumedAsync<OrderFailedIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderTerminalEventsConsumer>().Consumed,
+            filter => filter.Context.Message.OrderId == orderId);
 
         await AssertTerminalNotificationsAsync(orderId, customerUserId, ownerUserId, NotificationType.OrderFailed);
     }

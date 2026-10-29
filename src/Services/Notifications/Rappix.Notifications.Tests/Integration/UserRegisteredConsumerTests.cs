@@ -1,6 +1,7 @@
 using FluentAssertions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Contracts.Identity;
 using Rappix.Notifications.Domain.UserContacts;
 using Rappix.Notifications.Infrastructure.Messaging;
@@ -23,9 +24,9 @@ public sealed class UserRegisteredConsumerTests : NotificationsConsumerTestBase
         var message = NewUserRegisteredEvent(userType: "Merchant", emailConfirmed: false);
 
         await Harness.Bus.Publish(message);
-        (await Harness.GetConsumerHarness<UserRegisteredConsumer>()
-            .Consumed.Any<UserRegisteredIntegrationEvent>(filter => filter.Context.Message.UserId == message.UserId))
-            .Should().BeTrue();
+        await Eventually.ConsumedAsync<UserRegisteredIntegrationEvent>(
+            Harness.GetConsumerHarness<UserRegisteredConsumer>().Consumed,
+            filter => filter.Context.Message.UserId == message.UserId);
 
         (Microsoft.Extensions.DependencyInjection.IServiceScope scope, var db) = CreateDbScope();
         using (scope)
@@ -62,12 +63,14 @@ public sealed class UserRegisteredConsumerTests : NotificationsConsumerTestBase
         };
 
         await Harness.Bus.Publish(first);
-        await Harness.GetConsumerHarness<UserRegisteredConsumer>()
-            .Consumed.Any<UserRegisteredIntegrationEvent>(filter => filter.Context.Message.UserId == userId && filter.Context.Message.Email == "old@test.local");
+        await Eventually.ConsumedAsync<UserRegisteredIntegrationEvent>(
+            Harness.GetConsumerHarness<UserRegisteredConsumer>().Consumed,
+            filter => filter.Context.Message.UserId == userId && filter.Context.Message.Email == "old@test.local");
 
         await Harness.Bus.Publish(second);
-        await Harness.GetConsumerHarness<UserRegisteredConsumer>()
-            .Consumed.Any<UserRegisteredIntegrationEvent>(filter => filter.Context.Message.UserId == userId && filter.Context.Message.Email == "new@test.local");
+        await Eventually.ConsumedAsync<UserRegisteredIntegrationEvent>(
+            Harness.GetConsumerHarness<UserRegisteredConsumer>().Consumed,
+            filter => filter.Context.Message.UserId == userId && filter.Context.Message.Email == "new@test.local");
 
         (Microsoft.Extensions.DependencyInjection.IServiceScope scope, var db) = CreateDbScope();
         using (scope)
@@ -93,8 +96,9 @@ public sealed class UserRegisteredConsumerTests : NotificationsConsumerTestBase
         var message = NewUserRegisteredEvent(userType: "SuperAdminGodMode", emailConfirmed: false);
 
         await Harness.Bus.Publish(message);
-        await Harness.GetConsumerHarness<UserRegisteredConsumer>()
-            .Consumed.Any<UserRegisteredIntegrationEvent>(filter => filter.Context.Message.UserId == message.UserId);
+        await Eventually.ConsumedAsync<UserRegisteredIntegrationEvent>(
+            Harness.GetConsumerHarness<UserRegisteredConsumer>().Consumed,
+            filter => filter.Context.Message.UserId == message.UserId);
 
         (Microsoft.Extensions.DependencyInjection.IServiceScope scope, var db) = CreateDbScope();
         using (scope)

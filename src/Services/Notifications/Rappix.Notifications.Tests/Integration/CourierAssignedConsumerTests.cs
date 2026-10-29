@@ -3,6 +3,7 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Contracts.Dispatch;
 using Rappix.Notifications.Application.Abstractions;
 using Rappix.Notifications.Domain.NotificationOrders;
@@ -39,9 +40,9 @@ public sealed class CourierAssignedConsumerTests : NotificationsConsumerTestBase
         };
 
         await Harness.Bus.Publish(message);
-        (await Harness.GetConsumerHarness<CourierAssignedConsumer>()
-            .Consumed.Any<CourierAssignedIntegrationEvent>(filter => filter.Context.Message.OrderId == orderId))
-            .Should().BeTrue();
+        await Eventually.ConsumedAsync<CourierAssignedIntegrationEvent>(
+            Harness.GetConsumerHarness<CourierAssignedConsumer>().Consumed,
+            filter => filter.Context.Message.OrderId == orderId);
 
         (IServiceScope scope, var db) = CreateDbScope();
         using (scope)

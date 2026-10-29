@@ -3,6 +3,7 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Contracts.Dispatch;
 using Rappix.Tracking.Application.Abstractions;
 using Rappix.Tracking.Domain.CourierActiveOrders;
@@ -27,9 +28,9 @@ public sealed class CourierAssignedConsumerTests : TrackingConsumerTestBase
 
         await Harness.Bus.Publish(new CourierAssignedIntegrationEvent { OrderId = orderId, CourierId = courierId });
 
-        (await Harness.GetConsumerHarness<CourierAssignedConsumer>()
-            .Consumed.Any<CourierAssignedIntegrationEvent>(f => f.Context.Message.OrderId == orderId))
-            .Should().BeTrue();
+        await Eventually.ConsumedAsync<CourierAssignedIntegrationEvent>(
+            Harness.GetConsumerHarness<CourierAssignedConsumer>().Consumed,
+            f => f.Context.Message.OrderId == orderId);
 
         (IServiceScope scope, TrackingDbContext db) = CreateDbScope();
         using (scope)
@@ -62,8 +63,9 @@ public sealed class CourierAssignedConsumerTests : TrackingConsumerTestBase
         await SeedMappingAsync(courierId, orderA);
 
         await Harness.Bus.Publish(new CourierAssignedIntegrationEvent { OrderId = orderB, CourierId = courierId });
-        await Harness.GetConsumerHarness<CourierAssignedConsumer>()
-            .Consumed.Any<CourierAssignedIntegrationEvent>(f => f.Context.Message.OrderId == orderB);
+        await Eventually.ConsumedAsync<CourierAssignedIntegrationEvent>(
+            Harness.GetConsumerHarness<CourierAssignedConsumer>().Consumed,
+            f => f.Context.Message.OrderId == orderB);
 
         (IServiceScope scope, TrackingDbContext db) = CreateDbScope();
         using (scope)

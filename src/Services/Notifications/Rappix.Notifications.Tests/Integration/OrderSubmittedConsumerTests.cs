@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Rappix.BuildingBlocks.Core.Results;
+using Rappix.BuildingBlocks.Testing;
 using Rappix.Contracts.Orders;
 using Rappix.Notifications.Application.Abstractions;
 using Rappix.Notifications.Domain.MerchantContacts;
@@ -39,9 +40,9 @@ public sealed class OrderSubmittedConsumerTests : NotificationsConsumerTestBase
         var message = NewOrderSubmittedFor(orderId, customerUserId, merchantId);
 
         await Harness.Bus.Publish(message);
-        (await Harness.GetConsumerHarness<OrderSubmittedConsumer>()
-            .Consumed.Any<OrderSubmittedIntegrationEvent>(filter => filter.Context.Message.OrderId == orderId))
-            .Should().BeTrue();
+        await Eventually.ConsumedAsync<OrderSubmittedIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderSubmittedConsumer>().Consumed,
+            filter => filter.Context.Message.OrderId == orderId);
 
         // (1) NotificationOrder proyectado.
         (IServiceScope scope, var db) = CreateDbScope();
@@ -84,8 +85,9 @@ public sealed class OrderSubmittedConsumerTests : NotificationsConsumerTestBase
         var message = NewOrderSubmittedFor(orderId, Guid.CreateVersion7(), merchantId);
 
         await Harness.Bus.Publish(message);
-        await Harness.GetConsumerHarness<OrderSubmittedConsumer>()
-            .Consumed.Any<OrderSubmittedIntegrationEvent>(filter => filter.Context.Message.OrderId == orderId);
+        await Eventually.ConsumedAsync<OrderSubmittedIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderSubmittedConsumer>().Consumed,
+            filter => filter.Context.Message.OrderId == orderId);
 
         (IServiceScope scope, var db) = CreateDbScope();
         using (scope)
@@ -117,8 +119,9 @@ public sealed class OrderSubmittedConsumerTests : NotificationsConsumerTestBase
         var message = NewOrderSubmittedFor(orderId, Guid.CreateVersion7(), merchantId);
 
         await Harness.Bus.Publish(message);
-        await Harness.GetConsumerHarness<OrderSubmittedConsumer>()
-            .Consumed.Any<OrderSubmittedIntegrationEvent>(filter => filter.Context.Message.OrderId == orderId);
+        await Eventually.ConsumedAsync<OrderSubmittedIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderSubmittedConsumer>().Consumed,
+            filter => filter.Context.Message.OrderId == orderId);
 
         (IServiceScope scope, var db) = CreateDbScope();
         using (scope)

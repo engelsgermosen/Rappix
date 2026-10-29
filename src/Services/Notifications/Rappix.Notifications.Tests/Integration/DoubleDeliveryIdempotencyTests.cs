@@ -99,8 +99,9 @@ public sealed class DoubleDeliveryIdempotencyTests : NotificationsConsumerTestBa
             OrderId = orderId,
             DeliveredAtUtc = DateTime.UtcNow,
         });
-        await Harness.GetConsumerHarness<OrderTerminalEventsConsumer>()
-            .Consumed.Any<OrderDeliveredIntegrationEvent>(filter => filter.Context.Message.OrderId == orderId);
+        await Eventually.ConsumedAsync<OrderDeliveredIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderTerminalEventsConsumer>().Consumed,
+            filter => filter.Context.Message.OrderId == orderId);
 
         // Verificacion intermedia: 2 filas + 2 channel calls.
         (IServiceScope mid, var midDb) = CreateDbScope();
@@ -124,8 +125,9 @@ public sealed class DoubleDeliveryIdempotencyTests : NotificationsConsumerTestBa
             MerchantId = merchantId,
             CompletedAtUtc = DateTime.UtcNow,
         });
-        await Harness.GetConsumerHarness<OrderTerminalEventsConsumer>()
-            .Consumed.Any<OrderCompletedIntegrationEvent>(filter => filter.Context.Message.OrderId == orderId);
+        await Eventually.ConsumedAsync<OrderCompletedIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderTerminalEventsConsumer>().Consumed,
+            filter => filter.Context.Message.OrderId == orderId);
 
         // ASSERT CRITICO: siguen siendo 2 filas (no 4). El canal NO se llamo de nuevo (sigue en 2).
         (IServiceScope final, var finalDb) = CreateDbScope();
@@ -162,16 +164,18 @@ public sealed class DoubleDeliveryIdempotencyTests : NotificationsConsumerTestBa
             MerchantId = merchantId,
             CompletedAtUtc = DateTime.UtcNow,
         });
-        await Harness.GetConsumerHarness<OrderTerminalEventsConsumer>()
-            .Consumed.Any<OrderCompletedIntegrationEvent>(filter => filter.Context.Message.OrderId == orderId);
+        await Eventually.ConsumedAsync<OrderCompletedIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderTerminalEventsConsumer>().Consumed,
+            filter => filter.Context.Message.OrderId == orderId);
 
         await Harness.Bus.Publish(new OrderDeliveredIntegrationEvent
         {
             OrderId = orderId,
             DeliveredAtUtc = DateTime.UtcNow,
         });
-        await Harness.GetConsumerHarness<OrderTerminalEventsConsumer>()
-            .Consumed.Any<OrderDeliveredIntegrationEvent>(filter => filter.Context.Message.OrderId == orderId);
+        await Eventually.ConsumedAsync<OrderDeliveredIntegrationEvent>(
+            Harness.GetConsumerHarness<OrderTerminalEventsConsumer>().Consumed,
+            filter => filter.Context.Message.OrderId == orderId);
 
         (IServiceScope scope, var db) = CreateDbScope();
         using (scope)
