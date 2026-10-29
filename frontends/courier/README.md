@@ -39,7 +39,7 @@ case (capitalizada solo la primera letra), `RD$` para dinero.
 | Toasts | Sonner 1.7 |
 | Iconos | lucide-react 0.469 |
 
-**NO trae** `@microsoft/signalr` ni `leaflet` — el courier emite ubicación por
+**NO trae** `@microsoft/signalr` — el courier emite ubicación por
 REST (`POST /api/v1/couriers/me/location`), el hub SignalR es exclusivo del
 cliente (`CustomerUserId`). Confirmado en [COURIER_API_MAP §E](../COURIER_API_MAP.md#e-location-flow--rest-not-signalr-architecture-a).
 
