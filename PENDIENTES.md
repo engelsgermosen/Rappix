@@ -45,13 +45,13 @@ Actualizado: 2026-10-28
 
 ## Tests
 - [x] `Catalog.MerchantEventConsumerTests.MerchantSuspended_DisablesCatalog` intermitente con las suites en paralelo: esperaba con `Harness.Consumed.Any` y leía la base al instante. `Consumed` también cuenta los consumes con fault y su espera depende de la inactividad del harness. Ahora sondea el catálogo hasta el estado esperado (timeout 30 s) y, si vence, falla con el último estado y los faults
-- [ ] Mismo patrón frágil (`Consumed.Any` + lectura inmediata de la base), sin tocar:
-  - Catalog: `MerchantEventConsumerTests.MerchantApproved_CreatesEnabledCatalog`
-  - Tracking: `CourierAssignedConsumerTests`, `CourierLocationUpdatedConsumerTests`, `OrderAcceptedConsumerTests`, `OrderSubmittedConsumerTests`, `OrderTerminalEventsConsumerTests`
-  - Notifications: `CourierAssignedConsumerTests`, `MerchantLifecycleConsumerTests`, `OrderAcceptedConsumerTests`, `OrderSubmittedConsumerTests`, `OrderTerminalEventsConsumerTests`, `UserRegisteredConsumerTests`
-- [ ] `Task.Delay(500)` fijo como espera, sin tocar: `Tracking.OrderSubmittedConsumerTests` (segundo publish) y `Notifications.DoubleDeliveryIdempotencyTests`
-- [ ] Bucles de espera que **vuelven en silencio** al agotar ~5-6 s (cuentan `Consumed`, incluidos los faults), sin tocar: `Catalog.MerchantEventConsumerTests.WaitForConsumedAsync`, `Dispatch.UserRegisteredConsumerTests`, `Dispatch.CourierRequestedConsumerTests`, `Merchants.UserRegisteredConsumerTests`, `Payments.PaymentRequestedConsumerTests`, `Payments.OrderDeliveredCaptureConsumerTests`, `Payments.OrderTerminalCompensationConsumerTests`. Referencia correcta: `Dispatch.OrderTerminalEventsConsumerTests` lanza `TimeoutException`
-- [ ] `Rappix.Merchants.Tests` se colgó una vez (>15 min sin avanzar, CPU ~0) en la 3.ª corrida completa en paralelo al reproducir el test de Catalog; no se repitió en 5 corridas posteriores con `--blame-hang-timeout 8m`. Sin diagnóstico: si reaparece, correr con `--blame-hang-timeout 5m --blame-hang-dump-type mini` para identificar el test
+- [x] Helper compartido `Rappix.BuildingBlocks.Testing.Eventually` (`UntilAsync` sondea con timeout y falla con el último estado y los faults; `ConsumedAsync` espera consumos terminados y falla si alguno tuvo fault). Aplicado:
+  - (a) los 7 bucles que volvían en silencio al agotar el tiempo (Catalog, Dispatch ×2, Merchants, Payments ×3): ningún test empezó a fallar al quitar el falso verde
+  - (b) los 2 `Task.Delay(500)` (`Tracking.OrderSubmittedConsumerTests`, `Notifications.DoubleDeliveryIdempotencyTests`)
+  - (c) 37 `Consumed.Any` de Tracking y Notifications (la mayoría ignoraba el resultado) y `Catalog.MerchantApproved_CreatesEnabledCatalog`
+- [x] Cuelgue de los tests (no solo Merchants): reproducido 3/3 con `--blame-hang-timeout 5m` en Pricing, Catalog, Merchants y Orders. Los dumps muestran el fixture parado en la espera `pg_isready` de Testcontainers 4.1 (`docker exec` que nunca termina con ~15-20 postgis emulados arrancando a la vez; esa espera no tiene timeout). Corregido con `ContainerStartup.StartAsync` (máx. 3 arranques simultáneos entre procesos, timeout de 3 min): 5/5 corridas completas sin fallos ni bloqueos. Forma recomendada de correr los tests en el README
+- [ ] Testcontainers 4.1: la espera de readiness de Postgres no se puede reemplazar ni acotar (`WithWaitStrategy` suma a la de por defecto). Revisar al actualizar el paquete (hay 4.16) si ya acepta timeout/token y si se puede quitar el semáforo de `ContainerStartup`
+- [ ] Una corrida aislada de Merchants falló una vez con `RegexMatchTimeoutException` en la inicialización estática de Testcontainers (`ResourceReaper`/`TestcontainersSettings.OS`) mientras compilaba en paralelo (CPU saturada). No se repitió; si reaparece, mirar la versión de Testcontainers
 
 ## Hallazgos del flujo E2E (sin tocar lógica de negocio)
 - [x] `frontends/COURIER_API_MAP.md` actualizado con `POST /api/v1/couriers/me/current-assignment/delivered` y el snapshot de `current-assignment`; `MERCHANT_API_MAP.md` corregido; `customer/API_MAP.md` revisado sin discrepancias
@@ -63,6 +63,7 @@ Actualizado: 2026-10-28
 - [ ] Revisar visualmente en Aspire (http://localhost:18888) la traza de un pedido vía gateway y la métrica `orders.placed` (recurso `orders`)
 - [ ] Comprobar en Aspire que `orders.completed` sube tras `tools/e2e-order-flow.sh` (el contador se incrementa en la transición a `Completed`; Aspire no tiene API de métricas)
 - [ ] Borrar los tags `backup/*` cuando confirme que main está bien
+- [ ] Ejecutar `tools/smoke-tracking-e2e.ps1` con PowerShell (`brew install powershell`): migrado al endpoint de entrega del courier sin poder probarlo (no hay `pwsh` aquí)
 - [ ] Probar `tools/seed-smoke.sh` desde base vacía la próxima vez que reinicie el entorno desde cero (requiere `docker compose down -v`, lo decido yo)
 - [ ] Revisar y limpiar la zona de cobertura duplicada de "Tienda Smoke" y los pedidos de prueba
 - [ ] Configurar claves de terceros (Google Maps, Stripe, SendGrid, Google OAuth) y restringir la key de Maps por HTTP referrer
