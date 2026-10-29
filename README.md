@@ -285,6 +285,19 @@ un stack recién levantado (`docker compose down -v` + `up`).
 ./tools/seed-smoke.ps1
 ```
 
+### Tests
+
+Los tests de integración levantan Postgres con Testcontainers (Docker debe estar arriba). Forma
+recomendada, con `--blame-hang` para que un test colgado se aborte a los 5 min y deje evidencia
+(`Sequence_*.xml` y dump en `TestResults/`) en vez de bloquear la corrida:
+
+```bash
+dotnet test Rappix.sln -c Release --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type mini
+```
+
+Las esperas de consumers usan `Rappix.BuildingBlocks.Testing.Eventually` (sondeo con timeout que
+falla con el último estado y los faults del consumer); no usar `Task.Delay` fijo ni `Consumed.Any`.
+
 ## Roadmap
 
 - [x] Fase 0 — Setup, BuildingBlocks, plantilla de servicio
