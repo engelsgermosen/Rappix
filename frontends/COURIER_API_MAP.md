@@ -32,7 +32,7 @@ Identity has **no courier-only routes**. Login/register/me/profile/change-passwo
 
 ### A.2 Dispatch service — own profile, vehicle, online/offline, location, current assignment
 
-Root group: `/api/v1/couriers` with `RequireCourier`. Defined in [CourierEndpoints.cs](src/Services/Dispatch/Rappix.Dispatch.Api/Endpoints/CourierEndpoints.cs). Six endpoints total — **this is the entire courier-facing surface area of the backend today.**
+Root group: `/api/v1/couriers` with `RequireCourier`. Defined in [CourierEndpoints.cs](src/Services/Dispatch/Rappix.Dispatch.Api/Endpoints/CourierEndpoints.cs). Seven endpoints total — **this is the entire courier-facing surface area of the backend today.**
 
 | Method | Path | Auth | Body / Query | Response | Notes |
 |---|---|---|---|---|---|
@@ -41,7 +41,8 @@ Root group: `/api/v1/couriers` with `RequireCourier`. Defined in [CourierEndpoin
 | POST | `/api/v1/couriers/me/online` | bearer + Courier | — | `CourierResponse` | Transitions `Offline → Online`. **Requires `Vehicle != null`** (`Dispatch.Courier.VehicleRequired` 400, "Configura tu vehiculo antes de ir online"). Idempotent (already-online → no-op success). Forbidden from `Busy` (`Dispatch.Courier.InvalidTransition` 409). Side effects: if `LastLocation` is known, the handler does a `GEOADD` to Redis after `SaveChanges` so the courier is immediately a candidate for matching. |
 | POST | `/api/v1/couriers/me/offline` | bearer + Courier | — | `CourierResponse` | Transitions `Online → Offline`. **Forbidden if `Busy`** (`Dispatch.Courier.BusyCannotGoOffline` 409) — the courier must wait for the order to reach a terminal state before disconnecting. Idempotent. Side effects: `ZREM` from Redis Geo so no more matches are attempted. |
 | POST | `/api/v1/couriers/me/location` | bearer + Courier | `ReportLocationRequest { latitude, longitude }` | `CourierResponse` | **This is the location heartbeat.** See section **§E (Location flow)** for the full discussion. `latitude ∈ [-90, 90]`, `longitude ∈ [-180, 180]` (FluentValidation, see [ReportLocationCommand.cs:19-26](src/Services/Dispatch/Rappix.Dispatch.Application/Couriers/ReportLocation/ReportLocationCommand.cs:19)). Allowed in any status (Offline couriers can still call it; their position just isn't put back in Redis until they go Online). Always raises `CourierLocationReportedDomainEvent` → `CourierLocationUpdatedIntegrationEvent` to the bus (Tracking consumes it). |
-| GET | `/api/v1/couriers/me/current-assignment` | bearer + Courier | — | `CurrentAssignmentResponse` **or 204 No Content** | Returns the active `CourierAssignment` for this courier (the row with `ReleasedAtUtc IS NULL`). **Crucially, returns 204 (no body) when there is no active assignment** — the portal must handle `204` distinctly from `200`. Payload only contains `assignmentId`, `orderId`, `assignedAtUtc` — **no pickup address, no delivery address, no customer info, no items, no totals**. See Gap §D.5.1. |
+| GET | `/api/v1/couriers/me/current-assignment` | bearer + Courier | — | `CurrentAssignmentResponse` **or 204 No Content** | Returns the active `CourierAssignment` for this courier (the row with `ReleasedAtUtc IS NULL`). **Crucially, returns 204 (no body) when there is no active assignment** — the portal must handle `204` distinctly from `200`. Since Fase 13.6 the payload carries an order snapshot ([CourierResponse.cs:42](src/Services/Dispatch/Rappix.Dispatch.Application/Responses/CourierResponse.cs:42)): `customerUserId`, `pickup { merchantName, latitude, longitude }` (no address text), `delivery { street, reference, latitude, longitude }`, `orderTotal`, `orderCurrency`, `lines[{ itemName, quantity }]`. No customer name/phone (the portal renders `Cliente #<first 8 of customerUserId>`). |
+| POST | `/api/v1/couriers/me/current-assignment/delivered` | bearer + Courier | — (no body) | **204 No Content** | Fase 13.6 courier-driven completion ([CourierEndpoints.cs:96](src/Services/Dispatch/Rappix.Dispatch.Api/Endpoints/CourierEndpoints.cs:96), [MarkAssignmentDeliveredCommand.cs](src/Services/Dispatch/Rappix.Dispatch.Application/Couriers/MarkAssignmentDelivered/MarkAssignmentDeliveredCommand.cs)). Ownership is implicit: resolves the active assignment of `JWT.sub` (no `orderId` in the URL, so a courier cannot complete someone else's order). Publishes `OrderDeliveredIntegrationEvent`; the existing consumers release the courier (`Busy → Online`), move the saga to `Completed`, push `Delivered` to Tracking and capture the payment. `404 Dispatch.Assignment.NoActiveAssignment` if there is no active assignment (never had one or already delivered). A double tap is harmless (the saga ignores `OrderDelivered` outside `InProgress`). Used by the portal ([courier.ts:75](frontends/courier/src/lib/api/courier.ts:75)) and by `tools/e2e-order-flow.sh` step 7. |
 
 ```ts
 type CourierStatus = "Offline" | "Online" | "Busy";
@@ -73,14 +74,20 @@ type CurrentAssignmentResponse = {
   assignmentId: string;        // GUID v7 of the CourierAssignment row
   orderId: string;             // the assigned Order
   assignedAtUtc: string;       // ISO-8601 UTC
+  customerUserId: string;      // GUID only; no personal data of the customer
+  pickup: { merchantName: string; latitude: number; longitude: number };   // no address text in v1
+  delivery: { street: string; reference: string | null; latitude: number; longitude: number };
+  orderTotal: number;
+  orderCurrency: string;       // e.g. "DOP"
+  lines: { itemName: string; quantity: number }[];
 };
 ```
 
-> ⚠️ **There is no `mark-picked-up`, no `mark-in-transit`, no `accept-assignment`, no `reject-assignment`, no `mark-delivered` for couriers, no `assignment-history`, no `earnings`.** The only state transition the courier can drive is location heartbeats. See section §D.5 for everything missing.
+> ⚠️ **There is no `mark-picked-up`, no `mark-in-transit`, no `accept-assignment`, no `reject-assignment`, no `assignment-history`, no `earnings`.** Besides location heartbeats, the only state transition the courier can drive is `POST /me/current-assignment/delivered`. See section §D.5 for everything missing.
 
 ### A.3 Orders — there are none
 
-Orders has **zero** courier-targeted endpoints. The only "any authenticated user" endpoint on Orders is the seam `/orders/{orderId}/mark-delivered` (§C below) — it has no ownership check at all and is marked TEMPORARY. **Do not call it from the courier portal**; it will be removed.
+Orders has **zero** courier-targeted endpoints. The only "any authenticated user" endpoint on Orders is the seam `/orders/{orderId}/mark-delivered` (§C below) — it has no ownership check at all and is marked TEMPORARY. **Do not call it from the courier portal** — use `POST /api/v1/couriers/me/current-assignment/delivered` (§A.2); the seam only survives for `tools/smoke-tracking-e2e.ps1` / `tools/seed-smoke.ps1` and will be removed.
 
 ### A.4 Tracking — there are none for the courier
 
@@ -146,14 +153,14 @@ These services are protected with policies that explicitly exclude `userType=Cou
 |---|---|---|---|---|
 | **Pricing (customer)** | `/api/v1/pricing/{**}` | `RequireCustomer` ([PricingEndpoints.cs:20](src/Services/Pricing/Rappix.Pricing.Api/Endpoints/PricingEndpoints.cs:20)) | `POST /quotes`, `GET /quotes/{id}` — customer quotes a cart before placing the order. | Couriers don't quote. `403`. |
 | **Pricing (admin)** | `/api/v1/admin/pricing/{**}` | `RequireAdmin` | Surge rules + coupon CRUD. | Not the courier. |
-| **Orders (customer)** | `POST /api/v1/orders`, `GET /api/v1/orders/{id}`, `GET /api/v1/orders`, `POST /api/v1/orders/{id}/cancel` | `RequireCustomer` ([OrderEndpoints.cs:22](src/Services/Orders/Rappix.Orders.Api/Endpoints/OrderEndpoints.cs:22)) | Place / list-own / get-own / cancel. | Courier gets `403`. The `GetOrderQuery` handler also compares `order.CustomerUserId == JWT.sub` so even if the policy were lifted, a courier's id would 404. **This is exactly why the courier cannot see the pickup/delivery addresses of the order they were just assigned** — see Gap §D.5.1. |
+| **Orders (customer)** | `POST /api/v1/orders`, `GET /api/v1/orders/{id}`, `GET /api/v1/orders`, `POST /api/v1/orders/{id}/cancel` | `RequireCustomer` ([OrderEndpoints.cs:22](src/Services/Orders/Rappix.Orders.Api/Endpoints/OrderEndpoints.cs:22)) | Place / list-own / get-own / cancel. | Courier gets `403`. The `GetOrderQuery` handler also compares `order.CustomerUserId == JWT.sub` so even if the policy were lifted, a courier's id would 404. The courier gets the order data it needs from the `GET /couriers/me/current-assignment` snapshot instead (§A.2). |
 | **Orders (merchant)** | `/api/v1/orders/merchant/pending`, `/orders/{id}/accept`, `/orders/{id}/reject` | `RequireMerchant` | Merchant inbox. | Not the courier. |
-| **Orders (seam)** | `POST /api/v1/orders/{id}/mark-delivered` | `RequireAuthorization()` (any auth, no role) ([OrderSeamEndpoints.cs:17](src/Services/Orders/Rappix.Orders.Api/Endpoints/OrderSeamEndpoints.cs:17)) | TEMPORARY seam from Fase 5: marks an order delivered manually so the saga reaches `Completed`. The handler does **no ownership check** ([MarkDeliveredCommandHandler.cs:13-30](src/Services/Orders/Rappix.Orders.Application/Orders/MarkDelivered/MarkDeliveredCommandHandler.cs:13)) — any authenticated user with a valid orderId can fire it. | **Do not use from the courier portal.** It is labeled "TEMPORAL hacia Dispatch", slated for removal "Cuando llegue Dispatch real" — and Dispatch *is* real now (Fase 6 done). The fact that it survives is the only reason the saga can reach `Completed` today; see Gap §D.5.3 for the impact. |
+| **Orders (seam)** | `POST /api/v1/orders/{id}/mark-delivered` | `RequireAuthorization()` (any auth, no role) ([OrderSeamEndpoints.cs:17](src/Services/Orders/Rappix.Orders.Api/Endpoints/OrderSeamEndpoints.cs:17)) | TEMPORARY seam from Fase 5: marks an order delivered manually so the saga reaches `Completed`. The handler does **no ownership check** ([MarkDeliveredCommandHandler.cs:13-30](src/Services/Orders/Rappix.Orders.Application/Orders/MarkDelivered/MarkDeliveredCommandHandler.cs:13)) — any authenticated user with a valid orderId can fire it. | **Do not use from the courier portal.** It is labeled "TEMPORAL hacia Dispatch", slated for removal "Cuando llegue Dispatch real" — and Dispatch *is* real now (Fase 6 done). Since Fase 13.6 the saga reaches `Completed` through the courier endpoint `POST /api/v1/couriers/me/current-assignment/delivered`; the seam only survives for the PowerShell smoke scripts. |
 | **Merchants (admin)** | `/api/v1/admin/merchants/{**}` | `RequireAdmin` | Approve / suspend merchants. | Not the courier. |
 | **Merchants (merchant)** | `/api/v1/merchants/me/*` | `RequireMerchant` | Merchant self-service. | Not the courier. |
-| **Merchants (public)** | `/api/v1/merchants/nearby`, `/api/v1/merchants/{id}`, `/api/v1/merchants/by-slug/{slug}`, `/api/v1/merchants/{id}/logo-url` | anon | Public discovery. | The courier *could* call these (they're anonymous) to render the merchant logo and name on the assignment screen — `PublicMerchantResponse` returns `{ id, name, slug, description, verticalType, averageRating, totalReviews }` ([PublicMerchantResponse.cs:6](src/Services/Merchants/Rappix.Merchants.Application/Responses/PublicMerchantResponse.cs:6)). **But the pickup address / coordinates are NOT exposed in this DTO** (they're only readable through the merchant's own `/me`). So the public endpoint is enough to label the assignment but not to navigate to it. See Gap §D.5.1. |
+| **Merchants (public)** | `/api/v1/merchants/nearby`, `/api/v1/merchants/{id}`, `/api/v1/merchants/by-slug/{slug}`, `/api/v1/merchants/{id}/logo-url` | anon | Public discovery. | The courier *could* call these (they're anonymous) to render the merchant logo and name on the assignment screen — `PublicMerchantResponse` returns `{ id, name, slug, description, verticalType, averageRating, totalReviews }` ([PublicMerchantResponse.cs:6](src/Services/Merchants/Rappix.Merchants.Application/Responses/PublicMerchantResponse.cs:6)). **But the pickup address / coordinates are NOT exposed in this DTO** (they're only readable through the merchant's own `/me`). Not needed for navigation: the `current-assignment` snapshot already carries the pickup coordinates (§A.2). |
 | **Catalog** | `/api/v1/catalog/me/*` (`RequireMerchant`), `/api/v1/catalog/items/*` (anon) | mix | Merchant catalog management + public item search. | Not the courier. The order line items embedded in the order are also not visible to the courier. |
-| **Tracking REST** | `GET /api/v1/tracking/orders/{orderId}` | `RequireAuthorization()` (any auth) BUT ownership = `OrderTracking.CustomerUserId` | Live snapshot of the order tracking. | The handler at [GetOrderTrackingQuery.cs:25-28](src/Services/Tracking/Rappix.Tracking.Application/OrderTrackings/GetOrderTracking/GetOrderTrackingQuery.cs:25) collapses 404 and 403 into the same `Tracking.OrderTracking.NotFound` for the customer of the order. A courier calling it for an order they're delivering gets the same 404. **The courier cannot get the pickup/delivery coordinates this way either.** Documented backend gap §D.5.1. |
+| **Tracking REST** | `GET /api/v1/tracking/orders/{orderId}` | `RequireAuthorization()` (any auth) BUT ownership = `OrderTracking.CustomerUserId` | Live snapshot of the order tracking. | The handler at [GetOrderTrackingQuery.cs:25-28](src/Services/Tracking/Rappix.Tracking.Application/OrderTrackings/GetOrderTracking/GetOrderTrackingQuery.cs:25) collapses 404 and 403 into the same `Tracking.OrderTracking.NotFound` for the customer of the order. A courier calling it for an order they're delivering gets the same 404. The courier uses the `current-assignment` snapshot for coordinates instead (§A.2). |
 | **Tracking Hub** | `/hubs/tracking` (SignalR) | `[Authorize]` + ownership = `CustomerUserId` | Live push of `LocationUpdated` / `StatusChanged` to the customer. | The hub's `Subscribe(orderId)` validates `snapshot.CustomerUserId == JWT.sub` ([TrackingHub.cs:50](src/Services/Tracking/Rappix.Tracking.Api/Hubs/TrackingHub.cs:50)) and throws `HubException("no autorizado")` for anyone else (the same message used for "doesn't exist"). **The courier does not subscribe to this hub.** See §E for the actual location architecture. |
 | **Payments** | `/api/v1/payments/{**}` | (no courier REST endpoints exist) | Only `/payments/webhooks/stripe` (anonymous, Stripe-signed). | Nothing the courier should call. |
 | **Notifications** | (no REST endpoints) | — | Background consumer + projections only. | No client-facing API. |
@@ -222,9 +229,8 @@ These services are protected with policies that explicitly exclude `userType=Cou
 [on shift end, if Busy]
   → backend rejects offline with 409 Dispatch.Courier.BusyCannotGoOffline
   → the courier must complete (or backend must cancel) the active order first.
-  → "complete" today = either the order's customer cancels, the seam mark-delivered fires,
-     or the saga fails with a terminal. There is no courier-driven completion.
-     See Gap §D.5.3.
+  → "complete" = POST /api/v1/couriers/me/current-assignment/delivered (courier-driven,
+     §A.2), or the order is cancelled / fails with a terminal.
 ```
 
 ### D.3 Receiving an assignment (polling, NOT push)
@@ -235,11 +241,11 @@ The backend does NOT push to the courier when a new assignment lands. The portal
 [loop while Online]
   GET /api/v1/couriers/me/current-assignment
        → 204 No Content        → still waiting, sleep ~5s, retry
-       → 200 CurrentAssignmentResponse  { assignmentId, orderId, assignedAtUtc }
+       → 200 CurrentAssignmentResponse  { assignmentId, orderId, pickup, delivery, lines, ... }
          → the moment the orderId changes (or appears for the first time),
            the courier has been assigned. Status in /me is now "Busy".
-         → render the assignment screen using only what fits in this payload
-           + whatever the portal can derive (see Gap §D.5.1 for what is missing).
+         → render the assignment screen from the snapshot (pickup/delivery coordinates,
+           street, lines, total); pickup address text is not available (Gap §D.5.1).
 ```
 
 > ⚠️ **No SignalR for the courier.** `/hubs/tracking` is customer-only by ownership. There is no separate courier hub. Polling is the only option today.
@@ -265,15 +271,13 @@ Cadence guidance:
 
 These are **real limitations in the current backend** as of phase 13. The courier portal cannot:
 
-1. **See the pickup address, delivery address, customer name, or items of the assigned order.** `CurrentAssignmentResponse` only has `{ assignmentId, orderId, assignedAtUtc }`. `GET /api/v1/orders/{id}` is `RequireCustomer` + ownership-bound. `GET /api/v1/tracking/orders/{id}` collapses 404/403 against the courier. `GET /api/v1/merchants/{id}` is anonymous but `PublicMerchantResponse` *omits* the pickup coordinate. **Today the courier knows an orderId and nothing else.** *Workaround*: render the assignment with a "contact dispatch" stub; there is no client-side workaround that recovers the addresses from the public surface. Backend gap to file: expose `GET /api/v1/couriers/me/current-assignment` with a richer payload (pickup address from Merchants, delivery address + customer first name + line totals from Orders), or add a Tracking ownership check for `LastCourierId`.
+1. ~~**See the pickup address, delivery address, customer name, or items of the assigned order.**~~ **Mostly resolved (Fase 13.6):** `GET /me/current-assignment` now returns an order snapshot (pickup merchant name + coordinates, delivery street/reference/coordinates, total, lines) — see §A.2. Still missing: pickup address *text* (only coordinates) and any customer personal data (by design; the portal shows `Cliente #<first 8 of customerUserId>`).
 
 2. **Receive a push when a new assignment lands.** No courier hub, no SignalR group, no SSE. *Workaround*: poll `/me/current-assignment` every 5–10 s while Online; on `Online → Busy` transition (observed via `/me`), tighten the poll to 2 s for a brief window to catch the assignment immediately. Backend gap to file: a courier SignalR hub (or reuse `/hubs/tracking` with a second group keyed by `CourierId`).
 
 3. **Mark "picked up at merchant" or "in transit".** The TrackingStatus enum has only `Placed | MerchantAccepted | CourierAssigned | Delivered | Cancelled | Failed` ([TrackingStatus.cs](src/Services/Tracking/Rappix.Tracking.Domain/OrderTrackings/TrackingStatus.cs)) — the intermediate states are **explicitly listed as a future ADR-0008 follow-up** ("Estados intermedios mas finos (Preparing/PickedUp/InTransit) son un follow-up para cuando la saga publique OrderStatusChangedIntegrationEvent"). There is no command, no event, no domain method for the courier to advance the order through pickup or in-transit. *Workaround*: the assignment screen treats the entire "I have the order, I'm driving" period as one undifferentiated state. The customer's tracking timeline jumps `MerchantAccepted → CourierAssigned → Delivered` with no detail in between.
 
-4. **Mark the order delivered (courier-driven).** Dispatch has no `complete-assignment` endpoint. The saga's `Completed` state today is reached **only** when something publishes `OrderDeliveredIntegrationEvent`. The only producer of that event in the codebase is the **seam endpoint** `POST /api/v1/orders/{id}/mark-delivered`, marked TEMPORARY at [OrderSeamEndpoints.cs:8-10](src/Services/Orders/Rappix.Orders.Api/Endpoints/OrderSeamEndpoints.cs:8) and at [MarkDeliveredCommand.cs:7-9](src/Services/Orders/Rappix.Orders.Application/Orders/MarkDelivered/MarkDeliveredCommand.cs:7) ("Eliminar en Fase 6"). The endpoint has no ownership check whatsoever — any authenticated user (customer, merchant, courier, admin) can mark any order delivered if they know its id. **Two design choices for the portal**:
-   - **Avoid the seam** (recommended) — render the "Entregar" button as disabled with a tooltip "esperando confirmacion del backend" and let the customer or an admin trigger completion out of band. This keeps the portal honest about the gap.
-   - **Use the seam knowingly** — the courier portal calls `POST /api/v1/orders/{orderId}/mark-delivered` (no body, bearer JWT) and treats it as the courier-completion action. **Add an explicit FE-side ownership check** by comparing `orderId` against the assignment they currently hold. Document loudly in the portal's README that this will break the day the seam is removed (the call should be replaced with a proper Dispatch endpoint like `POST /api/v1/couriers/me/current-assignment/complete`). Backend gap to file: add a real courier-completion endpoint with ownership against `CourierAssignment.CourierId == JWT.sub`.
+4. ~~**Mark the order delivered (courier-driven).**~~ **Resolved (Fase 13.6):** `POST /api/v1/couriers/me/current-assignment/delivered` (§A.2) with implicit ownership (`JWT.sub`'s active assignment). The Orders seam `POST /api/v1/orders/{id}/mark-delivered` still exists without any ownership check, kept only for `tools/smoke-tracking-e2e.ps1` and `tools/seed-smoke.ps1`; **never call it from the portal**.
 
 5. **Reject or hand back an assignment.** Dispatch's claim is atomic and one-shot — the courier is just "told" they have it (via the status change to `Busy`). The unique partial index `(CourierId) WHERE ReleasedAtUtc IS NULL` actively prevents a second assignment, so the courier cannot even "pass" it. The only release paths are server-side: `OrderTerminalEventsConsumer` releases on `OrderDelivered | OrderCancelled | OrderFailed`. *Workaround*: no client workaround. Backend gap to file: a `POST /api/v1/couriers/me/current-assignment/decline` that emits a compensation event re-queueing the order.
 
@@ -353,7 +357,7 @@ The full flow, traced through the code:
 - **No `@microsoft/signalr` dependency.** No `HubConnectionBuilder`, no `withUrl("/hubs/tracking")`, no `accessTokenFactory`. The courier portal is plain `fetch` against the gateway.
 - **No `?access_token=` query string anywhere.** That pattern only exists because SignalR WebSocket upgrades can't carry the `Authorization` header — irrelevant here.
 - **Idempotency-Key**: don't send one on `/location` (heartbeats are deliberately replay-safe; see §D.4).
-- **Rate limit budget**: the gateway gives an authenticated `sub` 300 req/min (sliding). Reserve at least 60 of those for everything else (`/me`, `/me/current-assignment`, the seam call if used). A 3 s heartbeat = 20 req/min — comfortable.
+- **Rate limit budget**: the gateway gives an authenticated `sub` 300 req/min (sliding). Reserve at least 60 of those for everything else (`/me`, `/me/current-assignment`, `/me/current-assignment/delivered`). A 3 s heartbeat = 20 req/min — comfortable.
 
 ### What WOULD be the SignalR (architecture B) shape, if it existed
 
@@ -431,18 +435,17 @@ The courier only ever sees an order between `AwaitingCourier`-resolution and the
                                                           │      Courier never sees this order (assignment never landed).
                                                           ▼
                                               Courier portal observes:
-                                              GET /me/current-assignment → 200 { assignmentId, orderId, assignedAtUtc }
+                                              GET /me/current-assignment → 200 { assignmentId, orderId, pickup, delivery, lines, ... }
                                               GET /me                    → status="Busy"
 
                                               [courier drives, posting POST /me/location repeatedly]
 
                                               (intermediate states like "PickedUp" do NOT exist — gap §D.5.3)
 
-                                              [the seam fires: POST /api/v1/orders/{id}/mark-delivered]
-                                              (either by the courier knowingly using the seam, or by an out-of-band tool)
+                                              [courier taps "Entregar": POST /api/v1/couriers/me/current-assignment/delivered → 204]
                                                           │
                                                           ▼
-                                              Orders publishes OrderDeliveredIntegrationEvent
+                                              Dispatch publishes OrderDeliveredIntegrationEvent
                                                           │
                                                           ▼
                                               Dispatch.OrderTerminalEventsConsumer:
@@ -460,7 +463,7 @@ The courier only ever sees an order between `AwaitingCourier`-resolution and the
 | Order transition | Triggered by | Courier-visible signal |
 |---|---|---|
 | `AwaitingCourier → InProgress` | Saga consumes `CourierAssigned` | `/me/current-assignment` flips 204 → 200; `/me.status` flips `Online` → `Busy`. |
-| `InProgress → Completed` | Saga consumes `OrderDelivered` (today only the seam emits it; in a future phase, a real courier-completion endpoint would) | `/me/current-assignment` flips 200 → 204; `/me.status` flips `Busy` → `Online`. **No reason payload.** |
+| `InProgress → Completed` | Saga consumes `OrderDelivered` (published by Dispatch on `POST /me/current-assignment/delivered`) | `/me/current-assignment` flips 200 → 204; `/me.status` flips `Busy` → `Online`. **No reason payload.** |
 | `* → Cancelled` (e.g., customer cancelled in-flight) | Saga consumes `OrderCancelled` | Same observable as above: 200 → 204, `Busy` → `Online`. The portal cannot distinguish a cancel from a delivery on its own — gap §D.5.7. |
 | `* → Failed` | Saga's compensation pipeline | Same observable. Same indistinguishability. |
 
@@ -491,10 +494,10 @@ Three layers stack on top of each other:
 
 ## H. Summary
 
-- **6 courier-exclusive REST endpoints**, all in Dispatch under `/api/v1/couriers/me/*`: `GET /me`, `PUT /me/vehicle`, `POST /me/online`, `POST /me/offline`, `POST /me/location`, `GET /me/current-assignment`. That is the **entire** courier-facing backend today.
+- **7 courier-exclusive REST endpoints**, all in Dispatch under `/api/v1/couriers/me/*`: `GET /me`, `PUT /me/vehicle`, `POST /me/online`, `POST /me/offline`, `POST /me/location`, `GET /me/current-assignment`, `POST /me/current-assignment/delivered`. That is the **entire** courier-facing backend today.
 - **Shared endpoints used by the courier portal**: Identity (`/auth/register|login|refresh|logout|confirm-email|resend-confirmation|me`, `/users/me`, `/users/me/change-password`). Optionally the anonymous `/api/v1/merchants/{id}` for the merchant's display name and logo on the assignment screen (the pickup *address* is not exposed there).
-- **Pricing, Orders, Tracking, Catalog, Payments, Notifications, admin endpoints**: not callable from the courier portal. **The single most painful absence is order detail** (pickup address, delivery address, customer name, items) — see Gap §D.5.1. The Tracking hub is also off-limits to the courier.
+- **Pricing, Orders, Tracking, Catalog, Payments, Notifications, admin endpoints**: not callable from the courier portal. Order detail comes from the `current-assignment` snapshot (§A.2); still missing: pickup address text and customer name. The Tracking hub is also off-limits to the courier.
 - **Two operational loops** in the portal: (a) location heartbeat (`POST /me/location` every 3–5 s while Busy, 10–15 s while Online-idle), (b) assignment poll (`GET /me/current-assignment` every 5–10 s while Online; tighten on `Online → Busy`).
 - **Location flow = REST, not SignalR** (§E). The courier portal does **not** need `@microsoft/signalr`. The customer's live map is fed by Tracking consuming the bus event Dispatch publishes from `POST /me/location`. **This is the answer to the obligatory section of this investigation.**
 - **Ownership**: `JWT.sub == CourierId.Value`. No URL parameters to attack. `RequireCourier` policy is exclusive to Dispatch — no other service even defines it.
-- **Biggest backend gaps to close before the courier portal is fully usable**: (1) richer `current-assignment` payload with addresses, (2) a real courier-completion endpoint replacing the temporary seam, (3) intermediate states (`PickedUp`, `InTransit`), (4) a courier-side push (SignalR or SSE) for new assignments and out-of-band releases, (5) `assignment-history` + `earnings` read endpoints.
+- **Biggest backend gaps to close before the courier portal is fully usable**: (1) pickup address text in the `current-assignment` snapshot, (2) removing the temporary Orders seam (the courier-completion endpoint already exists), (3) intermediate states (`PickedUp`, `InTransit`), (4) a courier-side push (SignalR or SSE) for new assignments and out-of-band releases, (5) `assignment-history` + `earnings` read endpoints.
